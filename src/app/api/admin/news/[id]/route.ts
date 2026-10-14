@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { canUpdateArticle, canDeleteArticle, canApproveArticle } from '@/lib/permissions';
 import { sanitizeHtml, sanitizePlainText } from '@/lib/sanitize';
 import { writeAuditLog } from '@/lib/audit';
-import { ArticleStatus, Role } from '@prisma/client';
+import { ArticleStatus, OrgCode, Role } from '@prisma/client';
 import { bundleContentWithGallery, extractGalleryImages } from '@/lib/news-gallery';
 
 interface RouteContext {
@@ -69,10 +69,24 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     // 3. Khử trùng dữ liệu
     const updatePayload: Record<string, unknown> = {};
     if (title !== undefined) updatePayload.title = sanitizePlainText(title);
-    if (summary !== undefined) updatePayload.summary = sanitizePlainText(summary);
-    if (categoryId !== undefined) updatePayload.categoryId = categoryId;
+    if (categoryId !== undefined) {
+      const matchedCat = await prisma.newsCategory.findFirst({
+        where: {
+          OR: [
+            { id: categoryId },
+            { slug: categoryId },
+            { orgCode: (orgCode as OrgCode) || existing.orgCode },
+          ],
+        },
+      });
+      if (matchedCat) {
+        updatePayload.categoryId = matchedCat.id;
+        updatePayload.orgCode = matchedCat.orgCode;
+      }
+    } else if (orgCode !== undefined) {
+      updatePayload.orgCode = orgCode;
+    }
     if (villageId !== undefined) updatePayload.villageId = villageId || null;
-    if (orgCode !== undefined) updatePayload.orgCode = orgCode;
     if (beneficiaryName !== undefined) updatePayload.beneficiaryName = beneficiaryName ? sanitizePlainText(beneficiaryName) : null;
     if (thumbnailUrl !== undefined) updatePayload.thumbnailUrl = thumbnailUrl;
     if (isFeatured !== undefined) updatePayload.isFeatured = Boolean(isFeatured);

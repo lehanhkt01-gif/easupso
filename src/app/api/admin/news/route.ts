@@ -129,7 +129,33 @@ export async function POST(req: NextRequest) {
     const slugExists = await prisma.newsArticle.findUnique({ where: { slug: baseSlug } });
     const finalSlug = slugExists ? `${baseSlug}-${Math.random().toString(36).substring(2, 7)}` : baseSlug;
 
-    // 4. Xác định trạng thái xuất bản
+    // 4. Tìm chuyên mục hợp lệ trong CSDL (hỗ trợ cả ID thực tế, slug hoặc orgCode)
+    let matchedCat = null;
+    if (categoryId) {
+      matchedCat = await prisma.newsCategory.findFirst({
+        where: {
+          OR: [
+            { id: categoryId },
+            { slug: categoryId },
+            { orgCode: (orgCode as OrgCode) || OrgCode.MTTQ },
+          ],
+        },
+      });
+    }
+    if (!matchedCat) {
+      matchedCat = await prisma.newsCategory.findFirst({
+        orderBy: { displayOrder: 'asc' },
+      });
+    }
+
+    if (!matchedCat) {
+      return NextResponse.json(
+        { success: false, error: 'Không tìm thấy chuyên mục tin tức hợp lệ trong hệ thống.' },
+        { status: 400 }
+      );
+    }
+
+    // 5. Xác định trạng thái xuất bản
     const isPublishingNow =
       status === ArticleStatus.PUBLISHED &&
       (session.user.role === Role.EXECUTIVE || session.user.role === Role.SUPER_ADMIN);
@@ -141,9 +167,9 @@ export async function POST(req: NextRequest) {
         summary: cleanSummary,
         contentHtml: bundledContentHtml,
         thumbnailUrl: finalThumbnailUrl,
-        categoryId,
+        categoryId: matchedCat.id,
         villageId: villageId || null,
-        orgCode: orgCode as OrgCode,
+        orgCode: matchedCat.orgCode || (orgCode as OrgCode) || OrgCode.MTTQ,
         authorId: session.user.id,
         beneficiaryName: cleanBeneficiaryName,
         approvedById: isPublishingNow ? session.user.id : null,

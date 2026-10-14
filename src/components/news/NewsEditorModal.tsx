@@ -14,6 +14,7 @@ import {
   Building,
   MapPin,
   Sparkles,
+  Eye,
 } from 'lucide-react';
 import { EA_SUP_VILLAGES } from '@/constants/easup-data';
 
@@ -45,6 +46,8 @@ export function NewsEditorModal({
 }: NewsEditorModalProps) {
   const isEditMode = Boolean(articleToEdit?.id);
 
+  const [categoriesList, setCategoriesList] = useState(categories);
+
   // Form State
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
@@ -53,6 +56,24 @@ export function NewsEditorModal({
   const [villageId, setVillageId] = useState('');
   const [orgCode, setOrgCode] = useState('MTTQ');
   const [status, setStatus] = useState<'PUBLISHED' | 'DRAFT'>('PUBLISHED');
+
+  // Nạp danh mục thực tế từ CSDL
+  useEffect(() => {
+    async function loadRealCategories() {
+      try {
+        const res = await fetch('/api/public/categories');
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          setCategoriesList(json.data);
+          if (!articleToEdit && !categoryId) {
+            setCategoryId(json.data[0].id);
+            setOrgCode(json.data[0].orgCode);
+          }
+        }
+      } catch {}
+    }
+    loadRealCategories();
+  }, [articleToEdit, categoryId]);
 
   // Quản lý tối đa 7 ảnh
   const [images, setImages] = useState<string[]>([]);
@@ -114,7 +135,7 @@ export function NewsEditorModal({
   // Cập nhật orgCode tương ứng khi chọn Category
   function handleCategoryChange(selectedCatId: string) {
     setCategoryId(selectedCatId);
-    const found = categories.find((c) => c.id === selectedCatId);
+    const found = categoriesList.find((c) => c.id === selectedCatId);
     if (found?.orgCode) {
       setOrgCode(found.orgCode);
     }
@@ -326,7 +347,7 @@ export function NewsEditorModal({
                 onChange={(e) => handleCategoryChange(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-[#D5CBBA] bg-white text-xs sm:text-sm font-medium text-[#14211B] focus:outline-none focus:ring-2 focus:ring-[#1B4332]"
               >
-                {categories.map((c) => (
+                {categoriesList.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>
