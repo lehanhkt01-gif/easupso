@@ -14,6 +14,10 @@ echo "=========================================================="
 APP_DIR="/var/www/Easupso"
 cd "$APP_DIR"
 
+# 0. Tự động kéo mã nguồn mới nhất từ GitHub
+echo "🔄 Đang đồng bộ mã nguồn mới nhất từ GitHub..."
+git pull origin main || true
+
 # 1. Tạo các thư mục cần thiết
 echo "📁 Đang chuẩn bị các thư mục lưu trữ..."
 mkdir -p "$APP_DIR/nginx/ssl"
