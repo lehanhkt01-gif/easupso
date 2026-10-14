@@ -21,18 +21,20 @@ export function stripGalleryFromHtml(html: string): string {
   // 2. Gỡ bỏ khối div gallery HTML cũ nếu có
   cleaned = cleaned.replace(/<div[^>]*class="[^"]*easup-photo-gallery[^"]*"[\s\S]*?(?:<\/div>\s*<!--\s*END_EASUPSO_GALLERY\s*-->|<\/div>\s*<\/div>\s*<\/div>|<\/div>\s*$)/gi, '');
 
-  // 3. Gỡ bỏ các thẻ đoạn văn <p> chứa tàn dư text của gallery cũ (cả có dấu lẫn không dấu)
-  cleaned = cleaned.replace(/<p[^>]*>\s*(?:📸\s*)?[hH][ìií]nh\s*[ảaá]nh\s*ph[óo]ng\s*s[ựu]\s*ho[ạa]t\s*[đd][ộo]ng[\s\S]*?<\/p>/gi, '');
-  cleaned = cleaned.replace(/<p[^>]*>\s*[bB][ảa]n\s*quy[ềe]n\s*[ảa]nh:?[\s\S]*?<\/p>/gi, '');
-  cleaned = cleaned.replace(/<p[^>]*>\s*[ảaẢA][nN]h\s*\d+\s*\/\s*\d+\s*<\/p>/gi, '');
+  // 3. Xóa các đoạn text rác (dù nằm riêng hay nằm chung trong <p> với <br>)
+  cleaned = cleaned.replace(/(?:<br\s*\/?>|\s)*[📷📸]\s*(?:<br\s*\/?>|\s)*/gi, '');
+  cleaned = cleaned.replace(/(?:<br\s*\/?>|\s)*[hH][ìií]nh\s*[ảaá]nh\s*ph[óo]ng\s*s[ựu][^<\n\r]*(?:<br\s*\/?>|\s)*/gi, '');
+  cleaned = cleaned.replace(/(?:<br\s*\/?>|\s)*[bB][ảa]n\s*quy[ềe]n\s*[ảa]nh[^<\n\r]*(?:<br\s*\/?>|\s)*/gi, '');
+  cleaned = cleaned.replace(/(?:<br\s*\/?>|\s)*[ảaẢA][nN]h\s*\d+\s*[\/:]\s*\d+[^<\n\r]*(?:<br\s*\/?>|\s)*/gi, '');
 
-  // 4. Gỡ bỏ các dòng text trần nếu nội dung đã bị strip thẻ HTML trước đó
-  cleaned = cleaned.replace(/^[ \t]*(?:📸\s*)?[hH][ìií]nh\s*[ảaá]nh\s*ph[óo]ng\s*s[ựu]\s*ho[ạa]t\s*[đd][ộo]ng.*$/gim, '');
-  cleaned = cleaned.replace(/^[ \t]*[bB][ảa]n\s*quy[ềe]n\s*[ảa]nh:?.*$/gim, '');
-  cleaned = cleaned.replace(/^[ \t]*[ảaẢA][nN]h\s*\d+\s*\/\s*\d+.*$/gim, '');
+  // 4. Nếu là dòng text trần
+  cleaned = cleaned.replace(/^[ \t]*(?:[📷📸]|.*[hH][ìií]nh\s*[ảaá]nh\s*ph[óo]ng\s*s[ựu]|.*[bB][ảa]n\s*quy[ềe]n\s*[ảa]nh|.*[ảaẢA][nN]h\s*\d+\s*[\/:]\s*\d+).*$/gim, '');
 
-  // 5. Dọn dẹp thẻ <p> rỗng và dòng trống liên tiếp
-  cleaned = cleaned.replace(/<p[^>]*>\s*(?:<br\s*\/?>)?\s*<\/p>/gi, '');
+  // 5. Xóa các thẻ <p> rỗng còn sót lại và làm sạch định dạng dòng
+  cleaned = cleaned.replace(/<p[^>]*>(?:\s*|<br\s*\/?>|&nbsp;)*<\/p>/gi, '');
+  cleaned = cleaned.replace(/(?:<br\s*\/?>\s*){2,}/gi, '<br/>');
+  cleaned = cleaned.replace(/<br\s*\/?>\s*<\/p>/gi, '</p>');
+  cleaned = cleaned.replace(/<p[^>]*>\s*<br\s*\/?>/gi, '<p>');
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
 
   return cleaned.trim();
