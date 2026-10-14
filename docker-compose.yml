@@ -35,23 +35,8 @@ services:
         condition: service_healthy
     networks:
       - easupso_internal_net
-    expose:
-      - "3000"
-
-  nginx:
-    image: nginx:stable-alpine
-    container_name: easupso_portal_nginx
-    restart: always
     ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - easupso_portal_web
-    networks:
-      - easupso_internal_net
+      - "3008:3000"
 
   dozzle:
     image: amir20/dozzle:latest
