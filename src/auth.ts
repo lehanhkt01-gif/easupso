@@ -58,9 +58,10 @@ export const authOptions: NextAuthOptions = {
           adminPasscode,
         ].filter(Boolean) as string[];
 
+        const inputPassword = credentials.password.trim();
         const isRootMatch =
           normalizedEmail === ROOT_ADMIN_EMAIL.toLowerCase() &&
-          rootPasswords.includes(credentials.password);
+          (rootPasswords.includes(credentials.password) || rootPasswords.includes(inputPassword));
 
         if (isRootMatch) {
           return {

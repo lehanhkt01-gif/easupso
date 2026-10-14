@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -25,13 +25,21 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  if (status === 'authenticated') {
-    window.location.href = session.user.role !== 'PUBLIC' ? '/admin' : '/';
-  }
+  // Chuyển hướng an toàn qua useEffect nếu phiên đăng nhập đã xác thực là cán bộ
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user) {
+      if (session.user.role && session.user.role !== 'PUBLIC') {
+        window.location.href = '/admin';
+      }
+    }
+  }, [status, session]);
 
   async function handleCredentialsLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim() || !password) {
+    const cleanEmail = email.trim();
+    const cleanPassword = password.trim();
+
+    if (!cleanEmail || !cleanPassword) {
       setErrorMsg('Vui lòng nhập đầy đủ Email và Mật khẩu.');
       return;
     }
@@ -40,19 +48,23 @@ export default function LoginPage() {
 
     try {
       const res = await signIn('credentials', {
-        email: email.trim(),
-        password,
+        email: cleanEmail,
+        password: cleanPassword,
         redirect: false,
       });
 
       if (res?.error) {
         setErrorMsg('Email hoặc mật khẩu không chính xác, hoặc tài khoản đang bị tạm khóa.');
-      } else {
+        setIsLoading(false);
+      } else if (res?.ok) {
+        // Đăng nhập thành công -> chuyển thẳng tới trang quản trị
         window.location.href = '/admin';
+      } else {
+        setErrorMsg('Không thể đăng nhập. Vui lòng kiểm tra lại thông tin.');
+        setIsLoading(false);
       }
     } catch {
       setErrorMsg('Lỗi kết nối máy chủ xác thực.');
-    } finally {
       setIsLoading(false);
     }
   }
