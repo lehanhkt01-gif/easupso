@@ -152,42 +152,27 @@ export function EcosystemBentoGrid() {
                 href={app.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`group bg-white/95 backdrop-blur-xs rounded-2xl p-4 border border-[#E8E2D5] border-t-4 ${style.borderTop} ${style.borderHover} ${style.hoverBg} ${style.hoverGlow} shadow-xs hover:-translate-y-2 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-out flex flex-col justify-between`}
+                className={`group bg-white/95 backdrop-blur-xs rounded-2xl p-4 sm:p-5 border border-[#E8E2D5] border-t-4 ${style.borderTop} ${style.borderHover} ${style.hoverBg} ${style.hoverGlow} shadow-xs hover:-translate-y-1.5 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-out flex flex-col`}
               >
-                <div>
-                  {/* Header: Icon badge sắc nét & Mũi tên tương tác */}
-                  <div className="flex items-center justify-between mb-3">
-                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center bg-gradient-to-br ${style.iconGradient} text-white shadow-md group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300`}>
-                      <IconComponent className="w-5 h-5" />
-                    </div>
-                    <div className="w-7 h-7 rounded-full bg-[#FAF7F2] border border-[#E8E2D5] flex items-center justify-center group-hover:bg-white group-hover:shadow-xs transition-colors">
-                      <ArrowUpRight className="w-3.5 h-3.5 text-[#6B7C73] group-hover:text-[#14211B] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                    </div>
+                {/* Header: Icon badge sắc nét & Mũi tên tương tác */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center bg-gradient-to-br ${style.iconGradient} text-white shadow-md group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300`}>
+                    <IconComponent className="w-5 h-5" />
                   </div>
-
-                  {/* Tên phân hệ */}
-                  <h3 className="text-sm sm:text-base font-extrabold text-[#14211B] group-hover:text-[#1B4332] transition-colors leading-snug">
-                    {app.title}
-                  </h3>
-
-                  {/* Tên miền phân hệ dạng huy hiệu nổi bật */}
-                  <span className={`inline-block text-[10px] font-mono px-2 py-0.5 rounded-md mt-1.5 truncate max-w-full font-semibold ${style.domainBadge}`}>
-                    {app.domain}
-                  </span>
-
-                  {/* Mô tả ngắn gọn */}
-                  <p className="text-xs text-[#4A5B52] leading-relaxed line-clamp-2 mt-2.5">
-                    {app.desc}
-                  </p>
-                </div>
-
-                {/* Nút hành động rực rỡ, sắc sảo */}
-                <div className="mt-4 pt-3 border-t border-[#F0EBE1]">
-                  <div className={`w-full py-2 px-3 rounded-lg ${style.btnBg} text-white text-xs font-bold text-center shadow-xs flex items-center justify-center gap-1.5 group-hover:shadow-md transition-all duration-200`}>
-                    <span>{app.actionText}</span>
-                    <span className="text-xs transition-transform group-hover:translate-x-1">&rarr;</span>
+                  <div className="w-7 h-7 rounded-full bg-[#FAF7F2] border border-[#E8E2D5] flex items-center justify-center group-hover:bg-white group-hover:shadow-xs transition-colors">
+                    <ArrowUpRight className="w-3.5 h-3.5 text-[#6B7C73] group-hover:text-[#14211B] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                   </div>
                 </div>
+
+                {/* Tên phân hệ */}
+                <h3 className="text-sm sm:text-base font-extrabold text-[#14211B] group-hover:text-[#1B4332] transition-colors leading-snug">
+                  {app.title}
+                </h3>
+
+                {/* Tên miền phân hệ dạng huy hiệu nổi bật */}
+                <span className={`inline-block text-[10px] font-mono px-2 py-0.5 rounded-md mt-2 truncate max-w-full font-semibold self-start ${style.domainBadge}`}>
+                  {app.domain}
+                </span>
               </a>
             );
           })}
