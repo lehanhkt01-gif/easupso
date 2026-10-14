@@ -82,10 +82,10 @@ docker compose up -d --build
 echo "⏳ Đang đợi PostgreSQL khởi động hoàn tất..."
 sleep 8
 
-# 6. Chạy Prisma Migration và Seed dữ liệu chuẩn 20 thôn buôn
+# 6. Chạy Prisma Schema Push và Seed dữ liệu chuẩn 20 thôn buôn
 echo "📦 Đang đồng bộ cấu trúc CSDL và khởi tạo 20 thôn buôn..."
-docker compose exec -T easupso_portal_web npx prisma migrate deploy || true
-docker compose exec -T easupso_portal_web npm run prisma:seed || true
+docker compose exec -T easupso_portal_web ./node_modules/.bin/prisma db push --accept-data-loss || true
+docker compose exec -T easupso_portal_web ./node_modules/.bin/tsx prisma/seed.ts || true
 
 echo ""
 echo "=========================================================="
