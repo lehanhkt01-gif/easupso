@@ -140,32 +140,37 @@ export function HeroBanner({
         </div>
       )}
 
-      {/* 2. KHUNG HERO TOÀN CẢNH HỒ EA SÚP & THÁP YANG PRONG (THEO HÌNH ẢNH MẪU) */}
-      <div className="relative min-h-[260px] sm:min-h-[320px] lg:min-h-[360px] flex items-center justify-center">
-        {/* Hình nền toàn cảnh Hồ Ea Súp Thượng và Tháp Chăm Yang Prong */}
+      {/* 2. KHUNG HERO THU GỌN - ẨN DƯỚI NỀN HÒA HỢP VỚI TOÀN TRANG */}
+      <div className="relative min-h-[170px] sm:min-h-[190px] lg:min-h-[210px] flex items-center justify-center">
+        {/* Hình nền toàn cảnh ẩn nhẹ dưới nền (opacity dịu mắt) */}
         <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-700"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-700 opacity-65"
           style={{
             backgroundImage: `url('${heroImageUrl || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=2000&q=85'}')`,
           }}
         />
 
-        {/* Lớp phủ Gradient điện ảnh: Bảo đảm độ tương phản chữ trắng tuyệt đối */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0F251C]/85 via-[#1B4332]/65 to-[#C85A32]/45" />
+        {/* Lớp phủ chuyển sắc đa tầng từ xanh rừng khộp xuống nền kem di sản #FAF7F2 */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#143326]/90 via-[#1B4332]/65 to-[#FAF7F2]" />
 
-        {/* Khối nội dung chính giữa */}
-        <div className="relative z-10 max-w-4xl mx-auto px-4 text-center py-10 sm:py-14 space-y-5">
+        {/* Vệt hòa tan mềm mại vào nền #FAF7F2 bên dưới - Không còn vách ngăn rõ rệt */}
+        <div className="absolute inset-x-0 bottom-0 h-16 sm:h-24 bg-gradient-to-t from-[#FAF7F2] via-[#FAF7F2]/80 to-transparent pointer-events-none" />
+
+        {/* Khối nội dung chính giữa thu gọn thanh lịch */}
+        <div className="relative z-10 max-w-3xl mx-auto px-4 text-center py-5 sm:py-7 space-y-3 sm:space-y-4">
           
-          {/* Tiêu đề chính luận theo chuẩn hình mẫu */}
-          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] uppercase">
+          {/* Tiêu đề chính luận thu gọn, trang trọng */}
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)] uppercase">
             CỔNG THÔNG TIN &amp; DỊCH VỤ SỐ
-            <span className="block mt-1 sm:mt-2">XÃ EA SÚP</span>
+            <span className="block text-sm sm:text-base lg:text-lg font-bold tracking-widest text-[#D4AF37] mt-0.5">
+              XÃ EA SÚP
+            </span>
           </h1>
 
-          {/* Thanh tìm kiếm tròn bo cong theo hình ảnh mẫu */}
-          <div ref={searchContainerRef} className="relative max-w-xl mx-auto">
-            <div className="relative flex items-center bg-white rounded-full shadow-2xl px-4 py-2 border-2 border-white/80 focus-within:ring-4 focus-within:ring-[#D4AF37]/40 transition-all">
-              <Search className="w-5 h-5 text-[#4A5B52] flex-shrink-0 mr-2.5" />
+          {/* Thanh tìm kiếm tròn bo cong thanh thoát */}
+          <div ref={searchContainerRef} className="relative max-w-lg mx-auto">
+            <div className="relative flex items-center bg-white/95 hover:bg-white rounded-full shadow-lg px-4 py-1.5 border border-[#D5CBBA] focus-within:ring-2 focus-within:ring-[#D4AF37]/50 focus-within:border-[#1B4332] transition-all">
+              <Search className="w-4 h-4 text-[#4A5B52] flex-shrink-0 mr-2.5" />
 
               <input
                 type="text"
