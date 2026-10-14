@@ -1,0 +1,240 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==============================================================================
+   KỶ LUẬT THẨM MỸ & THIẾT KẾ @hallmark — EDITORIAL ATELIER TÂY NGUYÊN
+   Hệ màu Di sản, chuẩn tương phản WCAG AAA, triệt tiêu 100% AI-Purple / Neon
+   ============================================================================== */
+
+:root {
+  /* Bảng màu chuẩn @hallmark khóa cứng */
+  --bg-canvas: #FAF7F2;      /* Giấy kem ấm di sản */
+  --bg-surface: #FFFFFF;     /* Trắng tinh khiết cho thẻ nổi */
+  --bg-elevated: #F3EDE2;    /* Nền kem trầm nhấn phân vùng */
+  
+  --brand-primary: #1B4332;  /* Xanh rừng đại ngàn Tây Nguyên */
+  --brand-primary-hover: #143326;
+  --brand-accent: #C85A32;   /* Đỏ đất bazan / Đất nung cao nguyên */
+  --brand-accent-hover: #A84622;
+  --gold-emblem: #D4A373;    /* Vàng đồng thổ cẩm / Huy hiệu Mặt trận */
+  --gold-bright: #D4AF37;
+
+  --text-primary: #14211B;   /* Đen xanh thẫm, tương phản WCAG AAA */
+  --text-secondary: #4A5B52; /* Xám rêu trung tính */
+  --text-muted: #6B7C73;     /* Chú thích, nhãn phụ */
+
+  --border-subtle: #E8E2D5;  /* Đường viền giấy thủ công */
+  --border-strong: #D5CBBA;  /* Viền khối nổi bật */
+  
+  --shadow-editorial: 0 4px 20px -2px rgba(27, 67, 50, 0.06), 0 2px 6px -1px rgba(27, 67, 50, 0.04);
+  --shadow-hover: 0 12px 32px -4px rgba(27, 67, 50, 0.12), 0 4px 12px -2px rgba(27, 67, 50, 0.06);
+
+  /* Trạng thái phản ánh / Cảnh báo */
+  --status-pending: #DC2626;  /* Đỏ: Mới tiếp nhận */
+  --status-process: #D97706;  /* Vàng/Cam: Đang thụ lý */
+  --status-resolved: #16A34A; /* Xanh lá: Đã giải quyết */
+}
+
+/* Kỷ luật chống tràn hiển thị di động tuyệt đối */
+html, body {
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  overflow-x: clip;
+  max-width: 100vw;
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* TUYỆT ĐỐI CẤM in nghiêng cho tiêu đề hành chính / chính luận */
+h1, h2, h3, h4, h5, h6 {
+  font-style: normal !important;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  overflow-wrap: anywhere;
+  min-width: 0;
+  color: var(--brand-primary);
+}
+
+/* Kỷ luật ô lưới và khung co giãn responsive */
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+/* KỶ LUẬT 8 TRẠNG THÁI (8-STATE SYSTEM) CHO NÚT BẤM (BUTTONS) & INPUTS */
+.btn-hallmark-primary {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  background-color: var(--brand-primary);
+  color: #FFFFFF;
+  border: 1px solid transparent;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn-hallmark-primary:hover:not(:disabled) {
+  background-color: var(--brand-primary-hover);
+  box-shadow: 0 4px 14px rgba(27, 67, 50, 0.25);
+  transform: translateY(-1px);
+}
+
+.btn-hallmark-primary:focus-visible {
+  outline: 2px solid var(--gold-bright);
+  outline-offset: 2px;
+}
+
+.btn-hallmark-primary:active:not(:disabled) {
+  transform: translateY(0);
+  background-color: #0F251C;
+}
+
+.btn-hallmark-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(60%);
+}
+
+.btn-hallmark-accent {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  background-color: var(--brand-accent);
+  color: #FFFFFF;
+  border: 1px solid transparent;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn-hallmark-accent:hover:not(:disabled) {
+  background-color: var(--brand-accent-hover);
+  box-shadow: 0 4px 14px rgba(200, 90, 50, 0.25);
+  transform: translateY(-1px);
+}
+
+.btn-hallmark-accent:focus-visible {
+  outline: 2px solid var(--gold-bright);
+  outline-offset: 2px;
+}
+
+.btn-hallmark-accent:active:not(:disabled) {
+  transform: translateY(0);
+  background-color: #8C3717;
+}
+
+.btn-hallmark-accent:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-hallmark-outline {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  background-color: transparent;
+  color: var(--brand-primary);
+  border: 1.5px solid var(--brand-primary);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn-hallmark-outline:hover:not(:disabled) {
+  background-color: var(--bg-elevated);
+  border-color: var(--brand-primary-hover);
+  color: var(--brand-primary-hover);
+}
+
+.btn-hallmark-outline:focus-visible {
+  outline: 2px solid var(--gold-bright);
+  outline-offset: 2px;
+}
+
+.btn-hallmark-outline:active:not(:disabled) {
+  background-color: #E6DC melt;
+}
+
+.btn-hallmark-outline:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Thẻ bề mặt Editorial Atelier */
+.surface-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow-editorial);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.surface-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+
+/* Điểm nhấn Thổ cẩm Tây Nguyên trang trọng */
+.heritage-border-top {
+  border-top: 4px solid var(--brand-accent);
+}
+
+.heritage-border-gold {
+  border-top: 4px solid var(--gold-bright);
+}
+
+.heritage-border-forest {
+  border-top: 4px solid var(--brand-primary);
+}
+
+/* Hiệu ứng chớp sóng Online */
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.4); opacity: 0.2; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.status-online-dot {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  background-color: #10B981;
+  border-radius: 50%;
+}
+
+.status-online-dot::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: 50%;
+  background-color: rgba(16, 185, 129, 0.4);
+  animation: pulse-ring 2s infinite ease-in-out;
+}

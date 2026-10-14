@@ -1,0 +1,286 @@
+// ==============================================================================
+// PRISMA SCHEMA — CỔNG THÔNG TIN EASUPSO.COM
+// PostgreSQL 16 Chuẩn 3NF, Hybrid RBAC + ABAC & Zero-Trust Audit Log
+// ==============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------------------------------------------------------------------
+// ENUMS
+// ------------------------------------------------------------------------------
+
+enum Role {
+  PUBLIC          // Nhân dân, du khách, cử tri
+  VILLAGE_LEADER  // Trưởng thôn/Trưởng buôn, Trưởng ban CTMT, Tổ CNSCĐ 20 thôn buôn
+  SPECIALIST      // Lãnh đạo các tổ chức chính trị - xã hội, Chuyên viên cơ quan
+  EXECUTIVE       // Ủy viên BTV Đảng ủy, Chủ tịch UBMTTQ xã (Chủ tài khoản/Tổng biên tập)
+  SUPER_ADMIN     // Quản trị viên hệ thống kỹ thuật
+}
+
+enum OrgCode {
+  MTTQ       // Ủy ban Mặt trận Tổ quốc Việt Nam xã Ea Súp
+  PHU_NU     // Hội Liên hiệp Phụ nữ xã Ea Súp
+  NONG_DAN   // Hội Nông dân xã Ea Súp
+  DOAN_TN    // Đoàn TNCS Hồ Chí Minh xã Ea Súp
+  CCB        // Hội Cựu chiến binh xã Ea Súp
+  UBND       // Khối chính quyền / UBND xã Ea Súp
+  THON_BUON  // 20 Thôn, Buôn trực thuộc xã
+}
+
+enum ArticleStatus {
+  DRAFT             // Bản nháp tác giả tạo
+  PENDING_APPROVAL  // Chờ Thường trực/Tổng biên tập duyệt
+  PUBLISHED         // Đã xuất bản công khai
+  LOCKED            // Tạm khóa hiển thị
+  ARCHIVED          // Đã lưu trữ
+}
+
+// ------------------------------------------------------------------------------
+// 1. ĐỊA GIỚI HÀNH CHÍNH CỐ ĐỊNH (20 THÔN, BUÔN)
+// ------------------------------------------------------------------------------
+
+model Village {
+  id         String   @id @default(cuid())
+  code       String   @unique // vd: THON_01, THON_THANG_LOI, BUON_A
+  name       String   @unique // vd: Thôn 1, Thôn Thắng Lợi, Buôn A
+  type       String   // THON_SO, THON_TEN, BUON
+  leaderName String   // Họ và tên Trưởng thôn / Trưởng buôn
+  phone      String   // Số điện thoại liên hệ
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Quan hệ
+  users    User[]
+  articles NewsArticle[]
+
+  @@map("villages")
+}
+
+// ------------------------------------------------------------------------------
+// 2. TẦNG NGƯỜI DÙNG & AUTH.JS / NEXTAUTH V5 PRISMA ADAPTER
+// ------------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+
+  // Phân quyền đa chiều (RBAC + ABAC)
+  role          Role      @default(PUBLIC)
+  orgCode       OrgCode?  // Thuộc đơn vị/đoàn thể nào
+  positionTitle String?   // Chức vụ hiển thị thực tế
+  villageId     String?   // Thuộc địa bàn thôn buôn nào (đối với Trưởng thôn/buôn)
+  village       Village?  @relation(fields: [villageId], references: [id], onDelete: SetNull)
+  isActive      Boolean   @default(true)
+  passwordHash  String?   // Mật khẩu băm an toàn (PBKDF2/SHA-512) cho tài khoản quản lý
+
+  // Auth Relations
+  accounts      Account[]
+  sessions      Session[]
+
+  // Nghiệp vụ bản tin, Cấu hình & Kiểm toán
+  authoredArticles NewsArticle[] @relation("AuthoredArticles")
+  approvedArticles NewsArticle[] @relation("ApprovedArticles")
+  auditLogs        AuditLog[]
+  siteSettings     SiteSetting[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([role, isActive])
+  @@index([orgCode, role])
+  @@index([villageId])
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ------------------------------------------------------------------------------
+// 3. QUẢN LÝ BENTO GRID CÁC PHÂN HỆ HỆ SINH THÁI EASUPSO
+// ------------------------------------------------------------------------------
+
+model EcosystemApp {
+  id               String    @id @default(cuid())
+  slug             String    @unique // lichcongtac, ykien, nongnghiep, dulich, ccb, vinguoingheo
+  name             String
+  subdomainUrl     String    // https://lichcongtac.easupso.com
+  shortDescription String
+  badgeText        String    // Điều Hành Số, Dân Biết - Dân Bàn,...
+  iconName         String    // Tên Lucide icon (CalendarDays, MessageSquareText,...)
+  bentoSpan        String    // Lớp layout Grid: "col-span-12 md:col-span-6 lg:col-span-4"
+  liveMetricsJson  Json?     // Số liệu thống kê đồng bộ thời gian thực
+  ctaPrimaryText   String    // Xem Lịch Tuần Này, Gửi Ý Kiến Ngay
+  ctaSecondaryText String?   // Tra cứu, Bản đồ
+  ctaSecondaryUrl  String?
+  isOnline         Boolean   @default(true)
+  lastCheckedAt    DateTime?
+  displayOrder     Int       @default(0)
+  isActive         Boolean   @default(true)
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([displayOrder, isActive])
+  @@map("ecosystem_apps")
+}
+
+// ------------------------------------------------------------------------------
+// 4. CHUYÊN MỤC VÀ BẢN TIN MẶT TRẬN - ĐOÀN THỂ - 20 THÔN BUÔN
+// ------------------------------------------------------------------------------
+
+model NewsCategory {
+  id           String        @id @default(cuid())
+  slug         String        @unique
+  name         String
+  orgCode      OrgCode
+  badgeColor   String        // forest, basalt, gold,...
+  displayOrder Int           @default(0)
+  articles     NewsArticle[]
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([displayOrder])
+  @@map("news_categories")
+}
+
+model NewsArticle {
+  id              String        @id @default(cuid())
+  title           String
+  slug            String        @unique
+  summary         String        @db.Text
+  contentHtml     String        @db.Text
+  thumbnailUrl    String?
+
+  // Phân loại danh mục và địa bàn thôn buôn
+  categoryId      String
+  category        NewsCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  villageId       String?       // Gắn với địa bàn thôn buôn cụ thể (nếu là tin cơ sở)
+  village         Village?      @relation(fields: [villageId], references: [id], onDelete: SetNull)
+  orgCode         OrgCode
+
+  // Cơ chế ủy quyền đăng tin & phê duyệt minh bạch
+  authorId        String        // Cán bộ nhập liệu / người viết
+  author          User          @relation("AuthoredArticles", fields: [authorId], references: [id], onDelete: Restrict)
+  beneficiaryName String?       // Tên tập thể/cá nhân cơ sở được đăng tin hộ
+  approvedById    String?       // Cán bộ duyệt tin (Lãnh đạo MTTQ / Tổng biên tập)
+  approvedBy      User?         @relation("ApprovedArticles", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  status          ArticleStatus @default(DRAFT)
+  isFeatured      Boolean       @default(false)
+  viewCount       Int           @default(0)
+  publishedAt     DateTime?
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([categoryId, status])
+  @@index([villageId, status])
+  @@map("news_articles")
+}
+
+// ------------------------------------------------------------------------------
+// 5. THÔNG BÁO KHẨN / TICKER BAR TRANG CHỦ
+// ------------------------------------------------------------------------------
+
+model QuickAnnouncement {
+  id        String    @id @default(cuid())
+  title     String
+  content   String    @db.Text
+  linkUrl   String?
+  isUrgent  Boolean   @default(false)
+  expiresAt DateTime?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([isActive, createdAt(sort: Desc)])
+  @@map("quick_announcements")
+}
+
+// ------------------------------------------------------------------------------
+// 6. NHẬT KÝ KIỂM TOÁN BẤT BIẾN ZERO-TRUST (AUDIT LOG)
+// ------------------------------------------------------------------------------
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userEmail   String?
+  action      String   // CREATE, UPDATE, DELETE, APPROVE, REJECT, LOGIN
+  targetTable String   // news_articles, users, villages, quick_announcements
+  targetId    String
+  oldData     Json?
+  newData     Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  @@index([targetTable, targetId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("audit_logs")
+}
+
+// ------------------------------------------------------------------------------
+// 7. CẤU HÌNH GIAO DIỆN & HỆ THỐNG (SITE SETTINGS)
+// ------------------------------------------------------------------------------
+
+model SiteSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique // vd: HERO_BANNER_IMAGE_URL
+  value       String   @db.Text
+  description String?
+  updatedById String?
+  updatedBy   User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  @@map("site_settings")
+}

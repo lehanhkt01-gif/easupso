@@ -1,0 +1,52 @@
+# Dependency directories
+node_modules/
+/.pnp
+.pnp.js
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Next.js build and cache output
+.next/
+out/
+build/
+dist/
+
+# Production builds
+/.next/standalone
+
+# Environment and secrets (TUYỆT ĐỐI CHẶN)
+.env
+.env*.local
+.env.production
+.env.staging
+.env.test
+*.pem
+*.key
+*.crt
+
+# Debugging logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# OS and Editor metadata
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Local database / Docker persistent volumes
+*.sqlite
+*.sqlite3
+easupso_portal_pgdata/
+
+# Next.js telemetry / TypeScript cache
+next-env.d.ts
+*.tsbuildinfo

@@ -1,0 +1,21 @@
+{
+  "name": "Hệ sinh thái số xã Ea Súp — easupso.com",
+  "short_name": "Ea Súp Số",
+  "description": "Cổng thông tin & Trang chủ Hệ sinh thái Chuyển đổi số xã Ea Súp, tỉnh Đắk Lắk",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF7F2",
+  "theme_color": "#1B4332",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

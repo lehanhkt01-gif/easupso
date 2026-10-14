@@ -1,0 +1,201 @@
+'use client';
+
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { useSession, signIn, signOut } from 'next-auth/react';
+import {
+  Menu,
+  X,
+  LogIn,
+  LogOut,
+  ChevronDown,
+  FileText,
+  User,
+  Heart,
+  Globe2,
+} from 'lucide-react';
+
+export function Header() {
+  const { data: session, status } = useSession();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+
+  const navLinks = [
+    { label: 'Trang chủ', href: '/' },
+    { label: '20 Thôn Buôn', href: '/thon-buon' },
+    { label: 'Văn bản số', href: '#van-ban' },
+    {
+      label: 'Quỹ Vì người nghèo',
+      href: 'https://nguoingheo.easupso.com',
+      isExternal: true,
+    },
+  ];
+
+  return (
+    <header className="sticky top-0 z-50 bg-[#FAF7F2] border-b border-[#E8E2D5] shadow-xs">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-20 gap-4">
+          
+          {/* 1. KHỐI LOGO & ĐỊNH DANH HÀNH CHÍNH (THEO THIẾT KẾ MẪU) */}
+          <Link
+            href="/"
+            className="flex items-center gap-3.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4332] rounded-lg"
+          >
+            {/* Biểu trưng Hoa Sen kết hợp Họa tiết Thổ cẩm Tây Nguyên */}
+            <div className="relative flex-shrink-0 w-13 h-13 rounded-full bg-gradient-to-br from-[#8C3717] via-[#C85A32] to-[#D4A373] p-1 shadow-md group-hover:scale-105 transition-transform flex items-center justify-center">
+              <div className="w-full h-full rounded-full bg-[#1B4332] flex items-center justify-center border-2 border-[#D4AF37]">
+                {/* Biểu tượng Sen Vàng cách điệu */}
+                <svg
+                  className="w-7 h-7 text-[#D4AF37] fill-current"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M12 2C11.5 4.5 9 8 5 9C7.5 10 10 12.5 10.5 15C11 13 12 11.5 12 11.5C12 11.5 13 13 13.5 15C14 12.5 16.5 10 19 9C15 8 12.5 4.5 12 2Z" />
+                  <path d="M12 12C10.5 14 8 16 3 16C5.5 17.5 8.5 19 12 22C15.5 19 18.5 17.5 21 16C16 16 13.5 14 12 12Z" opacity="0.9" />
+                </svg>
+              </div>
+            </div>
+
+            <div className="flex flex-col">
+              <span className="text-xs font-bold tracking-wider text-[#1B4332] uppercase">
+                HỆ SINH THÁI SỐ XÃ EA SÚP
+              </span>
+              <span className="text-lg sm:text-2xl font-black tracking-tight text-[#14211B] leading-none">
+                EASUPSO.COM
+              </span>
+            </div>
+          </Link>
+
+          {/* 2. THANH ĐIỀU HƯỚNG MÁY TÍNH */}
+          <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
+            {navLinks.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                target={item.isExternal ? '_blank' : undefined}
+                rel={item.isExternal ? 'noopener noreferrer' : undefined}
+                className="text-sm font-semibold text-[#14211B] hover:text-[#1B4332] transition-colors py-2"
+              >
+                {item.label}
+              </Link>
+            ))}
+
+            {/* Nút Đăng nhập SSO chuẩn màu Đất Bazan */}
+            {status === 'loading' ? (
+              <div className="h-10 w-32 bg-[#E8E2D5] animate-pulse rounded-lg" />
+            ) : session?.user ? (
+              <div className="relative">
+                <button
+                  onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#C85A32] text-white hover:bg-[#A84622] transition shadow-sm text-xs font-bold"
+                >
+                  <User className="w-3.5 h-3.5" />
+                  <span className="max-w-[120px] truncate">{session.user.name}</span>
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </button>
+
+                {userDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white border border-[#E8E2D5] rounded-xl shadow-xl py-2 z-50">
+                    <div className="px-4 py-2 border-b border-[#E8E2D5] bg-[#FAF7F2]">
+                      <p className="text-xs font-bold text-[#14211B]">{session.user.name}</p>
+                      <p className="text-[11px] text-[#6B7C73] truncate">{session.user.email}</p>
+                    </div>
+
+                    {session.user.role !== 'PUBLIC' && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-[#1B4332] hover:bg-[#FAF7F2]"
+                      >
+                        <FileText className="w-4 h-4" />
+                        Quản trị CMS Nội bộ
+                      </Link>
+                    )}
+
+                    <button
+                      onClick={() => signOut({ callbackUrl: '/' })}
+                      className="w-full flex items-center gap-2 px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 text-left border-t border-[#E8E2D5]"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Đăng xuất
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#C85A32] text-white text-xs sm:text-sm font-bold shadow-sm hover:bg-[#A84622] active:translate-y-0.5 transition min-h-[42px]"
+                title="Đăng nhập tài khoản Gmail / Cán bộ"
+              >
+                <User className="w-4 h-4" />
+                <span>+ Đăng nhập Gmail</span>
+              </Link>
+            )}
+          </nav>
+
+          {/* 3. NÚT HAMBURGER MOBILE */}
+          <div className="flex lg:hidden items-center">
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2.5 rounded-lg text-[#1B4332] hover:bg-[#FAF7F2] border border-[#E8E2D5] min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label="Mở menu"
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* MOBILE DRAWER */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden border-t border-[#E8E2D5] bg-[#FAF7F2] px-4 py-4 space-y-2">
+          {navLinks.map((item) => (
+            <Link
+              key={item.label}
+              href={item.href}
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2.5 rounded-lg text-sm font-semibold text-[#14211B] hover:bg-white"
+            >
+              {item.label}
+            </Link>
+          ))}
+
+          <div className="pt-3 border-t border-[#E8E2D5]">
+            {session?.user ? (
+              <div className="space-y-2">
+                <div className="p-3 bg-white rounded-lg border border-[#E8E2D5]">
+                  <p className="text-sm font-bold text-[#1B4332]">{session.user.name}</p>
+                  <p className="text-xs text-[#6B7C73]">{session.user.email}</p>
+                </div>
+                {session.user.role !== 'PUBLIC' && (
+                  <Link
+                    href="/admin"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block text-center py-2.5 rounded-lg bg-[#1B4332] text-white text-xs font-bold"
+                  >
+                    Vào Quản trị CMS
+                  </Link>
+                )}
+                <button
+                  onClick={() => signOut({ callbackUrl: '/' })}
+                  className="w-full text-center py-2.5 rounded-lg bg-red-100 text-red-700 text-xs font-bold"
+                >
+                  Đăng xuất
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-[#C85A32] text-white text-sm font-bold shadow-sm"
+              >
+                <User className="w-4 h-4" />
+                <span>+ Đăng nhập Gmail</span>
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+    </header>
+  );
+}
