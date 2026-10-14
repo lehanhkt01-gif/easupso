@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { signIn, useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import {
   ShieldCheck,
   ArrowLeft,
@@ -17,7 +16,6 @@ import {
 
 export default function LoginPage() {
   const { data: session, status } = useSession();
-  const router = useRouter();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,14 +23,8 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Chuyển hướng an toàn qua useEffect nếu phiên đăng nhập đã xác thực là cán bộ
-  useEffect(() => {
-    if (status === 'authenticated' && session?.user) {
-      if (session.user.role && session.user.role !== 'PUBLIC') {
-        window.location.href = '/admin';
-      }
-    }
-  }, [status, session]);
+  const isAlreadyLoggedIn =
+    status === 'authenticated' && session?.user && session.user.role !== 'PUBLIC';
 
   async function handleCredentialsLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -97,6 +89,24 @@ export default function LoginPage() {
             Cổng thông tin &amp; Quản trị số xã Ea Súp &bull; Tỉnh Đắk Lắk
           </p>
         </div>
+
+        {/* Thông báo nếu đã đăng nhập trước đó */}
+        {isAlreadyLoggedIn && (
+          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs flex items-center justify-between gap-2">
+            <div>
+              <p className="font-bold text-emerald-900">
+                Đã đăng nhập: {session?.user?.name || session?.user?.email}
+              </p>
+              <p className="text-[11px] text-emerald-700">Phiên cán bộ đang kích hoạt</p>
+            </div>
+            <Link
+              href="/admin"
+              className="px-3 py-1.5 bg-[#1B4332] hover:bg-[#143326] text-white text-xs font-bold rounded-lg shrink-0 transition"
+            >
+              Vào Quản trị &rarr;
+            </Link>
+          </div>
+        )}
 
         {/* Thông báo lỗi nếu có */}
         {errorMsg && (
