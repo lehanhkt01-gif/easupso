@@ -20,6 +20,16 @@ const ECOSYSTEM_APPS = [
     desc: 'Lịch họp, lịch tiếp dân & điều hành của Đảng ủy, HĐND, UBND, MTTQ',
     actionText: 'Xem lịch tuần',
     icon: CalendarDays,
+    colorStyle: {
+      borderTop: 'border-t-[#1B4332]',
+      borderHover: 'hover:border-[#1B4332]',
+      iconGradient: 'from-[#1B4332] to-[#2D6A4F]',
+      hoverBg: 'hover:bg-gradient-to-b hover:from-white hover:to-emerald-50/80',
+      hoverGlow: 'hover:shadow-[0_16px_30px_-6px_rgba(27,67,50,0.32)]',
+      domainBadge: 'bg-emerald-50/80 text-emerald-800 border-emerald-200/80',
+      btnBg: 'bg-[#1B4332] hover:bg-[#143326]',
+      accentColor: '#1B4332',
+    },
   },
   {
     id: 'ykien',
@@ -29,6 +39,16 @@ const ECOSYSTEM_APPS = [
     desc: 'Tiếp nhận phản ánh, tâm tư và kiến nghị của nhân dân 20 thôn, buôn',
     actionText: 'Gửi phản ánh',
     icon: MessageSquareText,
+    colorStyle: {
+      borderTop: 'border-t-[#C85A32]',
+      borderHover: 'hover:border-[#C85A32]',
+      iconGradient: 'from-[#C85A32] to-[#E06D43]',
+      hoverBg: 'hover:bg-gradient-to-b hover:from-white hover:to-orange-50/80',
+      hoverGlow: 'hover:shadow-[0_16px_30px_-6px_rgba(200,90,50,0.35)]',
+      domainBadge: 'bg-orange-50/80 text-orange-900 border-orange-200/80',
+      btnBg: 'bg-[#C85A32] hover:bg-[#A84520]',
+      accentColor: '#C85A32',
+    },
   },
   {
     id: 'nongnghiep',
@@ -38,6 +58,16 @@ const ECOSYSTEM_APPS = [
     desc: 'Giá nông sản Ea Súp (lúa, xoài, cà phê, điều), khuyến nông & mùa vụ',
     actionText: 'Chợ nông sản',
     icon: Sprout,
+    colorStyle: {
+      borderTop: 'border-t-[#15803D]',
+      borderHover: 'hover:border-[#15803D]',
+      iconGradient: 'from-[#15803D] to-[#22C55E]',
+      hoverBg: 'hover:bg-gradient-to-b hover:from-white hover:to-green-50/80',
+      hoverGlow: 'hover:shadow-[0_16px_30px_-6px_rgba(21,128,61,0.35)]',
+      domainBadge: 'bg-green-50/80 text-green-900 border-green-200/80',
+      btnBg: 'bg-[#15803D] hover:bg-[#166534]',
+      accentColor: '#15803D',
+    },
   },
   {
     id: 'dulich',
@@ -47,6 +77,16 @@ const ECOSYSTEM_APPS = [
     desc: 'Tháp Chăm Yang Prông, hồ Ea Súp Thượng, cồng chiêng & ẩm thực',
     actionText: 'Khám phá ngay',
     icon: Compass,
+    colorStyle: {
+      borderTop: 'border-t-[#D4AF37]',
+      borderHover: 'hover:border-[#D4AF37]',
+      iconGradient: 'from-[#D4AF37] to-[#B45309]',
+      hoverBg: 'hover:bg-gradient-to-b hover:from-white hover:to-amber-50/80',
+      hoverGlow: 'hover:shadow-[0_16px_30px_-6px_rgba(212,175,55,0.38)]',
+      domainBadge: 'bg-amber-50/80 text-amber-900 border-amber-200/80',
+      btnBg: 'bg-[#B45309] hover:bg-[#92400E]',
+      accentColor: '#B45309',
+    },
   },
   {
     id: 'ccb',
@@ -56,6 +96,16 @@ const ECOSYSTEM_APPS = [
     desc: 'Hoạt động truyền thống, nghĩa tình đồng đội 20 chi hội thôn buôn',
     actionText: 'Vào phân hệ',
     icon: ShieldCheck,
+    colorStyle: {
+      borderTop: 'border-t-[#DC2626]',
+      borderHover: 'hover:border-[#DC2626]',
+      iconGradient: 'from-[#B91C1C] to-[#EF4444]',
+      hoverBg: 'hover:bg-gradient-to-b hover:from-white hover:to-red-50/80',
+      hoverGlow: 'hover:shadow-[0_16px_30px_-6px_rgba(220,38,38,0.35)]',
+      domainBadge: 'bg-red-50/80 text-red-900 border-red-200/80',
+      btnBg: 'bg-[#B91C1C] hover:bg-[#991B1B]',
+      accentColor: '#DC2626',
+    },
   },
   {
     id: 'nguoingheo',
@@ -65,68 +115,87 @@ const ECOSYSTEM_APPS = [
     desc: 'Quỹ Vì người nghèo, nhà Đại đoàn kết, sao kê minh bạch thời gian thực',
     actionText: 'Ủng hộ & Sao kê',
     icon: HeartHandshake,
+    colorStyle: {
+      borderTop: 'border-t-[#E11D48]',
+      borderHover: 'hover:border-[#E11D48]',
+      iconGradient: 'from-[#C85A32] to-[#E11D48]',
+      hoverBg: 'hover:bg-gradient-to-b hover:from-white hover:to-rose-50/80',
+      hoverGlow: 'hover:shadow-[0_16px_30px_-6px_rgba(225,29,72,0.35)]',
+      domainBadge: 'bg-rose-50/80 text-rose-900 border-rose-200/80',
+      btnBg: 'bg-[#E11D48] hover:bg-[#BE123C]',
+      accentColor: '#E11D48',
+    },
   },
 ];
 
 export function EcosystemBentoGrid() {
   return (
-    <section id="ecosystem-grid" className="py-6 sm:py-8 bg-[#FAF7F2]">
+    <section id="ecosystem-grid" className="py-7 sm:py-9 bg-transparent relative z-10">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* TIÊU ĐỀ KHU VỰC THU GỌN THANH THOÁT */}
-        <div className="text-center mb-5 sm:mb-6">
-          <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#1B4332]/10 border border-[#1B4332]/20 mb-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#1B4332] animate-pulse" />
-            <span className="text-[10px] font-bold text-[#1B4332] uppercase tracking-wider">
-              Hệ thống 6 phân hệ cốt lõi
+        {/* TIÊU ĐỀ KHU VỰC THU GỌN VÀ NỔI BẬT */}
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/90 shadow-2xs border border-[#E8E2D5] mb-2 backdrop-blur-xs">
+            <span className="w-2 h-2 rounded-full bg-[#C85A32] animate-pulse" />
+            <span className="text-[11px] font-extrabold text-[#1B4332] uppercase tracking-wider">
+              Hệ sinh thái số xã Ea Súp
             </span>
           </div>
-          <h2 className="text-lg sm:text-xl lg:text-2xl font-black text-[#14211B] uppercase tracking-wide">
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-[#14211B] uppercase tracking-tight drop-shadow-2xs">
             TRUNG TÂM ĐIỀU HÀNH &amp; ỨNG DỤNG SỐ
           </h2>
+          <p className="text-xs sm:text-sm text-[#4A5B52] mt-1 max-w-2xl mx-auto">
+            Kết nối liên thông 6 phân hệ chuyên sâu phục vụ nhân dân, cử tri và cán bộ 20 thôn, buôn
+          </p>
         </div>
 
-        {/* LƯỚI 6 THẺ PHÂN HỆ SỐ CỐT LÕI - THU GỌN, ĐƠN GIẢN, HIỆN ĐẠI */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+        {/* LƯỚI 6 THẺ PHÂN HỆ SỐ CỐT LÕI - TĂNG MÀU SẮC, HIỆU ỨNG CHỌN NỔI BẬT */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4.5">
           {ECOSYSTEM_APPS.map((app) => {
             const IconComponent = app.icon;
+            const style = app.colorStyle;
+
             return (
               <a
                 key={app.id}
                 href={app.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group bg-white rounded-xl p-3.5 sm:p-4 border border-[#E8E2D5] shadow-2xs hover:shadow-md hover:border-[#1B4332]/40 hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between"
+                className={`group bg-white/95 backdrop-blur-xs rounded-2xl p-4 border border-[#E8E2D5] border-t-4 ${style.borderTop} ${style.borderHover} ${style.hoverBg} ${style.hoverGlow} shadow-xs hover:-translate-y-2 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-out flex flex-col justify-between`}
               >
                 <div>
-                  {/* Header: Icon badge & Arrow link */}
-                  <div className="flex items-center justify-between mb-2.5">
-                    <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-[#FAF7F2] border border-[#E8E2D5] group-hover:border-[#1B4332] group-hover:bg-[#1B4332] text-[#1B4332] group-hover:text-white transition-all duration-200 shadow-2xs">
-                      <IconComponent className="w-4 h-4" />
+                  {/* Header: Icon badge sắc nét & Mũi tên tương tác */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center bg-gradient-to-br ${style.iconGradient} text-white shadow-md group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300`}>
+                      <IconComponent className="w-5 h-5" />
                     </div>
-                    <ArrowUpRight className="w-3.5 h-3.5 text-[#A8A29E] group-hover:text-[#C85A32] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+                    <div className="w-7 h-7 rounded-full bg-[#FAF7F2] border border-[#E8E2D5] flex items-center justify-center group-hover:bg-white group-hover:shadow-xs transition-colors">
+                      <ArrowUpRight className="w-3.5 h-3.5 text-[#6B7C73] group-hover:text-[#14211B] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                    </div>
                   </div>
 
                   {/* Tên phân hệ */}
-                  <h3 className="text-xs sm:text-sm font-bold text-[#14211B] group-hover:text-[#1B4332] transition-colors leading-snug">
+                  <h3 className="text-sm sm:text-base font-extrabold text-[#14211B] group-hover:text-[#1B4332] transition-colors leading-snug">
                     {app.title}
                   </h3>
 
-                  {/* Tên miền phân hệ */}
-                  <p className="text-[10px] text-[#8C7E6A] font-mono mt-0.5 truncate">
+                  {/* Tên miền phân hệ dạng huy hiệu nổi bật */}
+                  <span className={`inline-block text-[10px] font-mono px-2 py-0.5 rounded-md mt-1.5 truncate max-w-full font-semibold ${style.domainBadge}`}>
                     {app.domain}
-                  </p>
+                  </span>
 
-                  {/* Mô tả ngắn gọn súc tích */}
-                  <p className="text-[11px] text-[#4A5B52] leading-relaxed line-clamp-2 mt-2">
+                  {/* Mô tả ngắn gọn */}
+                  <p className="text-xs text-[#4A5B52] leading-relaxed line-clamp-2 mt-2.5">
                     {app.desc}
                   </p>
                 </div>
 
-                {/* Nút hành động gọn nhẹ */}
-                <div className="mt-3 pt-2 border-t border-[#F0EBE1] flex items-center justify-between text-[11px] font-semibold text-[#1B4332] group-hover:text-[#C85A32] transition-colors">
-                  <span>{app.actionText}</span>
-                  <span className="text-xs transition-transform group-hover:translate-x-0.5">&rarr;</span>
+                {/* Nút hành động rực rỡ, sắc sảo */}
+                <div className="mt-4 pt-3 border-t border-[#F0EBE1]">
+                  <div className={`w-full py-2 px-3 rounded-lg ${style.btnBg} text-white text-xs font-bold text-center shadow-xs flex items-center justify-center gap-1.5 group-hover:shadow-md transition-all duration-200`}>
+                    <span>{app.actionText}</span>
+                    <span className="text-xs transition-transform group-hover:translate-x-1">&rarr;</span>
+                  </div>
                 </div>
               </a>
             );

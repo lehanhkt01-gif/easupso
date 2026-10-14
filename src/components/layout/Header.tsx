@@ -41,18 +41,14 @@ export function Header() {
             href="/"
             className="flex items-center gap-3.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4332] rounded-lg"
           >
-            {/* Biểu trưng Hoa Sen kết hợp Họa tiết Thổ cẩm Tây Nguyên */}
-            <div className="relative flex-shrink-0 w-13 h-13 rounded-full bg-gradient-to-br from-[#8C3717] via-[#C85A32] to-[#D4A373] p-1 shadow-md group-hover:scale-105 transition-transform flex items-center justify-center">
-              <div className="w-full h-full rounded-full bg-[#1B4332] flex items-center justify-center border-2 border-[#D4AF37]">
-                {/* Biểu tượng Sen Vàng cách điệu */}
-                <svg
-                  className="w-7 h-7 text-[#D4AF37] fill-current"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M12 2C11.5 4.5 9 8 5 9C7.5 10 10 12.5 10.5 15C11 13 12 11.5 12 11.5C12 11.5 13 13 13.5 15C14 12.5 16.5 10 19 9C15 8 12.5 4.5 12 2Z" />
-                  <path d="M12 12C10.5 14 8 16 3 16C5.5 17.5 8.5 19 12 22C15.5 19 18.5 17.5 21 16C16 16 13.5 14 12 12Z" opacity="0.9" />
-                </svg>
-              </div>
+            {/* Huy hiệu chính thức xã Ea Súp */}
+            <div className="relative flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-full p-0.5 shadow-md group-hover:scale-105 transition-transform overflow-hidden border-2 border-[#D4AF37] bg-white flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/logo-easup.png"
+                alt="Huy hiệu chính thức xã Ea Súp"
+                className="w-full h-full object-contain rounded-full"
+              />
             </div>
 
             <div className="flex flex-col">

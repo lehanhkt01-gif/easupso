@@ -101,21 +101,34 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF7F2]">
-      {/* 1. Header định danh chính thức */}
-      <Header />
+    <div className="min-h-screen flex flex-col bg-[#FAF7F2] relative overflow-x-clip">
+      {/* Hình nền toàn cảnh Ea Súp trải dài xuống suốt trang web với lớp phủ mềm mại */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0 bg-cover bg-top bg-no-repeat opacity-[0.15] transition-all duration-700"
+        style={{
+          backgroundImage: `url('${heroBannerUrl || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=2000&q=85'}')`,
+        }}
+      />
+      {/* Lớp phủ mềm để bảo đảm chữ và nội dung luôn sắc nét, dễ đọc */}
+      <div className="fixed inset-0 pointer-events-none z-0 bg-[#FAF7F2]/80 backdrop-blur-[1px]" />
 
-      {/* 2. Hero Banner & Dải Ticker Thông báo */}
-      <HeroBanner initialAnnouncements={announcements} heroImageUrl={heroBannerUrl} />
+      {/* Nội dung trang */}
+      <div className="relative z-10 flex flex-col min-h-screen">
+        {/* 1. Header định danh chính thức */}
+        <Header />
 
-      {/* 3. Trung tâm điều hành & 05 Ứng dụng số cốt lõi */}
-      <EcosystemBentoGrid />
+        {/* 2. Hero Banner & Dải Ticker Thông báo */}
+        <HeroBanner initialAnnouncements={announcements} heroImageUrl={heroBannerUrl} />
 
-      {/* 4. Bản tin hoạt động Mặt trận & Các đoàn thể - 20 thôn buôn */}
-      <NewsroomSection initialArticles={initialArticles} />
+        {/* 3. Trung tâm điều hành & 06 Ứng dụng số cốt lõi */}
+        <EcosystemBentoGrid />
 
-      {/* 5. Chân trang Footer chính thức */}
-      <Footer />
+        {/* 4. Bản tin hoạt động Mặt trận & Các đoàn thể - 20 thôn buôn */}
+        <NewsroomSection initialArticles={initialArticles} />
+
+        {/* 5. Chân trang Footer chính thức */}
+        <Footer />
+      </div>
     </div>
   );
 }
