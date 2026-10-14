@@ -17,6 +17,7 @@ import {
   Eye,
 } from 'lucide-react';
 import { EA_SUP_VILLAGES } from '@/constants/easup-data';
+import { stripGalleryFromHtml } from '@/lib/news-gallery';
 
 export const MAX_ARTICLE_IMAGES = 7;
 export const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
@@ -91,11 +92,9 @@ export function NewsEditorModal({
       setTitle(articleToEdit.title || '');
       setSummary(articleToEdit.summary || '');
       
-      // Khử HTML để hiển thị dạng văn bản tự nhiên trong textarea
-      let rawContent = articleToEdit.contentHtml || '';
+      // Khử HTML và loại bỏ triệt để dấu vết album ảnh cũ để hiển thị văn bản thuần trong textarea
+      let rawContent = stripGalleryFromHtml(articleToEdit.contentHtml || '');
       rawContent = rawContent
-        .replace(/<!-- EASUPSO_GALLERY:\[.*?\] -->/g, '')
-        .replace(/<div class="easup-photo-gallery".*?<\/div><!-- END_EASUPSO_GALLERY -->/s, '')
         .replace(/<\/p><p>/gi, '\n\n')
         .replace(/<br\s*\/?>/gi, '\n')
         .replace(/<[^>]+>/g, '')

@@ -69,6 +69,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     // 3. Khử trùng dữ liệu
     const updatePayload: Record<string, unknown> = {};
     if (title !== undefined) updatePayload.title = sanitizePlainText(title);
+    if (summary !== undefined) updatePayload.summary = sanitizePlainText(summary);
     if (categoryId !== undefined) {
       const matchedCat = await prisma.newsCategory.findFirst({
         where: {

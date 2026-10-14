@@ -8,7 +8,8 @@ import { prisma } from '@/lib/prisma';
 import { ArticleStatus } from '@prisma/client';
 import { getServerAuthSession } from '@/auth';
 import { ArticleActionToolbar } from '@/components/news/ArticleActionToolbar';
-import { extractGalleryImages } from '@/lib/news-gallery';
+import { extractGalleryImages, stripGalleryFromHtml } from '@/lib/news-gallery';
+import { ArticleGallery } from '@/components/news/ArticleGallery';
 import {
   Calendar,
   Eye,
@@ -102,10 +103,12 @@ export default async function NewsDetailPage({ params }: Props) {
 
   const session = await getServerAuthSession();
   const isStaff = Boolean(session?.user && session.user.role && session.user.role !== 'PUBLIC');
+  const galleryImages = extractGalleryImages(article.contentHtml, article.thumbnailUrl);
   const articleWithImages = {
     ...article,
-    images: extractGalleryImages(article.contentHtml, article.thumbnailUrl),
+    images: galleryImages,
   };
+  const cleanContentHtml = stripGalleryFromHtml(article.contentHtml);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF7F2]">
@@ -207,8 +210,13 @@ export default async function NewsDetailPage({ params }: Props) {
           {/* Nội dung bài viết đã làm sạch chống Stored XSS */}
           <div
             className="prose prose-lg max-w-none text-[#14211B] leading-relaxed space-y-4 font-normal"
-            dangerouslySetInnerHTML={{ __html: article.contentHtml }}
+            dangerouslySetInnerHTML={{ __html: cleanContentHtml }}
           />
+
+          {/* Album hình ảnh bản tin chuẩn phóng sự (Tối đa 7 tấm ảnh) */}
+          {galleryImages.length > 0 && (
+            <ArticleGallery images={galleryImages} title={article.title} />
+          )}
 
           {/* Thanh chia sẻ tin nhanh qua Zalo & Mạng xã hội */}
           <div className="mt-10 pt-6 border-t border-[#E8E2D5] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#FAF7F2] p-4 rounded-xl">
