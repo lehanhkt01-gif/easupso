@@ -33,6 +33,7 @@ import {
   Upload,
 } from 'lucide-react';
 import { Role, OrgCode, ArticleStatus } from '@prisma/client';
+import { NewsEditorModal } from '@/components/news/NewsEditorModal';
 
 interface AdminDashboardClientProps {
   user: {
@@ -71,6 +72,8 @@ export function AdminDashboardClient({
   const [articlesList, setArticlesList] = useState(initialArticles);
   const [pendingList, setPendingList] = useState(pendingArticles);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editorModalOpen, setEditorModalOpen] = useState(false);
+  const [articleBeingEdited, setArticleBeingEdited] = useState<any | null>(null);
 
   // Quản lý Tài khoản Cán bộ & Phân quyền
   const [usersList, setUsersList] = useState<any[]>(initialUsers);
@@ -683,11 +686,14 @@ export function AdminDashboardClient({
               </div>
 
               <button
-                onClick={() => setShowCreateForm(!showCreateForm)}
-                className="btn-hallmark-primary text-xs sm:text-sm py-2.5 px-4 h-11"
+                onClick={() => {
+                  setArticleBeingEdited(null);
+                  setEditorModalOpen(true);
+                }}
+                className="btn-hallmark-primary text-xs sm:text-sm py-2.5 px-4 h-11 flex items-center gap-2"
               >
-                <PlusCircle className="w-4 h-4" />
-                <span>{showCreateForm ? 'Đóng khung soạn thảo' : 'Soạn bài viết mới'}</span>
+                <PlusCircle className="w-4 h-4 text-[#D4AF37]" />
+                <span>+ Soạn bài viết mới (Tối đa 7 ảnh)</span>
               </button>
             </div>
 
@@ -920,17 +926,27 @@ export function AdminDashboardClient({
                             {new Date(art.updatedAt || art.createdAt).toLocaleDateString('vi-VN')}
                           </td>
                           <td className="p-3.5 text-right whitespace-nowrap space-x-2">
+                            <button
+                              onClick={() => {
+                                setArticleBeingEdited(art);
+                                setEditorModalOpen(true);
+                              }}
+                              className="p-1.5 text-amber-700 hover:bg-amber-100 rounded inline-block transition"
+                              title="Chỉnh sửa bản tin này"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
                             <Link
                               href={`/news/${art.slug}`}
                               target="_blank"
-                              className="p-1.5 text-[#1B4332] hover:bg-[#E8F5EE] rounded inline-block"
+                              className="p-1.5 text-[#1B4332] hover:bg-[#E8F5EE] rounded inline-block transition"
                               title="Xem trước"
                             >
                               <Eye className="w-4 h-4" />
                             </Link>
                             <button
                               onClick={() => handleDeleteArticle(art.id)}
-                              className="p-1.5 text-red-600 hover:bg-red-50 rounded inline-block"
+                              className="p-1.5 text-red-600 hover:bg-red-50 rounded inline-block transition"
                               title="Xóa bài"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -1986,6 +2002,25 @@ export function AdminDashboardClient({
         )}
 
       </main>
+
+      {/* MODAL SOẠN THẢO / CHỈNH SỬA BẢN TIN (TỐI ĐA 7 ẢNH, DƯỚI 5MB) */}
+      <NewsEditorModal
+        isOpen={editorModalOpen}
+        onClose={() => setEditorModalOpen(false)}
+        articleToEdit={articleBeingEdited}
+        categories={categories}
+        onSuccess={(saved) => {
+          if (articleBeingEdited) {
+            setArticlesList((prev) =>
+              prev.map((item) => (item.id === saved.id ? { ...item, ...saved } : item))
+            );
+            alert('Đã cập nhật bản tin thành công!');
+          } else {
+            setArticlesList((prev) => [saved, ...prev]);
+            alert('Đã tạo bản tin mới thành công!');
+          }
+        }}
+      />
     </div>
   );
 }

@@ -9,8 +9,8 @@ export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/admin/upload
- * Tải file ảnh trực tiếp từ máy tính lên thư mục public/uploads
- * Áp dụng kiểm tra quyền, định dạng MIME và dung lượng an toàn Zero-Trust
+ * Tải file ảnh bản tin hoặc ảnh hệ thống lên thư mục public/uploads
+ * Quy định chuẩn: Tối đa 7 tấm ảnh, mỗi tấm dưới 5MB.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -24,71 +24,108 @@ export async function POST(req: NextRequest) {
     }
 
     const formData = await req.formData();
-    const file = formData.get('file') as File | null;
+    
+    // Thu thập danh sách file từ formData (hỗ trợ cả 'files' và 'file')
+    const rawFiles: File[] = [];
+    const filesList = formData.getAll('files') as File[];
+    const singleFileList = formData.getAll('file') as File[];
 
-    if (!file) {
-      return NextResponse.json({ success: false, error: 'Vui lòng chọn file hình ảnh.' }, { status: 400 });
+    if (filesList && filesList.length > 0) {
+      rawFiles.push(...filesList.filter((f) => f && f.size > 0));
+    }
+    if (singleFileList && singleFileList.length > 0) {
+      rawFiles.push(...singleFileList.filter((f) => f && f.size > 0 && !rawFiles.includes(f)));
     }
 
-    // 1. Kiểm tra định dạng MIME hợp lệ
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/jpg'];
-    if (!allowedTypes.includes(file.type)) {
+    if (rawFiles.length === 0) {
+      return NextResponse.json({ success: false, error: 'Vui lòng chọn ít nhất một file hình ảnh.' }, { status: 400 });
+    }
+
+    // 1. Giới hạn tối đa 7 tấm ảnh
+    if (rawFiles.length > 7) {
       return NextResponse.json(
-        { success: false, error: 'Định dạng file không hợp lệ. Chỉ chấp nhận ảnh JPG, PNG, WebP hoặc AVIF.' },
+        { success: false, error: 'Mỗi bản tin chỉ được phép đăng tối đa 7 tấm ảnh.' },
         { status: 400 }
       );
     }
 
-    // 2. Giới hạn dung lượng ảnh tối đa 15MB
-    const maxSize = 15 * 1024 * 1024;
-    if (file.size > maxSize) {
-      return NextResponse.json(
-        { success: false, error: 'Dung lượng ảnh vượt quá giới hạn cho phép (tối đa 15MB).' },
-        { status: 400 }
-      );
+    // 2. Kiểm tra định dạng và dung lượng từng file (Tối đa 5MB)
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/jpg', 'image/gif'];
+    const maxSizeBytes = 5 * 1024 * 1024; // 5MB
+
+    for (const f of rawFiles) {
+      if (!allowedTypes.includes(f.type.toLowerCase())) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `File "${f.name}" không hợp lệ. Chỉ chấp nhận định dạng JPG, PNG, WebP hoặc AVIF.`,
+          },
+          { status: 400 }
+        );
+      }
+
+      if (f.size > maxSizeBytes) {
+        const sizeMb = (f.size / (1024 * 1024)).toFixed(2);
+        return NextResponse.json(
+          {
+            success: false,
+            error: `File "${f.name}" có dung lượng ${sizeMb} MB, vượt quá giới hạn tối đa 5MB!`,
+          },
+          { status: 400 }
+        );
+      }
     }
-
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    // 3. Chuẩn hóa tên file ngẫu nhiên an toàn, tránh tấn công Path Traversal
-    const rawExt = path.extname(file.name) || '.jpg';
-    const ext = rawExt.replace(/[^a-zA-Z0-9.]/g, '').toLowerCase();
-    const timestamp = Date.now();
-    const randomHex = Math.random().toString(36).substring(2, 8);
-    const cleanFileName = `hero_cover_${timestamp}_${randomHex}${ext}`;
 
     const uploadDir = path.join(process.cwd(), 'public', 'uploads');
     await fs.mkdir(uploadDir, { recursive: true });
 
-    const filePath = path.join(uploadDir, cleanFileName);
-    await fs.writeFile(filePath, buffer);
+    const uploadedUrls: string[] = [];
+    const uploadedDetails: Array<{ name: string; url: string; size: number }> = [];
 
-    const publicUrl = `/uploads/${cleanFileName}`;
+    for (let i = 0; i < rawFiles.length; i++) {
+      const file = rawFiles[i];
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
 
-    // Ghi vết kiểm toán tải file
+      const rawExt = path.extname(file.name) || '.jpg';
+      const ext = rawExt.replace(/[^a-zA-Z0-9.]/g, '').toLowerCase();
+      const timestamp = Date.now();
+      const randomHex = Math.random().toString(36).substring(2, 8);
+      const cleanFileName = `tintuc_${timestamp}_${i + 1}_${randomHex}${ext}`;
+
+      const filePath = path.join(uploadDir, cleanFileName);
+      await fs.writeFile(filePath, buffer);
+
+      const publicUrl = `/uploads/${cleanFileName}`;
+      uploadedUrls.push(publicUrl);
+      uploadedDetails.push({
+        name: file.name,
+        url: publicUrl,
+        size: file.size,
+      });
+    }
+
+    // Ghi vết kiểm toán
     await writeAuditLog({
       userId: session.user.id,
       userEmail: session.user.email,
       action: 'CREATE',
       targetTable: 'Upload',
-      targetId: cleanFileName,
+      targetId: uploadedUrls.join(','),
       newData: {
-        originalName: file.name,
-        fileName: cleanFileName,
-        url: publicUrl,
-        size: file.size,
-        mimeType: file.type,
+        count: uploadedUrls.length,
+        files: uploadedDetails,
       },
       req,
     });
 
     return NextResponse.json({
       success: true,
-      url: publicUrl,
-      fileName: cleanFileName,
-      size: file.size,
-      message: 'Tải ảnh lên máy chủ thành công!',
+      urls: uploadedUrls,
+      url: uploadedUrls[0], // Hỗ trợ tương thích ngược với nơi nhận 1 URL
+      files: uploadedDetails,
+      count: uploadedUrls.length,
+      message: `Đã tải lên thành công ${uploadedUrls.length} tấm ảnh!`,
     });
   } catch (err: any) {
     console.error('[API_UPLOAD_ERR]', err);

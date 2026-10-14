@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ArticleStatus, OrgCode, Prisma } from '@prisma/client';
+import { extractGalleryImages } from '@/lib/news-gallery';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,6 +69,7 @@ export async function GET(req: NextRequest) {
           viewCount: true,
           publishedAt: true,
           createdAt: true,
+          contentHtml: true,
           category: {
             select: {
               id: true,
@@ -92,11 +94,16 @@ export async function GET(req: NextRequest) {
       prisma.newsArticle.count({ where }),
     ]);
 
+    const mappedArticles = articles.map((art) => ({
+      ...art,
+      images: extractGalleryImages(art.contentHtml, art.thumbnailUrl),
+    }));
+
     const totalPages = Math.ceil(totalCount / limit);
 
     return NextResponse.json({
       success: true,
-      data: articles,
+      data: mappedArticles,
       pagination: {
         total: totalCount,
         page,

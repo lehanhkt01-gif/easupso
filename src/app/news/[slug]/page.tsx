@@ -6,6 +6,9 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { prisma } from '@/lib/prisma';
 import { ArticleStatus } from '@prisma/client';
+import { getServerAuthSession } from '@/auth';
+import { ArticleActionToolbar } from '@/components/news/ArticleActionToolbar';
+import { extractGalleryImages } from '@/lib/news-gallery';
 import {
   Calendar,
   Eye,
@@ -97,6 +100,13 @@ export default async function NewsDetailPage({ params }: Props) {
   const zaloShareUrl = `https://sp.zalo.me/share?url=${encodeURIComponent(fullUrl)}&title=${encodeURIComponent(article.title)}`;
   const fbShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(fullUrl)}`;
 
+  const session = await getServerAuthSession();
+  const isStaff = Boolean(session?.user && session.user.role && session.user.role !== 'PUBLIC');
+  const articleWithImages = {
+    ...article,
+    images: extractGalleryImages(article.contentHtml, article.thumbnailUrl),
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF7F2]">
       <Header />
@@ -114,6 +124,11 @@ export default async function NewsDetailPage({ params }: Props) {
           <ChevronRight className="w-3.5 h-3.5 text-[#D5CBBA]" />
           <span className="text-[#1B4332] font-bold truncate max-w-xs">{article.category.name}</span>
         </nav>
+
+        {/* Thanh công cụ cán bộ: Sửa / Xóa bài trực tiếp */}
+        {isStaff && session?.user && (
+          <ArticleActionToolbar article={articleWithImages} user={session.user} />
+        )}
 
         {/* Khối bài viết chính */}
         <article className="bg-white rounded-2xl border border-[#E8E2D5] shadow-sm p-6 sm:p-10 mb-10">

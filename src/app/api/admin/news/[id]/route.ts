@@ -5,6 +5,7 @@ import { canUpdateArticle, canDeleteArticle, canApproveArticle } from '@/lib/per
 import { sanitizeHtml, sanitizePlainText } from '@/lib/sanitize';
 import { writeAuditLog } from '@/lib/audit';
 import { ArticleStatus, Role } from '@prisma/client';
+import { bundleContentWithGallery, extractGalleryImages } from '@/lib/news-gallery';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -40,6 +41,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       orgCode,
       beneficiaryName,
       thumbnailUrl,
+      images,
       isFeatured,
       status,
     } = body;
@@ -68,13 +70,24 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     const updatePayload: Record<string, unknown> = {};
     if (title !== undefined) updatePayload.title = sanitizePlainText(title);
     if (summary !== undefined) updatePayload.summary = sanitizePlainText(summary);
-    if (contentHtml !== undefined) updatePayload.contentHtml = sanitizeHtml(contentHtml);
     if (categoryId !== undefined) updatePayload.categoryId = categoryId;
     if (villageId !== undefined) updatePayload.villageId = villageId || null;
     if (orgCode !== undefined) updatePayload.orgCode = orgCode;
     if (beneficiaryName !== undefined) updatePayload.beneficiaryName = beneficiaryName ? sanitizePlainText(beneficiaryName) : null;
     if (thumbnailUrl !== undefined) updatePayload.thumbnailUrl = thumbnailUrl;
     if (isFeatured !== undefined) updatePayload.isFeatured = Boolean(isFeatured);
+
+    // Xử lý nội dung kết hợp album ảnh
+    if (contentHtml !== undefined || images !== undefined) {
+      const existingImages = extractGalleryImages(existing.contentHtml, existing.thumbnailUrl);
+      const targetImages = images !== undefined ? (Array.isArray(images) ? images : []) : existingImages;
+      const baseHtml = contentHtml !== undefined ? sanitizeHtml(contentHtml) : existing.contentHtml;
+      updatePayload.contentHtml = bundleContentWithGallery(baseHtml, targetImages);
+
+      if (!thumbnailUrl && targetImages.length > 0) {
+        updatePayload.thumbnailUrl = targetImages[0];
+      }
+    }
 
     if (status !== undefined) {
       updatePayload.status = status;
@@ -88,6 +101,12 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     const updated = await prisma.newsArticle.update({
       where: { id },
       data: updatePayload,
+      include: {
+        category: { select: { id: true, name: true, slug: true, badgeColor: true } },
+        village: { select: { id: true, name: true, code: true } },
+        author: { select: { name: true, email: true, positionTitle: true } },
+        approvedBy: { select: { name: true } },
+      },
     });
 
     // 5. Ghi nhật ký kiểm toán
@@ -102,7 +121,13 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       req,
     });
 
-    return NextResponse.json({ success: true, data: updated });
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...updated,
+        images: extractGalleryImages(updated.contentHtml, updated.thumbnailUrl),
+      },
+    });
   } catch (error) {
     console.error('[API_ADMIN_NEWS_PATCH_ERROR]', error);
     return NextResponse.json({ success: false, error: 'Lỗi khi cập nhật bản tin.' }, { status: 500 });

@@ -5,6 +5,7 @@ import { canCreateArticle, buildArticleScopeFilter } from '@/lib/permissions';
 import { sanitizeHtml, sanitizePlainText, generateVietnameseSlug } from '@/lib/sanitize';
 import { writeAuditLog } from '@/lib/audit';
 import { ArticleStatus, OrgCode, Role } from '@prisma/client';
+import { bundleContentWithGallery, extractGalleryImages } from '@/lib/news-gallery';
 
 /**
  * GET /api/admin/news
@@ -46,9 +47,14 @@ export async function GET(req: NextRequest) {
       prisma.newsArticle.count({ where }),
     ]);
 
+    const mappedArticles = articles.map((art) => ({
+      ...art,
+      images: extractGalleryImages(art.contentHtml, art.thumbnailUrl),
+    }));
+
     return NextResponse.json({
       success: true,
-      data: articles,
+      data: mappedArticles,
       pagination: {
         total: totalCount,
         page,
@@ -83,6 +89,7 @@ export async function POST(req: NextRequest) {
       orgCode,
       beneficiaryName,
       thumbnailUrl,
+      images = [],
       isFeatured = false,
       status = ArticleStatus.DRAFT,
     } = body;
@@ -111,6 +118,11 @@ export async function POST(req: NextRequest) {
     const cleanContentHtml = sanitizeHtml(contentHtml);
     const cleanBeneficiaryName = beneficiaryName ? sanitizePlainText(beneficiaryName) : null;
 
+    // Đóng gói album tối đa 7 ảnh vào nội dung
+    const imageList: string[] = Array.isArray(images) ? images : [];
+    const bundledContentHtml = bundleContentWithGallery(cleanContentHtml, imageList);
+    const finalThumbnailUrl = thumbnailUrl || (imageList.length > 0 ? imageList[0] : null);
+
     // 3. Tạo slug duy nhất
     let baseSlug = generateVietnameseSlug(cleanTitle);
     if (!baseSlug) baseSlug = `bai-viet-${Date.now()}`;
@@ -127,8 +139,8 @@ export async function POST(req: NextRequest) {
         title: cleanTitle,
         slug: finalSlug,
         summary: cleanSummary,
-        contentHtml: cleanContentHtml,
-        thumbnailUrl: thumbnailUrl || null,
+        contentHtml: bundledContentHtml,
+        thumbnailUrl: finalThumbnailUrl,
         categoryId,
         villageId: villageId || null,
         orgCode: orgCode as OrgCode,
