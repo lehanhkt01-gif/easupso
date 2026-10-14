@@ -133,20 +133,11 @@ export function EcosystemBentoGrid() {
     <section id="ecosystem-grid" className="py-7 sm:py-9 bg-transparent relative z-10">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* TIÊU ĐỀ KHU VỰC THU GỌN VÀ NỔI BẬT */}
+        {/* TIÊU ĐỀ KHU VỰC */}
         <div className="text-center mb-6 sm:mb-8">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/90 shadow-2xs border border-[#E8E2D5] mb-2 backdrop-blur-xs">
-            <span className="w-2 h-2 rounded-full bg-[#C85A32] animate-pulse" />
-            <span className="text-[11px] font-extrabold text-[#1B4332] uppercase tracking-wider">
-              Hệ sinh thái số xã Ea Súp
-            </span>
-          </div>
           <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-[#14211B] uppercase tracking-tight drop-shadow-2xs">
-            TRUNG TÂM ĐIỀU HÀNH &amp; ỨNG DỤNG SỐ
+            CÁC ỨNG DỤNG THUỘC HỆ SINH THÁI EA SÚP SỐ
           </h2>
-          <p className="text-xs sm:text-sm text-[#4A5B52] mt-1 max-w-2xl mx-auto">
-            Kết nối liên thông 6 phân hệ chuyên sâu phục vụ nhân dân, cử tri và cán bộ 20 thôn, buôn
-          </p>
         </div>
 
         {/* LƯỚI 6 THẺ PHÂN HỆ SỐ CỐT LÕI - TĂNG MÀU SẮC, HIỆU ỨNG CHỌN NỔI BẬT */}
