@@ -16,6 +16,8 @@ import {
   Mail,
   AlertCircle,
   Sparkles,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 export default function LoginPage() {
@@ -24,11 +26,12 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState('lehanhkt01@gmail.com');
   const [password, setPassword] = useState('Easup@2026!');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   if (status === 'authenticated') {
-    router.push(session.user.role !== 'PUBLIC' ? '/admin' : '/');
+    window.location.href = session.user.role !== 'PUBLIC' ? '/admin' : '/';
   }
 
   async function handleQuickLoginAdmin() {
@@ -44,7 +47,7 @@ export default function LoginPage() {
       if (res?.error) {
         setErrorMsg('Không thể đăng nhập: ' + res.error);
       } else {
-        router.push('/admin');
+        window.location.href = '/admin';
       }
     } catch {
       setErrorMsg('Lỗi kết nối máy chủ xác thực.');
@@ -72,7 +75,7 @@ export default function LoginPage() {
       if (res?.error) {
         setErrorMsg('Email hoặc mật khẩu không chính xác, hoặc tài khoản đang bị tạm khóa.');
       } else {
-        router.push('/admin');
+        window.location.href = '/admin';
       }
     } catch {
       setErrorMsg('Lỗi kết nối máy chủ xác thực.');
@@ -198,18 +201,31 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-[#14211B] mb-1">
-              Mật khẩu:
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-bold text-[#14211B]">
+                Mật khẩu:
+              </label>
+              <span className="text-[11px] text-[#6B7C73]">
+                Mặc định: <strong className="text-[#1B4332] font-mono">Easup@2026!</strong>
+              </span>
+            </div>
             <div className="relative">
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-3.5 py-2.5 pl-9 rounded-xl border border-[#D5CBBA] text-sm text-[#14211B] focus:outline-none focus:ring-2 focus:ring-[#1B4332] bg-[#FAF7F2] focus:bg-white"
+                placeholder="Easup@2026!"
+                className="w-full px-3.5 py-2.5 pl-9 pr-10 rounded-xl border border-[#D5CBBA] text-sm text-[#14211B] focus:outline-none focus:ring-2 focus:ring-[#1B4332] bg-[#FAF7F2] focus:bg-white font-mono"
               />
               <KeyRound className="w-4 h-4 text-[#6B7C73] absolute left-3 top-3" />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-2.5 text-[#6B7C73] hover:text-[#1B4332]"
+                title={showPassword ? 'Ẩn mật khẩu' : 'Hiển thị mật khẩu'}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
           </div>
 
