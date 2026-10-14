@@ -117,11 +117,31 @@ export default async function HomePage() {
         {/* 1. Header định danh chính thức */}
         <Header />
 
-        {/* 2. Hero Banner & Dải Ticker Thông báo */}
-        <HeroBanner initialAnnouncements={announcements} heroImageUrl={heroBannerUrl} />
+        {/* KHU VỰC TOÀN CẢNH: HERO BANNER & CÁC ỨNG DỤNG HỆ SINH THÁI (CHUNG NỀN HÌNH ẢNH TOÀN KHU VỰC) */}
+        <section className="relative overflow-hidden">
+          {/* Hình nền toàn cảnh Ea Súp bao trùm trọn vẹn toàn bộ khu vực */}
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-700"
+            style={{
+              backgroundImage: `url('${heroBannerUrl || '/uploads/hero_cover_1791967836998_0qxt18.jpg'}')`,
+            }}
+          />
 
-        {/* 3. Trung tâm điều hành & 06 Ứng dụng số cốt lõi */}
-        <EcosystemBentoGrid />
+          {/* Lớp phủ chuyển sắc đa tầng xanh rừng khộp Tây Nguyên giữ cho hình nền rõ nét, tương phản hoàn hảo */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#143326]/85 via-[#1B4332]/50 to-[#14211B]/70" />
+
+          {/* Vệt chuyển màu mềm mại hòa tan vào phần Bản tin ở chân khu vực */}
+          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#FAF7F2] to-transparent pointer-events-none" />
+
+          {/* Nội dung tương tác bên trên hình nền */}
+          <div className="relative z-10">
+            {/* 2. Hero Banner & Dải Ticker Thông báo */}
+            <HeroBanner initialAnnouncements={announcements} heroImageUrl={heroBannerUrl} />
+
+            {/* 3. Trung tâm điều hành & 06 Ứng dụng số cốt lõi */}
+            <EcosystemBentoGrid />
+          </div>
+        </section>
 
         {/* 4. Bản tin hoạt động Mặt trận & Các đoàn thể - 20 thôn buôn */}
         <NewsroomSection initialArticles={initialArticles} />

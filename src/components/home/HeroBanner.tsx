@@ -95,7 +95,7 @@ export function HeroBanner({
   const currentAnnouncement = announcements[activeTickerIdx];
 
   return (
-    <section className="relative overflow-hidden">
+    <div className="relative">
       
       {/* 1. DẢI TICKER THÔNG BÁO (NHỎ GỌN TRÊN CÙNG) */}
       {currentAnnouncement && (
@@ -140,24 +140,10 @@ export function HeroBanner({
         </div>
       )}
 
-      {/* 2. KHUNG HERO THU GỌN - ẨN DƯỚI NỀN HÒA HỢP VỚI TOÀN TRANG */}
-      <div className="relative min-h-[170px] sm:min-h-[190px] lg:min-h-[210px] flex items-center justify-center">
-        {/* Hình nền toàn cảnh ẩn nhẹ dưới nền (opacity dịu mắt) */}
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-700 opacity-65"
-          style={{
-            backgroundImage: `url('${heroImageUrl || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=2000&q=85'}')`,
-          }}
-        />
-
-        {/* Lớp phủ chuyển sắc đa tầng từ xanh rừng khộp xuống nền kem di sản #FAF7F2 */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#143326]/90 via-[#1B4332]/65 to-[#FAF7F2]" />
-
-        {/* Vệt hòa tan mềm mại vào nền #FAF7F2 bên dưới - Không còn vách ngăn rõ rệt */}
-        <div className="absolute inset-x-0 bottom-0 h-16 sm:h-24 bg-gradient-to-t from-[#FAF7F2] via-[#FAF7F2]/80 to-transparent pointer-events-none" />
-
+      {/* 2. KHUNG HERO THU GỌN - KẾT NỐI LIỀN MẠCH VỚI TOÀN BỘ NỀN */}
+      <div className="relative min-h-[150px] sm:min-h-[170px] lg:min-h-[190px] flex items-center justify-center">
         {/* Khối nội dung chính giữa thu gọn thanh lịch */}
-        <div className="relative z-10 max-w-3xl mx-auto px-4 text-center py-5 sm:py-7 space-y-3 sm:space-y-4">
+        <div className="relative z-10 max-w-3xl mx-auto px-4 text-center py-4 sm:py-6 space-y-3 sm:space-y-4">
           
           {/* Tiêu đề chính luận thu gọn, trang trọng */}
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)] uppercase">
@@ -260,6 +246,6 @@ export function HeroBanner({
           </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 }

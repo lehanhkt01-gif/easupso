@@ -130,12 +130,12 @@ const ECOSYSTEM_APPS = [
 
 export function EcosystemBentoGrid() {
   return (
-    <section id="ecosystem-grid" className="py-7 sm:py-9 bg-transparent relative z-10">
+    <section id="ecosystem-grid" className="pt-2 pb-8 sm:pb-12 bg-transparent relative z-10">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* TIÊU ĐỀ KHU VỰC */}
         <div className="text-center mb-6 sm:mb-8">
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-[#14211B] uppercase tracking-tight drop-shadow-2xs">
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-white uppercase tracking-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)]">
             CÁC ỨNG DỤNG THUỘC HỆ SINH THÁI EA SÚP SỐ
           </h2>
         </div>
