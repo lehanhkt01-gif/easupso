@@ -7,15 +7,10 @@ import { useRouter } from 'next/navigation';
 import {
   ShieldCheck,
   ArrowLeft,
-  Users,
-  CheckCircle2,
   Lock,
-  Globe,
-  Building,
   KeyRound,
   Mail,
   AlertCircle,
-  Sparkles,
   Eye,
   EyeOff,
 } from 'lucide-react';
@@ -24,36 +19,14 @@ export default function LoginPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  const [email, setEmail] = useState('lehanhkt01@gmail.com');
-  const [password, setPassword] = useState('Easup@2026!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   if (status === 'authenticated') {
     window.location.href = session.user.role !== 'PUBLIC' ? '/admin' : '/';
-  }
-
-  async function handleQuickLoginAdmin() {
-    setIsLoading(true);
-    setErrorMsg(null);
-    try {
-      const res = await signIn('credentials', {
-        email: 'lehanhkt01@gmail.com',
-        password: 'Easup@2026!',
-        redirect: false,
-      });
-
-      if (res?.error) {
-        setErrorMsg('Không thể đăng nhập: ' + res.error);
-      } else {
-        window.location.href = '/admin';
-      }
-    } catch {
-      setErrorMsg('Lỗi kết nối máy chủ xác thực.');
-    } finally {
-      setIsLoading(false);
-    }
   }
 
   async function handleCredentialsLogin(e: React.FormEvent) {
@@ -106,10 +79,10 @@ export default function LoginPage() {
           </div>
 
           <h1 className="text-xl sm:text-2xl font-extrabold text-[#1B4332] tracking-tight">
-            ĐĂNG NHẬP MỘT CỬA SSO
+            ĐĂNG NHẬP HỆ THỐNG
           </h1>
           <p className="text-xs text-[#4A5B52]">
-            Hệ sinh thái số xã Ea Súp &bull; Tỉnh Đắk Lắk
+            Cổng thông tin &amp; Quản trị số xã Ea Súp &bull; Tỉnh Đắk Lắk
           </p>
         </div>
 
@@ -121,79 +94,19 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* 1. NÚT ĐĂNG NHẬP NHANH ADMIN (TIỆN LỢI CHO KIỂM THỬ) */}
-        <div className="p-4 rounded-xl bg-[#FAF7F2] border-2 border-[#D4AF37] space-y-2.5 shadow-xs">
-          <div className="flex items-center gap-2 text-xs font-bold text-[#1B4332]">
-            <Sparkles className="w-4 h-4 text-[#C85A32]" />
-            <span>Đăng nhập trực tiếp Admin (Kiểm thử tức thì):</span>
-          </div>
-          <button
-            type="button"
-            disabled={isLoading}
-            onClick={handleQuickLoginAdmin}
-            className="w-full py-3 px-4 rounded-xl bg-[#1B4332] hover:bg-[#143326] text-white text-sm font-bold shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            <span>⚡ Vào Trang Quản trị (lehanhkt01@gmail.com)</span>
-          </button>
-          <p className="text-[11px] text-[#6B7C73] text-center">
-            Tự động cấp quyền <strong>Super Admin</strong> toàn quyền thêm/sửa/xóa tài khoản, đổi mật khẩu.
-          </p>
-        </div>
-
-        {/* 2. NÚT ĐĂNG NHẬP BẰNG GMAIL OAUTH */}
-        <div className="space-y-2">
-          <button
-            type="button"
-            onClick={() => signIn('google', { callbackUrl: '/admin' })}
-            className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-[#D5CBBA] bg-white hover:bg-gray-50 text-[#14211B] text-xs sm:text-sm font-bold shadow-xs active:translate-y-0.5 transition min-h-[44px]"
-          >
-            {/* Logo Google SVG */}
-            <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
-              <path
-                fill="#4285F4"
-                d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.66v3.05h3.87c2.27-2.09 3.675-5.17 3.675-9.15z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.87-3.05c-1.08.72-2.45 1.16-4.06 1.16-3.13 0-5.78-2.11-6.73-4.96H1.28v3.15C3.26 21.36 7.35 24 12 24z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.27 14.24c-.25-.72-.38-1.49-.38-2.24s.13-1.52.38-2.24V6.61H1.28C.46 8.23 0 10.06 0 12s.46 3.77 1.28 5.39l3.99-3.15z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.28 6.61l3.99 3.15c.95-2.85 3.6-4.96 6.73-4.96z"
-              />
-            </svg>
-            <span>Đăng nhập bằng tài khoản Google (OAuth 2.0)</span>
-          </button>
-          <p className="text-[10px] text-gray-500 text-center leading-tight">
-            (Lưu ý: Nút Google yêu cầu cấu hình Google Client ID thật trong file .env để tránh lỗi 401 invalid_client)
-          </p>
-        </div>
-
-        {/* Đường phân cách */}
-        <div className="relative flex py-1 items-center">
-          <div className="flex-grow border-t border-[#E8E2D5]" />
-          <span className="flex-shrink mx-3 text-[10px] font-bold text-[#6B7C73] uppercase tracking-wider">
-            hoặc điền thông tin cán bộ
-          </span>
-          <div className="flex-grow border-t border-[#E8E2D5]" />
-        </div>
-
-        {/* 2. FORM ĐĂNG NHẬP MẬT KHẨU CÁN BỘ */}
-        <form onSubmit={handleCredentialsLogin} className="space-y-3.5">
+        {/* FORM ĐĂNG NHẬP CÁN BỘ */}
+        <form onSubmit={handleCredentialsLogin} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-[#14211B] mb-1">
+            <label className="block text-xs font-bold text-[#14211B] mb-1.5">
               Email cán bộ:
             </label>
             <div className="relative">
               <input
                 type="email"
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="lehanhkt01@gmail.com"
+                placeholder="Nhập email cán bộ (vd: lehanhkt01@gmail.com)"
                 className="w-full px-3.5 py-2.5 pl-9 rounded-xl border border-[#D5CBBA] text-sm text-[#14211B] focus:outline-none focus:ring-2 focus:ring-[#1B4332] bg-[#FAF7F2] focus:bg-white"
               />
               <Mail className="w-4 h-4 text-[#6B7C73] absolute left-3 top-3" />
@@ -201,20 +114,16 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs font-bold text-[#14211B]">
-                Mật khẩu:
-              </label>
-              <span className="text-[11px] text-[#6B7C73]">
-                Mặc định: <strong className="text-[#1B4332] font-mono">Easup@2026!</strong>
-              </span>
-            </div>
+            <label className="block text-xs font-bold text-[#14211B] mb-1.5">
+              Mật khẩu:
+            </label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
+                required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Easup@2026!"
+                placeholder="Nhập mật khẩu"
                 className="w-full px-3.5 py-2.5 pl-9 pr-10 rounded-xl border border-[#D5CBBA] text-sm text-[#14211B] focus:outline-none focus:ring-2 focus:ring-[#1B4332] bg-[#FAF7F2] focus:bg-white font-mono"
               />
               <KeyRound className="w-4 h-4 text-[#6B7C73] absolute left-3 top-3" />
@@ -232,7 +141,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-2.5 px-4 rounded-xl bg-[#1B4332] hover:bg-[#143326] text-white text-xs sm:text-sm font-bold shadow transition flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full py-3 px-4 rounded-xl bg-[#1B4332] hover:bg-[#143326] text-white text-sm font-bold shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50 active:translate-y-0.5"
           >
             {isLoading ? 'Đang xác thực...' : 'Đăng nhập vào Hệ thống Quản trị'}
           </button>
