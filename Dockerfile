@@ -8,6 +8,7 @@ WORKDIR /app
 # Stage 2: Dependencies installation
 FROM base AS deps
 COPY package.json package-lock.json* ./
+COPY prisma ./prisma/
 # Install dependencies cleanly
 RUN npm ci || npm install
 
@@ -21,6 +22,7 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
+RUN npx prisma generate
 RUN npm run build
 
 # Stage 4: Production Runner (Minimal image, non-root user)
@@ -35,6 +37,9 @@ ENV HOSTNAME="0.0.0.0"
 # Create dedicated non-root user and group
 RUN addgroup --system --gid 1001 nodejs \
     && adduser --system --uid 1001 nextjs
+
+# Copy prisma schema & migrations for runtime queries and cli
+COPY --from=builder /app/prisma ./prisma
 
 # Copy public directory if exists
 COPY --from=builder /app/public ./public 2>/dev/null || true
