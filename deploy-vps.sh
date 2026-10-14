@@ -18,6 +18,11 @@ cd "$APP_DIR"
 echo "📁 Đang chuẩn bị các thư mục lưu trữ..."
 mkdir -p "$APP_DIR/nginx/ssl"
 mkdir -p "$APP_DIR/public/uploads"
+if [ ! -f "$APP_DIR/public/site-settings.json" ]; then
+  echo "{}" > "$APP_DIR/public/site-settings.json"
+fi
+chmod -R 777 "$APP_DIR/public/uploads"
+chmod 666 "$APP_DIR/public/site-settings.json"
 
 # 2. Sinh chứng chỉ SSL nội bộ cho Nginx (kết nối an toàn với Cloudflare) nếu chưa có
 if [ ! -f "$APP_DIR/nginx/ssl/easupso.com.crt" ]; then

@@ -41,8 +41,8 @@ RUN addgroup --system --gid 1001 nodejs \
 # Copy prisma schema & migrations for runtime queries and cli
 COPY --from=builder /app/prisma ./prisma
 
-# Copy public directory if exists
-COPY --from=builder /app/public ./public 2>/dev/null || true
+# Copy public directory
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 # Copy standalone build output and static assets with correct permissions
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
