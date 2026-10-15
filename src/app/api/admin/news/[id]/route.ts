@@ -67,6 +67,8 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       beneficiaryName,
       thumbnailUrl,
       images,
+      mediaItems,
+      authorName,
       isFeatured,
       status,
     } = body;
@@ -152,16 +154,31 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     if (thumbnailUrl !== undefined) updatePayload.thumbnailUrl = thumbnailUrl;
     if (isFeatured !== undefined) updatePayload.isFeatured = Boolean(isFeatured);
 
-    // Xử lý nội dung kết hợp album ảnh
-    let targetImages = images;
-    if (contentHtml !== undefined || images !== undefined) {
-      const existingImages = extractGalleryImages(existing.contentHtml, existing.thumbnailUrl);
-      targetImages = images !== undefined ? (Array.isArray(images) ? images : []) : existingImages;
-      const baseHtml = contentHtml !== undefined ? sanitizeHtml(contentHtml) : existing.contentHtml;
-      updatePayload.contentHtml = bundleContentWithGallery(baseHtml, targetImages);
+    // Xử lý nội dung kết hợp album ảnh và metadata mediaItems
+    let targetMedia: any[] = [];
+    if (contentHtml !== undefined || images !== undefined || mediaItems !== undefined) {
+      if (mediaItems !== undefined && Array.isArray(mediaItems)) {
+        targetMedia = mediaItems;
+      } else if (images !== undefined && Array.isArray(images)) {
+        targetMedia = images;
+      } else {
+        targetMedia = extractGalleryImages(existing.contentHtml, existing.thumbnailUrl);
+      }
 
-      if (!thumbnailUrl && targetImages.length > 0) {
-        updatePayload.thumbnailUrl = targetImages[0];
+      const baseHtml = contentHtml !== undefined ? sanitizeHtml(contentHtml) : existing.contentHtml;
+      updatePayload.contentHtml = bundleContentWithGallery(baseHtml, targetMedia);
+
+      let coverUrl: string | null = null;
+      if (Array.isArray(targetMedia) && targetMedia.length > 0) {
+        const coverItem = targetMedia.find((m: any) => m && m.isCover);
+        if (coverItem && coverItem.url) coverUrl = coverItem.url;
+      }
+
+      if (!thumbnailUrl && coverUrl) {
+        updatePayload.thumbnailUrl = coverUrl;
+      } else if (!thumbnailUrl && targetMedia.length > 0) {
+        const first = targetMedia[0];
+        updatePayload.thumbnailUrl = typeof first === 'string' ? first : first.url;
       }
     }
 
@@ -288,13 +305,14 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
         ...(summary !== undefined ? { summary: String(updatePayload.summary) } : {}),
         ...(updatePayload.contentHtml !== undefined ? { contentHtml: String(updatePayload.contentHtml) } : {}),
         ...(updatePayload.thumbnailUrl !== undefined ? { thumbnailUrl: updatePayload.thumbnailUrl as string | null } : {}),
-        ...(targetImages !== undefined ? { images: targetImages } : {}),
+        ...(targetMedia !== undefined ? { images: targetMedia.map((m: any) => (typeof m === 'string' ? m : m.url)).filter(Boolean), mediaItems: targetMedia } : {}),
         ...(isFeatured !== undefined ? { isFeatured: Boolean(isFeatured) } : {}),
         ...(status !== undefined ? { status: status as ArticleStatus } : {}),
         ...(updatePayload.categoryId ? { categoryId: String(updatePayload.categoryId) } : {}),
         ...(updatePayload.villageId !== undefined ? { villageId: updatePayload.villageId as string | null } : {}),
         ...(updatePayload.orgCode ? { orgCode: updatePayload.orgCode as OrgCode } : {}),
         ...(beneficiaryName !== undefined ? { beneficiaryName: beneficiaryName ? sanitizePlainText(beneficiaryName) : null } : {}),
+        ...(authorName !== undefined ? { authorName: sanitizePlainText(authorName) } : {}),
       });
 
       if (!updatedLocal && updatedDb) {
@@ -306,7 +324,8 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
           summary: updatedDb.summary,
           contentHtml: updatedDb.contentHtml,
           thumbnailUrl: updatedDb.thumbnailUrl,
-          images: targetImages,
+          images: targetMedia.map((m: any) => (typeof m === 'string' ? m : m.url)).filter(Boolean),
+          mediaItems: targetMedia,
           status: updatedDb.status,
           orgCode: updatedDb.orgCode,
         });

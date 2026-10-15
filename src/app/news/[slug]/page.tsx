@@ -8,8 +8,9 @@ import { prisma } from '@/lib/prisma';
 import { ArticleStatus } from '@prisma/client';
 import { getServerAuthSession } from '@/auth';
 import { ArticleActionToolbar } from '@/components/news/ArticleActionToolbar';
-import { extractGalleryImages, stripGalleryFromHtml } from '@/lib/news-gallery';
+import { extractGalleryImages, extractGalleryMedia, stripGalleryFromHtml } from '@/lib/news-gallery';
 import { ArticleGallery } from '@/components/news/ArticleGallery';
+import { EditorialArticleView } from '@/components/news/EditorialArticleView';
 import {
   Calendar,
   Eye,
@@ -162,12 +163,15 @@ export default async function NewsDetailPage({ params }: Props) {
 
   const session = await getServerAuthSession();
   const isStaff = Boolean(session?.user && session.user.role && session.user.role !== 'PUBLIC');
+  const galleryMedia = extractGalleryMedia(article.contentHtml || '', article.thumbnailUrl);
   const galleryImages = extractGalleryImages(article.contentHtml || '', article.thumbnailUrl);
+  const resolvedMedia = article.mediaItems && article.mediaItems.length > 0 ? article.mediaItems : galleryMedia;
   const articleWithImages = {
     ...article,
     category: article.category || { name: 'Ủy ban MTTQ xã' },
-    author: article.author || { name: 'Cán bộ Mặt trận xã', positionTitle: 'Cán bộ biên tập' },
+    author: article.author || { name: 'Ủy ban MTTQ Việt Nam xã Ea Súp', positionTitle: 'Cán bộ biên tập' },
     images: galleryImages,
+    mediaItems: resolvedMedia,
   };
   const cleanContentHtml = stripGalleryFromHtml(article.contentHtml || '');
 
@@ -196,121 +200,23 @@ export default async function NewsDetailPage({ params }: Props) {
           <ArticleActionToolbar article={articleWithImages} user={session.user} />
         )}
 
-        {/* Khối bài viết chính */}
-        <article className="bg-white rounded-2xl border border-[#E8E2D5] shadow-sm p-6 sm:p-10 mb-10">
-          
-          {/* Huy hiệu chuyên mục & Thôn buôn */}
-          <div className="flex flex-wrap items-center gap-2 mb-4">
-            <span className="px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wider bg-[#1B4332] text-white">
-              {article.category?.name || 'Bản tin'}
-            </span>
-            {article.village && (
-              <span className="px-3 py-1 rounded-md text-xs font-bold bg-[#FAF0EC] text-[#C85A32] border border-[#EBBAA7] flex items-center gap-1">
-                <MapPin className="w-3 h-3" />
-                {article.village.name}
-              </span>
-            )}
-            {article.beneficiaryName && (
-              <span className="px-3 py-1 rounded-md text-xs font-semibold bg-[#FCF8EC] text-[#AA8C2C] border border-[#F3E4B3]">
-                Ủy quyền đưa tin: {article.beneficiaryName}
-              </span>
-            )}
-          </div>
-
-          {/* Tiêu đề bài viết (TUYỆT ĐỐI KHÔNG IN NGHIÊNG) */}
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#1B4332] leading-tight mb-4">
-            {article.title}
-          </h1>
-
-          {/* Metadata thông tin tác giả & thời gian */}
-          <div className="flex flex-wrap items-center justify-between gap-4 py-4 border-y border-[#E8E2D5] text-xs text-[#6B7C73] mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-[#E8F5EE] text-[#1B4332] flex items-center justify-center font-bold">
-                <User className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="font-bold text-[#14211B]">{article.author?.name || 'Cán bộ Mặt trận xã'}</p>
-                <p className="text-[11px] text-[#4A5B52]">{article.author?.positionTitle || 'Cán bộ biên tập'}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <span className="flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5 text-[#C85A32]" />
-                {new Date(article.publishedAt || article.createdAt || Date.now()).toLocaleDateString('vi-VN', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </span>
-              <span className="flex items-center gap-1">
-                <Eye className="w-3.5 h-3.5" />
-                {Number(article.viewCount || 0) + 1} lượt xem
-              </span>
-            </div>
-          </div>
-
-          {/* Đoạn tóm tắt (Sapo) */}
-          <div className="p-4 sm:p-5 bg-[#FAF7F2] rounded-xl border-l-4 border-[#C85A32] mb-8">
-            <p className="text-base sm:text-lg font-bold text-[#14211B] leading-relaxed">
-              {article.summary}
-            </p>
-          </div>
-
-          {/* Ảnh minh họa nếu có */}
-          {article.thumbnailUrl && (
-            <div className="relative aspect-[16/9] w-full rounded-xl overflow-hidden mb-8 border border-[#E8E2D5]">
-              <img
-                src={article.thumbnailUrl}
-                alt={article.title}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
-
-          {/* Nội dung bài viết đã làm sạch chống Stored XSS */}
-          <div
-            className="prose prose-lg max-w-none text-[#14211B] leading-relaxed space-y-4 font-normal"
-            dangerouslySetInnerHTML={{ __html: cleanContentHtml }}
+        {/* Tòa soạn Báo điện tử chuyên nghiệp chuẩn @hallmark */}
+        <div className="mb-10">
+          <EditorialArticleView
+            title={article.title}
+            summary={article.summary}
+            contentHtml={cleanContentHtml}
+            mediaItems={resolvedMedia}
+            categoryName={article.category?.name || 'Ủy ban MTTQ xã'}
+            villageName={article.village?.name || null}
+            authorName={article.author?.name || 'Ủy ban MTTQ Việt Nam xã Ea Súp'}
+            authorPosition={article.author?.positionTitle || null}
+            publishedAt={article.publishedAt || article.createdAt}
+            viewCount={article.viewCount || 0}
+            slug={article.slug}
+            beneficiaryName={article.beneficiaryName || null}
           />
-
-          {/* Album hình ảnh bản tin chuẩn phóng sự (Tối đa 7 tấm ảnh) */}
-          {galleryImages.length > 0 && (
-            <ArticleGallery images={galleryImages} title={article.title} />
-          )}
-
-          {/* Thanh chia sẻ tin nhanh qua Zalo & Mạng xã hội */}
-          <div className="mt-10 pt-6 border-t border-[#E8E2D5] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#FAF7F2] p-4 rounded-xl">
-            <div className="flex items-center gap-2 text-xs font-bold text-[#1B4332] uppercase">
-              <Share2 className="w-4 h-4 text-[#C85A32]" />
-              Chia sẻ bản tin đến bà con 20 thôn buôn:
-            </div>
-
-            <div className="flex items-center gap-2">
-              {/* Nút chia sẻ Zalo chính thức */}
-              <a
-                href={zaloShareUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#0068FF] text-white text-xs font-bold hover:bg-[#0052cc] transition shadow-sm"
-              >
-                <span>Chia sẻ qua Zalo</span>
-              </a>
-
-              {/* Nút chia sẻ Facebook */}
-              <a
-                href={fbShareUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#1877F2] text-white text-xs font-bold hover:bg-[#0d65d9] transition shadow-sm"
-              >
-                <span>Facebook</span>
-              </a>
-            </div>
-          </div>
-        </article>
+        </div>
 
         {/* Bài viết liên quan */}
         {relatedArticles.length > 0 && (

@@ -128,6 +128,8 @@ export async function POST(req: NextRequest) {
       beneficiaryName,
       thumbnailUrl,
       images = [],
+      mediaItems,
+      authorName,
       isFeatured = false,
       status = ArticleStatus.PUBLISHED,
     } = body;
@@ -155,11 +157,27 @@ export async function POST(req: NextRequest) {
     const cleanSummary = sanitizePlainText(summary || cleanTitle.slice(0, 160));
     const cleanContentHtml = sanitizeHtml(contentHtml);
     const cleanBeneficiaryName = beneficiaryName ? sanitizePlainText(beneficiaryName) : null;
+    const cleanAuthorName = authorName ? sanitizePlainText(authorName) : null;
 
     // Đóng gói album tối đa 7 ảnh vào nội dung
-    const imageList: string[] = Array.isArray(images) ? images : [];
-    const bundledContentHtml = bundleContentWithGallery(cleanContentHtml, imageList);
-    const finalThumbnailUrl = thumbnailUrl || (imageList.length > 0 ? imageList[0] : null);
+    const targetMedia = Array.isArray(mediaItems) && mediaItems.length > 0
+      ? mediaItems
+      : (Array.isArray(images) ? images : []);
+
+    const bundledContentHtml = bundleContentWithGallery(cleanContentHtml, targetMedia);
+    
+    // Tìm ảnh bìa từ mediaItems (nếu có phần tử đánh dấu isCover)
+    let coverUrl: string | null = null;
+    if (Array.isArray(mediaItems) && mediaItems.length > 0) {
+      const coverItem = mediaItems.find((m) => m && m.isCover);
+      if (coverItem && coverItem.url) coverUrl = coverItem.url;
+    }
+
+    const imageList: string[] = Array.isArray(mediaItems) && mediaItems.length > 0
+      ? mediaItems.map((m) => (typeof m === 'string' ? m : m.url)).filter(Boolean)
+      : (Array.isArray(images) ? images : []);
+
+    const finalThumbnailUrl = thumbnailUrl || coverUrl || (imageList.length > 0 ? imageList[0] : null);
 
     // 3. Tạo slug duy nhất
     let baseSlug = generateVietnameseSlug(cleanTitle);
@@ -317,13 +335,14 @@ export async function POST(req: NextRequest) {
         contentHtml: bundledContentHtml,
         thumbnailUrl: finalThumbnailUrl,
         images: imageList,
+        mediaItems: targetMedia,
         isFeatured: Boolean(isFeatured),
         status: finalStatus,
         categoryId,
         villageId: villageId || null,
         orgCode: orgCode as OrgCode,
         authorId: session.user.id,
-        authorName: session.user.name,
+        authorName: cleanAuthorName || session.user.name,
         authorEmail: session.user.email,
         positionTitle: session.user.positionTitle,
         approvedById: isPublishingNow ? session.user.id : null,
@@ -341,13 +360,14 @@ export async function POST(req: NextRequest) {
       contentHtml: bundledContentHtml,
       thumbnailUrl: finalThumbnailUrl,
       images: imageList,
+      mediaItems: targetMedia,
       isFeatured: Boolean(isFeatured),
       status: finalStatus,
       categoryId,
       villageId: villageId || null,
       orgCode: orgCode as OrgCode,
       authorId: session.user.id,
-      authorName: session.user.name,
+      authorName: cleanAuthorName || session.user.name,
       authorEmail: session.user.email,
       positionTitle: session.user.positionTitle,
       approvedById: isPublishingNow ? session.user.id : null,

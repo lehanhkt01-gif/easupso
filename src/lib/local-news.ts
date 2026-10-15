@@ -3,6 +3,7 @@ import path from 'path';
 import { ArticleStatus, OrgCode } from '@prisma/client';
 import { generateVietnameseSlug, sanitizeHtml, sanitizePlainText } from './sanitize';
 import { EA_SUP_VILLAGES } from '@/constants/easup-data';
+import { extractGalleryMedia } from './news-gallery';
 
 export interface LocalArticle {
   id: string;
@@ -12,6 +13,13 @@ export interface LocalArticle {
   contentHtml: string;
   thumbnailUrl: string | null;
   images?: string[];
+  mediaItems?: Array<{
+    url: string;
+    caption?: string;
+    placement?: string;
+    isCover?: boolean;
+    size?: number;
+  }>;
   isFeatured: boolean;
   status: ArticleStatus;
   viewCount: number;
@@ -145,6 +153,13 @@ export async function saveLocalArticle(data: {
   contentHtml: string;
   thumbnailUrl?: string | null;
   images?: string[];
+  mediaItems?: Array<{
+    url: string;
+    caption?: string;
+    placement?: any;
+    isCover?: boolean;
+    size?: number;
+  }>;
   isFeatured?: boolean;
   status?: ArticleStatus;
   categoryId?: string;
@@ -162,6 +177,18 @@ export async function saveLocalArticle(data: {
   const cleanTitle = sanitizePlainText(data.title);
   const cleanSummary = sanitizePlainText(data.summary || cleanTitle.slice(0, 160));
   const cleanContentHtml = sanitizeHtml(data.contentHtml);
+
+  // Trích xuất media items từ nội dung hoặc từ tham số truyền vào
+  const resolvedMedia = data.mediaItems && data.mediaItems.length > 0
+    ? data.mediaItems
+    : extractGalleryMedia(cleanContentHtml, data.thumbnailUrl);
+
+  const resolvedImages = data.images && data.images.length > 0
+    ? data.images
+    : resolvedMedia.map((m) => m.url);
+
+  const coverItem = resolvedMedia.find((m) => m.isCover);
+  const finalThumbnailUrl = data.thumbnailUrl || (coverItem ? coverItem.url : resolvedImages[0] || null);
 
   let slug = data.slug || generateVietnameseSlug(cleanTitle);
   if (!slug) slug = `bai-viet-${Date.now()}`;
@@ -196,8 +223,9 @@ export async function saveLocalArticle(data: {
     slug,
     summary: cleanSummary,
     contentHtml: cleanContentHtml,
-    thumbnailUrl: data.thumbnailUrl || (data.images && data.images.length > 0 ? data.images[0] : null),
-    images: data.images || [],
+    thumbnailUrl: finalThumbnailUrl,
+    images: resolvedImages,
+    mediaItems: resolvedMedia,
     isFeatured: Boolean(data.isFeatured),
     status: data.status || ArticleStatus.PUBLISHED,
     viewCount: 0,
@@ -244,9 +272,21 @@ export async function updateLocalArticle(
   const existing = currentArticles[index];
   const now = new Date().toISOString();
 
+  const effectiveHtml = updates.contentHtml !== undefined ? sanitizeHtml(updates.contentHtml) : existing.contentHtml;
+  const resolvedMedia = updates.mediaItems !== undefined
+    ? updates.mediaItems
+    : (updates.contentHtml !== undefined ? extractGalleryMedia(effectiveHtml, updates.thumbnailUrl || existing.thumbnailUrl) : existing.mediaItems);
+
+  const resolvedImages = updates.images !== undefined
+    ? updates.images
+    : (resolvedMedia ? resolvedMedia.map((m) => m.url) : existing.images);
+
   const updated: LocalArticle = {
     ...existing,
     ...updates,
+    contentHtml: effectiveHtml,
+    mediaItems: resolvedMedia,
+    images: resolvedImages,
     id: existing.id,
     updatedAt: now,
   };

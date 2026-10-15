@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   X,
   Upload,
@@ -10,24 +10,76 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
-  FileText,
   Building,
   MapPin,
-  Sparkles,
   Eye,
+  Edit3,
+  Bold,
+  Italic,
+  Underline as UnderlineIcon,
+  Heading2,
+  Heading3,
+  Quote,
+  List,
+  ListOrdered,
+  AlignJustify,
+  AlignLeft,
+  AlignCenter,
+  Wand2,
+  ArrowUp,
+  ArrowDown,
+  Camera,
+  Feather,
+  Save,
+  RotateCcw,
 } from 'lucide-react';
 import { EA_SUP_VILLAGES } from '@/constants/easup-data';
-import { stripGalleryFromHtml } from '@/lib/news-gallery';
-
-export const MAX_ARTICLE_IMAGES = 7;
-export const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+import {
+  MAX_ARTICLE_IMAGES,
+  MAX_IMAGE_SIZE_BYTES,
+  ArticleMediaItem,
+  ImagePlacement,
+  extractGalleryMedia,
+  stripGalleryFromHtml,
+} from '@/lib/news-gallery';
+import { EditorialArticleView } from './EditorialArticleView';
 
 interface NewsEditorModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (article: any) => void;
-  articleToEdit?: any | null; // Nếu có -> Chế độ Chỉnh sửa; Nếu null -> Tạo mới
+  articleToEdit?: any | null;
   categories?: Array<{ id: string; name: string; orgCode: string; slug: string }>;
+}
+
+const DEFAULT_CATEGORIES = [
+  { id: 'cat-mttq', name: 'Ủy ban MTTQ xã', orgCode: 'MTTQ', slug: 'mat-tran-to-quoc' },
+  { id: 'cat-phunu', name: 'Hội LH Phụ nữ', orgCode: 'PHU_NU', slug: 'hoi-phu-nu' },
+  { id: 'cat-nongdan', name: 'Hội Nông dân', orgCode: 'NONG_DAN', slug: 'hoi-nong-dan' },
+  { id: 'cat-doantn', name: 'Đoàn Thanh niên', orgCode: 'DOAN_TN', slug: 'doan-thanh-nien' },
+  { id: 'cat-ccb', name: 'Hội Cựu chiến binh', orgCode: 'CCB', slug: 'hoi-cuu-chien-binh' },
+  { id: 'cat-thonbuon', name: '20 Thôn Buôn', orgCode: 'THON_BUON', slug: 'hoat-dong-thon-buon' },
+  { id: 'cat-cds', name: 'Chuyển đổi số & BDHVS', orgCode: 'MTTQ', slug: 'chuyen-doi-so' },
+  { id: 'cat-vinguoingheo', name: 'Vì người nghèo', orgCode: 'MTTQ', slug: 'vi-nguoi-ngheo' },
+];
+
+function getSuggestedAuthor(orgCode: string, catName?: string): string {
+  switch (orgCode) {
+    case 'MTTQ':
+      return 'Tin, ảnh: Ủy ban MTTQ Việt Nam xã Ea Súp';
+    case 'PHU_NU':
+      return 'Tin, ảnh: Hội LH Phụ nữ xã Ea Súp';
+    case 'NONG_DAN':
+      return 'Tin, ảnh: Hội Nông dân xã Ea Súp';
+    case 'DOAN_TN':
+      return 'Tin, ảnh: Đoàn TNCS Hồ Chí Minh xã Ea Súp';
+    case 'CCB':
+      return 'Tin, ảnh: Hội Cựu chiến binh xã Ea Súp';
+    case 'THON_BUON':
+      return 'Tin, ảnh: Ban Công tác Mặt trận cơ sở';
+    default:
+      return catName ? `Tin, ảnh: ${catName}` : 'Tin, ảnh: Ủy ban MTTQ Việt Nam xã Ea Súp';
+  }
 }
 
 export function NewsEditorModal({
@@ -35,17 +87,12 @@ export function NewsEditorModal({
   onClose,
   onSuccess,
   articleToEdit,
-  categories = [
-    { id: 'cat-mttq', name: 'Ủy ban MTTQ xã', orgCode: 'MTTQ', slug: 'mat-tran-to-quoc' },
-    { id: 'cat-phunu', name: 'Hội LH Phụ nữ', orgCode: 'PHU_NU', slug: 'hoi-phu-nu' },
-    { id: 'cat-nongdan', name: 'Hội Nông dân', orgCode: 'NONG_DAN', slug: 'hoi-nong-dan' },
-    { id: 'cat-doantn', name: 'Đoàn Thanh niên', orgCode: 'DOAN_TN', slug: 'doan-thanh-nien' },
-    { id: 'cat-ccb', name: 'Hội Cựu chiến binh', orgCode: 'CCB', slug: 'hoi-cuu-chien-binh' },
-    { id: 'cat-thonbuon', name: '20 Thôn Buôn', orgCode: 'THON_BUON', slug: 'hoat-dong-thon-buon' },
-    { id: 'cat-vinguoingheo', name: 'Vì người nghèo', orgCode: 'MTTQ', slug: 'vi-nguoi-ngheo' },
-  ],
+  categories = DEFAULT_CATEGORIES,
 }: NewsEditorModalProps) {
   const isEditMode = Boolean(articleToEdit?.id);
+
+  // Chế độ hiển thị: 'editor' (Soạn thảo) hoặc 'preview' (Xem trước tòa soạn)
+  const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
 
   const [categoriesList, setCategoriesList] = useState(categories);
   const [villagesList, setVillagesList] = useState(EA_SUP_VILLAGES as readonly any[]);
@@ -54,12 +101,24 @@ export function NewsEditorModal({
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
   const [content, setContent] = useState('');
+  const [authorName, setAuthorName] = useState('');
   const [categoryId, setCategoryId] = useState(categories[0]?.id || '');
   const [villageId, setVillageId] = useState('');
   const [orgCode, setOrgCode] = useState('MTTQ');
   const [status, setStatus] = useState<'PUBLISHED' | 'DRAFT'>('PUBLISHED');
 
-  // Nạp danh mục thực tế từ CSDL
+  // Quản lý Album Media Items (Tối đa 7 ảnh kèm caption & placement)
+  const [mediaItems, setMediaItems] = useState<ArticleMediaItem[]>([]);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [hasDraftNotice, setHasDraftNotice] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Nạp danh mục và thôn buôn thực tế từ CSDL
   useEffect(() => {
     async function loadRealData() {
       try {
@@ -75,6 +134,7 @@ export function NewsEditorModal({
           if (!articleToEdit && !categoryId) {
             setCategoryId(catJson.data[0].id);
             setOrgCode(catJson.data[0].orgCode);
+            setAuthorName(getSuggestedAuthor(catJson.data[0].orgCode, catJson.data[0].name));
           }
         }
         if (vilJson.success && Array.isArray(vilJson.data) && vilJson.data.length > 0) {
@@ -85,79 +145,174 @@ export function NewsEditorModal({
     loadRealData();
   }, [articleToEdit, categoryId]);
 
-  // Quản lý tối đa 7 ảnh
-  const [images, setImages] = useState<string[]>([]);
-  const [coverIndex, setCoverIndex] = useState<number>(0);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Khởi tạo dữ liệu khi mở modal hoặc đổi bài viết cần sửa
+  // Khởi tạo dữ liệu khi mở Modal
   useEffect(() => {
+    if (!isOpen) return;
+
     if (articleToEdit) {
       setTitle(articleToEdit.title || '');
       setSummary(articleToEdit.summary || '');
-      
-      // Khử HTML và loại bỏ triệt để dấu vết album ảnh cũ để hiển thị văn bản thuần trong textarea
+
+      // Tách văn bản thuần từ contentHtml
       let rawContent = stripGalleryFromHtml(articleToEdit.contentHtml || '');
       rawContent = rawContent
         .replace(/<\/p><p>/gi, '\n\n')
         .replace(/<br\s*\/?>/gi, '\n')
-        .replace(/<[^>]+>/g, '')
+        .replace(/<p[^>]*>/gi, '')
+        .replace(/<\/p>/gi, '')
         .trim();
       setContent(rawContent);
 
       setCategoryId(articleToEdit.categoryId || categories[0]?.id || '');
       setVillageId(articleToEdit.villageId || '');
       setOrgCode(articleToEdit.orgCode || 'MTTQ');
+      setAuthorName(articleToEdit.author?.name || getSuggestedAuthor(articleToEdit.orgCode || 'MTTQ'));
       setStatus(articleToEdit.status === 'DRAFT' ? 'DRAFT' : 'PUBLISHED');
 
-      // Danh sách ảnh
-      const initialImages: string[] = [];
-      if (articleToEdit.images && Array.isArray(articleToEdit.images)) {
-        initialImages.push(...articleToEdit.images);
-      } else if (articleToEdit.thumbnailUrl) {
-        initialImages.push(articleToEdit.thumbnailUrl);
+      // Khôi phục Media Items
+      if (articleToEdit.mediaItems && Array.isArray(articleToEdit.mediaItems) && articleToEdit.mediaItems.length > 0) {
+        setMediaItems(articleToEdit.mediaItems.slice(0, MAX_ARTICLE_IMAGES));
+      } else {
+        const extracted = extractGalleryMedia(articleToEdit.contentHtml || '', articleToEdit.thumbnailUrl);
+        setMediaItems(extracted.slice(0, MAX_ARTICLE_IMAGES));
       }
-      setImages(initialImages.slice(0, MAX_ARTICLE_IMAGES));
-      setCoverIndex(0);
+      setHasDraftNotice(false);
     } else {
-      // Reset khi tạo mới
+      // Kiểm tra bản nháp tự động trong localStorage khi tạo mới
+      const draftJson = typeof window !== 'undefined' ? localStorage.getItem('easupso_news_editor_draft') : null;
+      if (draftJson) {
+        try {
+          const draft = JSON.parse(draftJson);
+          if (draft && draft.title) {
+            setTitle(draft.title || '');
+            setSummary(draft.summary || '');
+            setContent(draft.content || '');
+            setCategoryId(draft.categoryId || categories[0]?.id || '');
+            setVillageId(draft.villageId || '');
+            setOrgCode(draft.orgCode || 'MTTQ');
+            setAuthorName(draft.authorName || getSuggestedAuthor(draft.orgCode || 'MTTQ'));
+            if (Array.isArray(draft.mediaItems)) {
+              setMediaItems(draft.mediaItems.slice(0, MAX_ARTICLE_IMAGES));
+            }
+            setHasDraftNotice(true);
+            return;
+          }
+        } catch {}
+      }
+
+      // Mặc định tạo mới hoàn toàn
       setTitle('');
       setSummary('');
       setContent('');
       setCategoryId(categories[0]?.id || '');
       setVillageId('');
       setOrgCode('MTTQ');
+      setAuthorName(getSuggestedAuthor('MTTQ'));
       setStatus('PUBLISHED');
-      setImages([]);
-      setCoverIndex(0);
+      setMediaItems([]);
+      setHasDraftNotice(false);
     }
+
     setUploadError(null);
     setSubmitError(null);
-  }, [articleToEdit, isOpen]);
+    setActiveTab('editor');
+  }, [articleToEdit, isOpen, categories]);
 
-  // Cập nhật orgCode tương ứng khi chọn Category
+  // Tự động lưu bản nháp vào localStorage khi tạo mới
+  useEffect(() => {
+    if (isEditMode || !isOpen) return;
+    if (!title && !content && mediaItems.length === 0) return;
+
+    const timer = setTimeout(() => {
+      try {
+        const draft = {
+          title,
+          summary,
+          content,
+          categoryId,
+          villageId,
+          orgCode,
+          authorName,
+          mediaItems,
+          savedAt: Date.now(),
+        };
+        localStorage.setItem('easupso_news_editor_draft', JSON.stringify(draft));
+      } catch {}
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [title, summary, content, categoryId, villageId, orgCode, authorName, mediaItems, isEditMode, isOpen]);
+
+  // Xóa bản nháp
+  function handleClearDraft() {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('easupso_news_editor_draft');
+    }
+    setTitle('');
+    setSummary('');
+    setContent('');
+    setAuthorName(getSuggestedAuthor(orgCode));
+    setMediaItems([]);
+    setHasDraftNotice(false);
+  }
+
+  // Cập nhật orgCode & gợi ý tác giả khi đổi chuyên mục
   function handleCategoryChange(selectedCatId: string) {
     setCategoryId(selectedCatId);
     const found = categoriesList.find((c) => c.id === selectedCatId);
     if (found?.orgCode) {
       setOrgCode(found.orgCode);
+      if (!authorName || authorName.startsWith('Tin, ảnh:')) {
+        setAuthorName(getSuggestedAuthor(found.orgCode, found.name));
+      }
     }
   }
 
-  // Xử lý chọn và upload ảnh (Kiểm tra tối đa 7 ảnh, mỗi ảnh < 5MB)
+  // THANH CÔNG CỤ ĐỊNH DẠNG VĂN BẢN (Editorial Toolbar)
+  function applyFormatting(prefix: string, suffix = '', placeholder = '') {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = content.substring(start, end) || placeholder;
+
+    const replacement = `${prefix}${selected}${suffix}`;
+    const nextContent = content.substring(0, start) + replacement + content.substring(end);
+    setContent(nextContent);
+
+    // Đưa con trỏ chuột về vị trí hợp lý
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + prefix.length, start + prefix.length + selected.length);
+    }, 50);
+  }
+
+  // Dọn dẹp khoảng trắng thừa và định dạng đoạn văn từ Word/Zalo
+  function handleCleanAndNormalizeText() {
+    if (!content) return;
+    let cleaned = content;
+    // Bỏ ký tự điều khiển độc hại
+    cleaned = cleaned.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+    // Chuẩn hóa dòng trắng thừa (tối đa 2 dấu xuống dòng)
+    cleaned = cleaned.replace(/\r\n/g, '\n');
+    cleaned = cleaned.replace(/[ \t]+/g, ' ');
+    cleaned = cleaned.replace(/\n\s*\n\s*\n+/g, '\n\n');
+    cleaned = cleaned
+      .split('\n')
+      .map((line) => line.trim())
+      .join('\n');
+    setContent(cleaned.trim());
+  }
+
+  // XỬ LÝ TẢI ẢNH (Tối đa 7 ảnh, mỗi ảnh < 5MB)
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const selectedFiles = Array.from(e.target.files || []);
     if (selectedFiles.length === 0) return;
 
     setUploadError(null);
 
-    // 1. Kiểm tra số lượng ảnh còn được phép chọn
-    const remainingSlots = MAX_ARTICLE_IMAGES - images.length;
+    const remainingSlots = MAX_ARTICLE_IMAGES - mediaItems.length;
     if (remainingSlots <= 0) {
       setUploadError(`Bản tin đã đạt giới hạn tối đa ${MAX_ARTICLE_IMAGES} tấm ảnh.`);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -166,13 +321,12 @@ export function NewsEditorModal({
 
     if (selectedFiles.length > remainingSlots) {
       setUploadError(
-        `Đồng chí chỉ có thể thêm tối đa ${remainingSlots} ảnh nữa (Tổng tối đa 7 ảnh mỗi bản tin).`
+        `Đồng chí chỉ có thể thêm tối đa ${remainingSlots} ảnh nữa (Tổng tối đa ${MAX_ARTICLE_IMAGES} ảnh mỗi bản tin).`
       );
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
-    // 2. Kiểm tra dung lượng từng tấm ảnh (< 5MB)
     for (const f of selectedFiles) {
       if (f.size > MAX_IMAGE_SIZE_BYTES) {
         const sizeMb = (f.size / (1024 * 1024)).toFixed(2);
@@ -182,7 +336,6 @@ export function NewsEditorModal({
       }
     }
 
-    // 3. Tiến hành tải lên qua API /api/admin/upload
     setIsUploading(true);
     try {
       const formData = new FormData();
@@ -195,8 +348,19 @@ export function NewsEditorModal({
 
       const json = await res.json();
       if (json.success && json.urls) {
-        const newImagesList = [...images, ...json.urls].slice(0, MAX_ARTICLE_IMAGES);
-        setImages(newImagesList);
+        const newItems: ArticleMediaItem[] = json.urls.map((url: string, idx: number) => {
+          const detail = json.files?.[idx];
+          return {
+            url,
+            caption: '',
+            placement: 'auto' as ImagePlacement,
+            isCover: mediaItems.length === 0 && idx === 0,
+            size: detail?.size || 0,
+          };
+        });
+
+        const merged = [...mediaItems, ...newItems].slice(0, MAX_ARTICLE_IMAGES);
+        setMediaItems(merged);
       } else {
         setUploadError(json.error || 'Tải ảnh lên máy chủ thất bại.');
       }
@@ -208,35 +372,70 @@ export function NewsEditorModal({
     }
   }
 
-  // Xóa một ảnh khỏi danh sách
-  function handleRemoveImage(indexToRemove: number) {
-    const nextImages = images.filter((_, idx) => idx !== indexToRemove);
-    setImages(nextImages);
-    if (coverIndex === indexToRemove) {
-      setCoverIndex(0);
-    } else if (coverIndex > indexToRemove) {
-      setCoverIndex(coverIndex - 1);
-    }
+  // Cập nhật Caption ảnh
+  function handleCaptionChange(idx: number, caption: string) {
+    setMediaItems((prev) => {
+      const copy = [...prev];
+      copy[idx] = { ...copy[idx], caption };
+      return copy;
+    });
   }
 
-  // Đặt làm ảnh bìa
+  // Cập nhật Vị trí hiển thị ảnh trong bài báo (Placement)
+  function handlePlacementChange(idx: number, placement: ImagePlacement) {
+    setMediaItems((prev) => {
+      const copy = [...prev];
+      copy[idx] = { ...copy[idx], placement };
+      return copy;
+    });
+  }
+
+  // Chọn làm ảnh bìa
   function handleSetAsCover(idx: number) {
-    setCoverIndex(idx);
-    // Đẩy ảnh bìa lên đầu danh sách để đảm bảo hiển thị đồng bộ
-    const reordered = [images[idx], ...images.filter((_, i) => i !== idx)];
-    setImages(reordered);
-    setCoverIndex(0);
+    setMediaItems((prev) => {
+      return prev.map((item, i) => ({
+        ...item,
+        isCover: i === idx,
+      }));
+    });
   }
 
-  // Xử lý gửi Form (Tạo mới hoặc Cập nhật)
+  // Đổi thứ tự ảnh (Lên / Xuống)
+  function handleMoveMedia(idx: number, direction: 'up' | 'down') {
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= mediaItems.length) return;
+
+    setMediaItems((prev) => {
+      const copy = [...prev];
+      const temp = copy[idx];
+      copy[idx] = copy[targetIdx];
+      copy[targetIdx] = temp;
+      return copy;
+    });
+  }
+
+  // Xóa ảnh
+  function handleRemoveMedia(idxToRemove: number) {
+    setMediaItems((prev) => {
+      const filtered = prev.filter((_, i) => i !== idxToRemove);
+      if (filtered.length > 0 && !filtered.some((m) => m.isCover)) {
+        filtered[0].isCover = true;
+      }
+      return filtered;
+    });
+  }
+
+  // GỬI DỮ LIỆU ĐĂNG BÀI
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) {
       setSubmitError('Vui lòng nhập tiêu đề bản tin.');
+      setActiveTab('editor');
       return;
     }
     if (!content.trim()) {
       setSubmitError('Vui lòng nhập nội dung chi tiết bài viết.');
+      setActiveTab('editor');
       return;
     }
 
@@ -252,7 +451,9 @@ export function NewsEditorModal({
         .map((p) => `<p>${p.replace(/\n/g, '<br/>')}</p>`)
         .join('');
 
-      const coverImageUrl = images.length > 0 ? images[coverIndex] || images[0] : null;
+      const coverItem = mediaItems.find((m) => m.isCover);
+      const coverImageUrl = coverItem?.url || (mediaItems.length > 0 ? mediaItems[0].url : null);
+      const simpleImageList = mediaItems.map((m) => m.url);
 
       const payload = {
         title: title.trim(),
@@ -261,8 +462,10 @@ export function NewsEditorModal({
         categoryId,
         villageId: villageId || null,
         orgCode,
+        authorName: authorName.trim() || getSuggestedAuthor(orgCode),
         thumbnailUrl: coverImageUrl,
-        images,
+        images: simpleImageList,
+        mediaItems,
         status,
       };
 
@@ -277,6 +480,10 @@ export function NewsEditorModal({
 
       const json = await res.json();
       if (json.success && json.data) {
+        // Xóa bản nháp lưu tạm khi đã lưu thành công
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('easupso_news_editor_draft');
+        }
         onSuccess(json.data);
         onClose();
       } else {
@@ -293,304 +500,582 @@ export function NewsEditorModal({
     }
   }
 
+  // Tên chuyên mục và thôn buôn được chọn
+  const selectedCatObj = categoriesList.find((c) => c.id === categoryId);
+  const selectedVilObj = villagesList.find((v) => (v.code || v.id) === villageId);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-[#FAF7F2] w-full max-w-3xl rounded-2xl border-2 border-[#D5CBBA] shadow-2xl flex flex-col max-h-[92vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/65 backdrop-blur-xs overflow-y-auto">
+      <div className="bg-[#FAF7F2] w-full max-w-4xl lg:max-w-5xl rounded-2xl border-2 border-[#D5CBBA] shadow-2xl flex flex-col max-h-[94vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
         {/* MODAL HEADER */}
-        <div className="px-5 py-4 bg-[#1B4332] text-white flex items-center justify-between border-b-2 border-[#D4AF37] shrink-0">
-          <div className="flex items-center gap-2.5">
+        <div className="px-5 py-3.5 bg-[#1B4332] text-white flex items-center justify-between border-b-2 border-[#D4AF37] shrink-0">
+          <div className="flex items-center gap-3">
             <span className="w-8 h-8 rounded-lg bg-[#D4AF37]/20 border border-[#D4AF37] flex items-center justify-center text-[#D4AF37] font-bold text-sm">
-              {isEditMode ? '✏️' : '📝'}
+              {isEditMode ? '✏️' : '📰'}
             </span>
             <div>
-              <h3 className="text-base sm:text-lg font-bold tracking-tight">
-                {isEditMode ? 'Chỉnh sửa bản tin hoạt động' : 'Đăng bản tin mới — Cổng Ea Súp'}
+              <h3 className="text-sm sm:text-base font-bold tracking-tight">
+                {isEditMode ? 'Biên tập & Nâng cấp bản tin' : 'Tòa soạn điện tử — Đăng bản tin mới'}
               </h3>
               <p className="text-[11px] text-[#A3B899]">
-                Quy định chuẩn: Đăng tối đa 7 ảnh, mỗi ảnh dưới 5MB &bull; Kiểm duyệt an toàn
+                Chuẩn báo chí chính luận &bull; Tối đa 7 ảnh kèm chú thích &amp; dàn trang thông minh
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition"
-            title="Đóng cửa sổ"
-          >
-            <X className="w-5 h-5" />
-          </button>
+
+          {/* CỤM NÚT TAB: SOẠN THẢO vs XEM TRƯỚC TRANG BÁO */}
+          <div className="flex items-center gap-2">
+            <div className="flex bg-black/30 p-1 rounded-xl border border-white/10 text-xs">
+              <button
+                type="button"
+                onClick={() => setActiveTab('editor')}
+                className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition ${
+                  activeTab === 'editor'
+                    ? 'bg-[#D4AF37] text-[#14211B] shadow-xs'
+                    : 'text-white/80 hover:text-white'
+                }`}
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>Soạn thảo</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('preview')}
+                className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition ${
+                  activeTab === 'preview'
+                    ? 'bg-[#D4AF37] text-[#14211B] shadow-xs'
+                    : 'text-white/80 hover:text-white'
+                }`}
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span>Xem trước trang báo</span>
+              </button>
+            </div>
+
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition"
+              title="Đóng cửa sổ"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        {/* MODAL BODY (SCROLLABLE) */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
-          {submitError && (
-            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-semibold flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
-              <span>{submitError}</span>
+        {/* THÔNG BÁO KHÔI PHỤC BẢN NHÁP (NẾU CÓ) */}
+        {hasDraftNotice && !isEditMode && activeTab === 'editor' && (
+          <div className="px-5 py-2 bg-amber-50 border-b border-amber-200 text-amber-900 text-xs flex items-center justify-between gap-2 shrink-0">
+            <div className="flex items-center gap-2">
+              <Save className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>Hệ thống đã tự động khôi phục nội dung bản nháp đồng chí đang soạn thảo trước đó.</span>
             </div>
-          )}
-
-          {/* 1. Tiêu đề bản tin */}
-          <div>
-            <label className="block text-xs font-bold text-[#14211B] mb-1.5 uppercase tracking-wide">
-              Tiêu đề bản tin <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Vd: Hội Cựu chiến binh xã Ea Súp trao tặng nhà Nghĩa tình đồng đội..."
-              className="w-full px-3.5 py-2.5 rounded-xl border border-[#D5CBBA] bg-white text-sm font-semibold text-[#14211B] focus:outline-none focus:ring-2 focus:ring-[#1B4332]"
-            />
+            <button
+              type="button"
+              onClick={handleClearDraft}
+              className="px-2.5 py-1 rounded bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold text-[11px] flex items-center gap-1"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>Xóa bản nháp, viết mới</span>
+            </button>
           </div>
+        )}
 
-          {/* 2. Chuyên mục & Địa bàn 20 thôn buôn */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            <div>
-              <label className="block text-xs font-bold text-[#14211B] mb-1.5 flex items-center gap-1.5">
-                <Building className="w-3.5 h-3.5 text-[#C85A32]" />
-                <span>Chuyên mục / Đoàn thể</span>
-              </label>
-              <select
-                value={categoryId}
-                onChange={(e) => handleCategoryChange(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#D5CBBA] bg-white text-xs sm:text-sm font-medium text-[#14211B] focus:outline-none focus:ring-2 focus:ring-[#1B4332]"
-              >
-                {categoriesList.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-[#14211B] mb-1.5 flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-[#1B4332]" />
-                <span>Thôn / Buôn cơ sở (Nếu có)</span>
-              </label>
-              <select
-                value={villageId}
-                onChange={(e) => setVillageId(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#D5CBBA] bg-white text-xs sm:text-sm font-medium text-[#14211B] focus:outline-none focus:ring-2 focus:ring-[#1B4332]"
-              >
-                <option value="">Toàn xã Ea Súp (Tin chung cấp xã)</option>
-                {villagesList.map((v) => (
-                  <option key={v.code || v.id} value={v.code || v.id}>
-                    {v.name} ({v.type === 'BUON' ? 'Buôn' : 'Thôn'})
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* 3. Tóm tắt bản tin */}
-          <div>
-            <label className="block text-xs font-bold text-[#14211B] mb-1.5">
-              Tóm tắt súc tích (1-2 câu hiển thị ở trang chủ)
-            </label>
-            <textarea
-              rows={2}
-              value={summary}
-              onChange={(e) => setSummary(e.target.value)}
-              placeholder="Tóm tắt ngắn gọn sự kiện, kết quả hoặc ý nghĩa của hoạt động..."
-              className="w-full px-3.5 py-2 rounded-xl border border-[#D5CBBA] bg-white text-xs sm:text-sm text-[#14211B] focus:outline-none focus:ring-2 focus:ring-[#1B4332]"
-            />
-          </div>
-
-          {/* 4. Nội dung chi tiết */}
-          <div>
-            <label className="block text-xs font-bold text-[#14211B] mb-1.5 uppercase tracking-wide">
-              Nội dung chi tiết bản tin <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              rows={6}
-              required
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Nhập nội dung bài viết. Bạn có thể xuống 2 dòng để tự động tạo một đoạn văn mới..."
-              className="w-full px-3.5 py-2.5 rounded-xl border border-[#D5CBBA] bg-white text-xs sm:text-sm text-[#14211B] focus:outline-none focus:ring-2 focus:ring-[#1B4332] leading-relaxed"
-            />
-          </div>
-
-          {/* 5. KHU VỰC TẢI ẢNH (TỐI ĐA 7 TẤM ẢNH, MỖI TẤM < 5MB) */}
-          <div className="p-4 rounded-xl bg-white border border-[#D5CBBA] space-y-3">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <ImageIcon className="w-4 h-4 text-[#C85A32]" />
-                <span className="text-xs font-bold text-[#14211B] uppercase tracking-wide">
-                  Album ảnh bản tin ({images.length}/{MAX_ARTICLE_IMAGES} tấm ảnh)
+        {/* NỘI DUNG CHÍNH: SOẠN THẢO HOẶC XEM TRƯỚC */}
+        {activeTab === 'preview' ? (
+          /* TAB 2: LIVE PREVIEW TRANG BÁO CHÍ */
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#FAF7F2]">
+            <div className="max-w-4xl mx-auto mb-4">
+              <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl text-xs text-emerald-900 flex items-center gap-2 font-medium mb-4">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>
+                  Đây là giao diện thực tế mà người dân và cán bộ sẽ nhìn thấy khi đọc bài báo. Đồng chí có thể bấm tab &ldquo;Soạn thảo&rdquo; để điều chỉnh lại vị trí ảnh hoặc nội dung.
                 </span>
               </div>
-              <span className="text-[11px] text-[#6B7C73]">
-                Tối đa 7 ảnh &bull; Mỗi ảnh &lt; 5MB
-              </span>
+
+              <EditorialArticleView
+                title={title || 'Tiêu đề bản tin mẫu...'}
+                summary={summary || 'Đoạn dẫn mở đầu bài báo (Sapo)...'}
+                contentHtml={
+                  content
+                    ? content
+                        .split('\n\n')
+                        .map((p) => `<p>${p.replace(/\n/g, '<br/>')}</p>`)
+                        .join('')
+                    : '<p>Nội dung chi tiết bài viết sẽ được dàn trang tại đây...</p>'
+                }
+                mediaItems={mediaItems}
+                categoryName={selectedCatObj?.name || 'Ủy ban MTTQ xã'}
+                villageName={selectedVilObj?.name || null}
+                authorName={authorName || getSuggestedAuthor(orgCode)}
+                publishedAt={new Date()}
+                viewCount={1}
+                beneficiaryName={null}
+              />
+            </div>
+          </div>
+        ) : (
+          /* TAB 1: FORM SOẠN THẢO BÀI VIẾT */
+          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+            {submitError && (
+              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-semibold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                <span>{submitError}</span>
+              </div>
+            )}
+
+            {/* 1. Tiêu đề bản tin (Hỗ trợ tới 300 ký tự) */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-bold text-[#14211B] uppercase tracking-wide">
+                  Tiêu đề bản tin <span className="text-red-500">*</span>
+                </label>
+                <span className="text-[11px] font-mono text-[#6B7C73]">
+                  {title.length}/300 ký tự
+                </span>
+              </div>
+              <textarea
+                rows={2}
+                required
+                maxLength={300}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Nhập tiêu đề bài viết (Vd: Hội Cựu chiến binh xã Ea Súp trao tặng nhà Nghĩa tình đồng đội tại Thôn Đoàn Kết...)"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#D5CBBA] bg-white text-sm font-bold text-[#14211B] focus:outline-none focus:ring-2 focus:ring-[#1B4332] leading-snug"
+              />
             </div>
 
-            {uploadError && (
-              <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2 font-medium">
-                <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
-                <span>{uploadError}</span>
-              </div>
-            )}
-
-            {/* Khung nút bấm tải ảnh */}
-            {images.length < MAX_ARTICLE_IMAGES && (
+            {/* 2. Chuyên mục, Thôn buôn & Tác giả */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
               <div>
+                <label className="block text-xs font-bold text-[#14211B] mb-1.5 flex items-center gap-1.5">
+                  <Building className="w-3.5 h-3.5 text-[#C85A32]" />
+                  <span>Chuyên mục / Đoàn thể</span>
+                </label>
+                <select
+                  value={categoryId}
+                  onChange={(e) => handleCategoryChange(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-[#D5CBBA] bg-white text-xs sm:text-sm font-medium text-[#14211B] focus:outline-none focus:ring-2 focus:ring-[#1B4332]"
+                >
+                  {categoriesList.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#14211B] mb-1.5 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-[#1B4332]" />
+                  <span>Thôn / Buôn cơ sở</span>
+                </label>
+                <select
+                  value={villageId}
+                  onChange={(e) => setVillageId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-[#D5CBBA] bg-white text-xs sm:text-sm font-medium text-[#14211B] focus:outline-none focus:ring-2 focus:ring-[#1B4332]"
+                >
+                  <option value="">Toàn xã Ea Súp (Tin chung cấp xã)</option>
+                  {villagesList.map((v) => (
+                    <option key={v.code || v.id} value={v.code || v.id}>
+                      {v.name} ({v.type === 'BUON' ? 'Buôn' : 'Thôn'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#14211B] mb-1.5 flex items-center gap-1.5">
+                  <Feather className="w-3.5 h-3.5 text-[#1B4332]" />
+                  <span>Tác giả / Nguồn bản tin</span>
+                </label>
                 <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileSelect}
-                  multiple
-                  accept="image/jpeg,image/png,image/webp,image/avif"
-                  className="hidden"
+                  type="text"
+                  value={authorName}
+                  onChange={(e) => setAuthorName(e.target.value)}
+                  placeholder="VD: Tin, ảnh: Ủy ban MTTQ xã"
+                  className="w-full px-3 py-2 rounded-xl border border-[#D5CBBA] bg-white text-xs sm:text-sm text-[#14211B] focus:outline-none focus:ring-2 focus:ring-[#1B4332]"
                 />
+              </div>
+            </div>
+
+            {/* 3. Tóm tắt súc tích (Sapo bài báo) */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-bold text-[#14211B] flex items-center gap-1.5">
+                  <span>Đoạn dẫn (Sapo) mở đầu bài báo</span>
+                  <span className="text-[11px] font-normal text-[#6B7C73]">(In đậm trang trọng ở đầu trang đọc và hiển thị ngoài trang chủ)</span>
+                </label>
+              </div>
+              <textarea
+                rows={2}
+                value={summary}
+                onChange={(e) => setSummary(e.target.value)}
+                placeholder="Tóm tắt ngắn gọn sự kiện, kết quả hoặc ý nghĩa của hoạt động..."
+                className="w-full px-3.5 py-2 rounded-xl border border-[#D5CBBA] bg-white text-xs sm:text-sm text-[#14211B] focus:outline-none focus:ring-2 focus:ring-[#1B4332]"
+              />
+            </div>
+
+            {/* 4. Nội dung chi tiết & THANH ĐỊNH DẠNG CHỮ CHUYÊN NGHIỆP */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-bold text-[#14211B] uppercase tracking-wide">
+                  Nội dung chi tiết bản tin <span className="text-red-500">*</span>
+                </label>
                 <button
                   type="button"
-                  disabled={isUploading}
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full py-4 border-2 border-dashed border-[#D4AF37] hover:border-[#1B4332] bg-[#FAF7F2] hover:bg-emerald-50/50 rounded-xl transition flex flex-col items-center justify-center gap-1.5 text-xs text-[#1B4332] font-semibold cursor-pointer disabled:opacity-50"
+                  onClick={handleCleanAndNormalizeText}
+                  className="text-[11px] text-[#1B4332] hover:text-[#C85A32] font-semibold flex items-center gap-1 transition"
+                  title="Tự động xóa khoảng trắng thừa và làm sạch định dạng copy từ Word/Zalo"
                 >
-                  {isUploading ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="w-5 h-5 animate-spin text-[#1B4332]" />
-                      <span>Đang tải ảnh lên máy chủ...</span>
-                    </div>
-                  ) : (
-                    <>
-                      <Upload className="w-5 h-5 text-[#C85A32]" />
-                      <span>Nhấn để chọn ảnh từ máy tính (Có thể chọn nhiều ảnh cùng lúc)</span>
-                      <span className="text-[10px] text-[#6B7C73]">
-                        Hỗ trợ định dạng JPG, PNG, WebP &bull; Dung lượng tối đa 5MB/ảnh
-                      </span>
-                    </>
-                  )}
+                  <Wand2 className="w-3 h-3 text-[#D4AF37]" />
+                  <span>Làm sạch văn bản Word/Zalo</span>
                 </button>
               </div>
-            )}
 
-            {/* Danh sách ảnh đã chọn */}
-            {images.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                {images.map((url, idx) => {
-                  const isCover = idx === coverIndex;
-                  return (
-                    <div
-                      key={url + idx}
-                      className={`relative aspect-[4/3] rounded-xl overflow-hidden border-2 bg-gray-100 group shadow-xs ${
-                        isCover ? 'border-[#D4AF37] ring-2 ring-[#D4AF37]/50' : 'border-[#D5CBBA]'
-                      }`}
-                    >
-                      <img src={url} alt={`Ảnh ${idx + 1}`} className="w-full h-full object-cover" />
-                      
-                      {/* Huy hiệu ảnh bìa */}
-                      {isCover && (
-                        <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md bg-[#D4AF37] text-white text-[10px] font-bold flex items-center gap-1 shadow">
-                          <Star className="w-3 h-3 fill-white" />
-                          <span>Ảnh bìa</span>
+              {/* THANH CÔNG CỤ EDITORIAL TOOLBAR */}
+              <div className="p-1.5 bg-[#F4F1EA] border border-[#D5CBBA] border-b-0 rounded-t-xl flex flex-wrap items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => applyFormatting('**', '**', 'chữ in đậm')}
+                  className="p-1.5 rounded-lg hover:bg-white text-[#14211B] transition font-bold"
+                  title="In đậm (Bold)"
+                >
+                  <Bold className="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => applyFormatting('*', '*', 'chữ in nghiêng')}
+                  className="p-1.5 rounded-lg hover:bg-white text-[#14211B] transition"
+                  title="In nghiêng (Italic)"
+                >
+                  <Italic className="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => applyFormatting('<u>', '</u>', 'chữ gạch chân')}
+                  className="p-1.5 rounded-lg hover:bg-white text-[#14211B] transition"
+                  title="Gạch chân (Underline)"
+                >
+                  <UnderlineIcon className="w-4 h-4" />
+                </button>
+
+                <span className="w-px h-4 bg-[#D5CBBA] mx-1" />
+
+                <button
+                  type="button"
+                  onClick={() => applyFormatting('\n\n## ', '\n\n', 'Tiêu đề phụ lớn')}
+                  className="p-1.5 rounded-lg hover:bg-white text-[#14211B] transition flex items-center gap-1 text-xs font-bold"
+                  title="Tiêu đề phụ lớn (Heading H2)"
+                >
+                  <Heading2 className="w-4 h-4" />
+                  <span>H2</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => applyFormatting('\n\n### ', '\n\n', 'Tiêu đề phụ nhỏ')}
+                  className="p-1.5 rounded-lg hover:bg-white text-[#14211B] transition flex items-center gap-1 text-xs font-bold"
+                  title="Tiêu đề phụ nhỏ (Heading H3)"
+                >
+                  <Heading3 className="w-4 h-4" />
+                  <span>H3</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => applyFormatting('\n\n> "', '"\n\n', 'Lời phát biểu chỉ đạo của Lãnh đạo hoặc ý kiến cử tri...')}
+                  className="p-1.5 rounded-lg hover:bg-white text-[#14211B] transition"
+                  title="Khung trích dẫn nổi bật (Blockquote)"
+                >
+                  <Quote className="w-4 h-4" />
+                </button>
+
+                <span className="w-px h-4 bg-[#D5CBBA] mx-1" />
+
+                <button
+                  type="button"
+                  onClick={() => applyFormatting('\n- ', '\n- ', 'Ý thứ nhất')}
+                  className="p-1.5 rounded-lg hover:bg-white text-[#14211B] transition"
+                  title="Danh sách gạch đầu dòng"
+                >
+                  <List className="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => applyFormatting('\n1. ', '\n2. ', 'Bước thứ nhất')}
+                  className="p-1.5 rounded-lg hover:bg-white text-[#14211B] transition"
+                  title="Danh sách đánh số"
+                >
+                  <ListOrdered className="w-4 h-4" />
+                </button>
+
+                <span className="w-px h-4 bg-[#D5CBBA] mx-1" />
+
+                <div className="flex items-center gap-1 text-xs text-[#6B7C73] ml-auto">
+                  <span className="hidden sm:inline">Mẹo: Xuống 2 dòng để tạo đoạn văn mới</span>
+                </div>
+              </div>
+
+              <textarea
+                ref={textareaRef}
+                rows={7}
+                required
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Nhập nội dung bài viết. Bạn có thể bôi đen văn bản và dùng thanh công cụ phía trên để in đậm, tạo tiêu đề mục hoặc trích dẫn..."
+                className="w-full px-3.5 py-2.5 rounded-b-xl border border-[#D5CBBA] bg-white text-xs sm:text-sm text-[#14211B] focus:outline-none focus:ring-2 focus:ring-[#1B4332] leading-relaxed font-sans"
+              />
+            </div>
+
+            {/* 5. QUẢN LÝ ALBUM ẢNH BẢN TIN, CHÚ THÍCH & VỊ TRÍ SẮP XẾP */}
+            <div className="p-4 rounded-xl bg-white border border-[#D5CBBA] space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <Camera className="w-4 h-4 text-[#C85A32]" />
+                  <span className="text-xs font-bold text-[#14211B] uppercase tracking-wide">
+                    Album ảnh &amp; Thẻ biên tập ảnh ({mediaItems.length}/{MAX_ARTICLE_IMAGES} tấm)
+                  </span>
+                </div>
+                <span className="text-[11px] text-[#6B7C73]">
+                  Tối đa 7 ảnh &bull; Mỗi ảnh &lt; 5MB &bull; Có ô ghi chú thích &amp; chọn vị trí dàn trang
+                </span>
+              </div>
+
+              {uploadError && (
+                <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2 font-medium">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+                  <span>{uploadError}</span>
+                </div>
+              )}
+
+              {/* Khung nút bấm tải ảnh */}
+              {mediaItems.length < MAX_ARTICLE_IMAGES && (
+                <div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileSelect}
+                    multiple
+                    accept="image/jpeg,image/png,image/webp,image/avif"
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    disabled={isUploading}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full py-4 border-2 border-dashed border-[#D4AF37] hover:border-[#1B4332] bg-[#FAF7F2] hover:bg-emerald-50/50 rounded-xl transition flex flex-col items-center justify-center gap-1.5 text-xs text-[#1B4332] font-semibold cursor-pointer disabled:opacity-50"
+                  >
+                    {isUploading ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-5 h-5 animate-spin text-[#1B4332]" />
+                        <span>Đang tải ảnh lên máy chủ...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="w-5 h-5 text-[#C85A32]" />
+                        <span>Nhấn để chọn ảnh từ máy tính (Có thể chọn nhiều ảnh cùng lúc)</span>
+                        <span className="text-[10px] text-[#6B7C73] font-normal">
+                          Hỗ trợ JPG, PNG, WebP &bull; Dung lượng tối đa 5MB/ảnh
                         </span>
-                      )}
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
 
-                      {/* Số thứ tự ảnh */}
-                      <span className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-black/60 text-white text-[9px] font-mono">
-                        {idx + 1}/{images.length}
-                      </span>
-
-                      {/* Các nút thao tác hover */}
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-1.5">
-                        {!isCover && (
-                          <button
-                            type="button"
-                            onClick={() => handleSetAsCover(idx)}
-                            className="p-1.5 rounded-lg bg-[#D4AF37] text-white hover:bg-yellow-600 transition"
-                            title="Đặt làm ảnh bìa bài viết"
-                          >
-                            <Star className="w-3.5 h-3.5" />
-                          </button>
+              {/* DANH SÁCH THẺ BIÊN TẬP ẢNH (PHOTO EDITORIAL CARDS) */}
+              {mediaItems.length > 0 && (
+                <div className="space-y-3 pt-2">
+                  {mediaItems.map((item, idx) => (
+                    <div
+                      key={item.url + idx}
+                      className="p-3 sm:p-4 rounded-xl border border-[#D5CBBA] bg-[#FAF7F2] flex flex-col sm:flex-row gap-3 sm:gap-4 items-start relative group"
+                    >
+                      {/* Cột 1: Thumbnail ảnh & Badge Bìa */}
+                      <div className="relative w-28 sm:w-36 aspect-[4/3] rounded-lg overflow-hidden border border-[#D5CBBA] bg-stone-200 shrink-0">
+                        <img
+                          src={item.url}
+                          alt={`Ảnh ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        {item.isCover && (
+                          <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-[#1B4332] text-[#D4AF37] text-[10px] font-bold">
+                            ★ Ảnh bìa
+                          </span>
                         )}
+                        <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/60 text-white text-[9px] font-mono">
+                          #{idx + 1}
+                        </span>
+                      </div>
+
+                      {/* Cột 2: Ô chú thích & Chọn vị trí dàn trang */}
+                      <div className="flex-1 w-full space-y-2">
+                        <div>
+                          <label className="block text-[11px] font-bold text-[#14211B] mb-1">
+                            Ghi chú / Chú thích ảnh (Photo Caption)
+                          </label>
+                          <input
+                            type="text"
+                            value={item.caption || ''}
+                            onChange={(e) => handleCaptionChange(idx, e.target.value)}
+                            placeholder="Nhập chú thích ảnh (VD: Quang cảnh hội nghị tập huấn chuyển đổi số tại xã Ea Súp...)"
+                            className="w-full px-3 py-1.5 rounded-lg border border-[#D5CBBA] bg-white text-xs text-[#14211B] focus:outline-none focus:ring-2 focus:ring-[#1B4332]"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[10px] font-bold text-[#6B7C73] mb-0.5">
+                              Vị trí hiển thị trong bài báo
+                            </label>
+                            <select
+                              value={item.placement || 'auto'}
+                              onChange={(e) => handlePlacementChange(idx, e.target.value as ImagePlacement)}
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-[#D5CBBA] bg-white text-xs text-[#14211B] focus:outline-none focus:ring-1 focus:ring-[#1B4332]"
+                            >
+                              <option value="auto">Tự động sắp xếp thông minh (Mặc định)</option>
+                              <option value="lead">Đầu bài viết (Ngay dưới đoạn Sapo)</option>
+                              <option value="after-p1">Xen kẽ sau Đoạn văn số 1</option>
+                              <option value="after-p2">Xen kẽ sau Đoạn văn số 2</option>
+                              <option value="after-p3">Xen kẽ sau Đoạn văn số 3</option>
+                              <option value="after-p4">Xen kẽ sau Đoạn văn số 4</option>
+                              <option value="pair">Ghép đôi 2 ảnh song song (2-Column Grid)</option>
+                              <option value="bottom">Cuối bài viết (Phóng sự ảnh)</option>
+                            </select>
+                          </div>
+
+                          <div className="flex items-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleSetAsCover(idx)}
+                              className={`flex-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 border ${
+                                item.isCover
+                                  ? 'bg-[#1B4332] text-[#D4AF37] border-[#1B4332]'
+                                  : 'bg-white text-[#4A5B52] border-[#D5CBBA] hover:bg-stone-50'
+                              }`}
+                            >
+                              <Star className={`w-3.5 h-3.5 ${item.isCover ? 'fill-[#D4AF37]' : ''}`} />
+                              <span>{item.isCover ? 'Đang làm ảnh bìa' : 'Chọn làm ảnh bìa'}</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Cột 3: Nút điều hướng thứ tự & xóa */}
+                      <div className="flex sm:flex-col items-center gap-1 shrink-0 self-center sm:self-start">
                         <button
                           type="button"
-                          onClick={() => handleRemoveImage(idx)}
-                          className="p-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition"
-                          title="Xóa tấm ảnh này"
+                          disabled={idx === 0}
+                          onClick={() => handleMoveMedia(idx, 'up')}
+                          className="p-1.5 rounded-lg bg-white border border-[#D5CBBA] hover:bg-stone-100 text-[#14211B] disabled:opacity-30 transition"
+                          title="Di chuyển ảnh lên trên"
+                        >
+                          <ArrowUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={idx === mediaItems.length - 1}
+                          onClick={() => handleMoveMedia(idx, 'down')}
+                          className="p-1.5 rounded-lg bg-white border border-[#D5CBBA] hover:bg-stone-100 text-[#14211B] disabled:opacity-30 transition"
+                          title="Di chuyển ảnh xuống dưới"
+                        >
+                          <ArrowDown className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveMedia(idx)}
+                          className="p-1.5 rounded-lg bg-white border border-red-200 text-red-600 hover:bg-red-50 transition"
+                          title="Xóa ảnh này"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 6. Trạng thái xuất bản */}
+            <div className="flex items-center gap-5 pt-2">
+              <span className="text-xs font-bold text-[#14211B]">Trạng thái:</span>
+              <label className="flex items-center gap-2 text-xs font-semibold text-[#14211B] cursor-pointer">
+                <input
+                  type="radio"
+                  name="status"
+                  value="PUBLISHED"
+                  checked={status === 'PUBLISHED'}
+                  onChange={() => setStatus('PUBLISHED')}
+                  className="accent-[#1B4332]"
+                />
+                <span>Xuất bản ngay</span>
+              </label>
+
+              <label className="flex items-center gap-2 text-xs font-semibold text-[#14211B] cursor-pointer">
+                <input
+                  type="radio"
+                  name="status"
+                  value="DRAFT"
+                  checked={status === 'DRAFT'}
+                  onChange={() => setStatus('DRAFT')}
+                  className="accent-[#1B4332]"
+                />
+                <span>Lưu bản nháp</span>
+              </label>
+            </div>
+          </form>
+        )}
+
+        {/* MODAL FOOTER */}
+        <div className="px-5 py-3.5 bg-white border-t border-[#D5CBBA] flex items-center justify-between shrink-0">
+          <div className="text-[11px] text-[#6B7C73]">
+            {isUploading ? (
+              <span className="text-[#1B4332] font-semibold flex items-center gap-1.5">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Đang tải ảnh lên máy chủ...
+              </span>
+            ) : (
+              <span>Đã chọn {mediaItems.length}/7 ảnh &bull; Nháp tự lưu cục bộ</span>
             )}
           </div>
 
-          {/* 6. Trạng thái xuất bản */}
-          <div className="flex items-center gap-4 pt-1">
-            <label className="text-xs font-bold text-[#14211B]">Trạng thái đăng:</label>
-            <label className="flex items-center gap-1.5 text-xs text-[#14211B] cursor-pointer">
-              <input
-                type="radio"
-                name="status"
-                value="PUBLISHED"
-                checked={status === 'PUBLISHED'}
-                onChange={() => setStatus('PUBLISHED')}
-                className="text-[#1B4332] focus:ring-[#1B4332]"
-              />
-              <span className="font-semibold text-[#1B4332]">Xuất bản ngay</span>
-            </label>
-            <label className="flex items-center gap-1.5 text-xs text-[#14211B] cursor-pointer">
-              <input
-                type="radio"
-                name="status"
-                value="DRAFT"
-                checked={status === 'DRAFT'}
-                onChange={() => setStatus('DRAFT')}
-                className="text-[#1B4332] focus:ring-[#1B4332]"
-              />
-              <span className="text-[#6B7C73]">Lưu bản nháp</span>
-            </label>
-          </div>
-
-          {/* THÔNG BÁO LỖI NẾU CÓ Ở CUỐI FORM */}
-          {submitError && (
-            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-semibold flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
-              <span>{submitError}</span>
-            </div>
-          )}
-
-          {/* MODAL FOOTER */}
-          <div className="pt-4 border-t border-[#D5CBBA] flex items-center justify-end gap-3">
+          <div className="flex items-center gap-2.5">
             <button
               type="button"
-              onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2.5 rounded-xl border border-[#D5CBBA] text-xs sm:text-sm font-bold text-[#4A5B52] hover:bg-gray-100 transition"
+              onClick={onClose}
+              className="px-4 py-2 rounded-xl border border-[#D5CBBA] text-xs font-semibold text-[#4A5B52] hover:bg-stone-50 transition"
             >
               Hủy bỏ
             </button>
+
             <button
-              type="submit"
+              type="button"
               disabled={isSubmitting || isUploading}
-              className="px-6 py-2.5 rounded-xl bg-[#1B4332] hover:bg-[#143326] text-white text-xs sm:text-sm font-bold shadow-md transition flex items-center gap-2 disabled:opacity-50"
+              onClick={handleSubmit}
+              className="px-5 py-2 rounded-xl bg-[#1B4332] hover:bg-[#143326] text-white text-xs font-bold shadow-md hover:shadow-lg transition flex items-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Đang lưu...</span>
+                  <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" />
+                  <span>Đang lưu bản tin...</span>
                 </>
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4 text-[#D4AF37]" />
-                  <span>{isEditMode ? 'Lưu thay đổi' : 'Đăng bản tin'}</span>
+                  <span>{isEditMode ? 'Cập nhật bản tin' : 'Xuất bản tin tức'}</span>
                 </>
               )}
             </button>
           </div>
-        </form>
+        </div>
 
       </div>
     </div>
