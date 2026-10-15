@@ -16,6 +16,7 @@ cd "$APP_DIR"
 
 # 0. Tự động kéo mã nguồn mới nhất từ GitHub
 echo "🔄 Đang đồng bộ mã nguồn mới nhất từ GitHub..."
+git checkout -- public/local-articles.json 2>/dev/null || true
 git pull origin main || true
 
 # 1. Tạo các thư mục cần thiết và cấp quyền ghi cho container
