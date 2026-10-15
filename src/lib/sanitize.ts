@@ -34,7 +34,7 @@ export function sanitizePlainText(input: unknown): string {
   
   return input
     .replace(/<[^>]*>/g, '') // Loại bỏ toàn bộ thẻ HTML
-    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uD800-\uDFFF]/g, '') // Ký tự điều khiển độc hại
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '') // Loại bỏ ký tự điều khiển độc hại ASCII, giữ nguyên vẹn Emoji (💐, 🎉, 🌸...) và Unicode tiếng Việt
     .trim();
 }
 

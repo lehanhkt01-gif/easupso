@@ -91,6 +91,7 @@ sleep 8
 echo "📦 Đang đồng bộ cấu trúc CSDL và khởi tạo 20 thôn buôn..."
 docker compose exec -T easupso_portal_web npx prisma db push --accept-data-loss || docker compose exec -T easupso_portal_web ./node_modules/.bin/prisma db push --accept-data-loss || true
 docker compose exec -T easupso_portal_web npx tsx prisma/seed.ts || docker compose exec -T easupso_portal_web ./node_modules/.bin/tsx prisma/seed.ts || true
+docker compose exec -T easupso_portal_web npx tsx prisma/clean-dummy.ts || docker compose exec -T easupso_portal_web ./node_modules/.bin/tsx prisma/clean-dummy.ts || true
 
 echo ""
 echo "=========================================================="

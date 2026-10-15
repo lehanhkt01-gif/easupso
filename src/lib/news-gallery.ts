@@ -22,13 +22,13 @@ export function stripGalleryFromHtml(html: string): string {
   cleaned = cleaned.replace(/<div[^>]*class="[^"]*easup-photo-gallery[^"]*"[\s\S]*?(?:<\/div>\s*<!--\s*END_EASUPSO_GALLERY\s*-->|<\/div>\s*<\/div>\s*<\/div>|<\/div>\s*$)/gi, '');
 
   // 3. Xóa các đoạn text rác (dù nằm riêng hay nằm chung trong <p> với <br>)
-  cleaned = cleaned.replace(/(?:<br\s*\/?>|\s)*[📷📸]\s*(?:<br\s*\/?>|\s)*/gi, '');
-  cleaned = cleaned.replace(/(?:<br\s*\/?>|\s)*[hH][ìií]nh\s*[ảaá]nh\s*ph[óo]ng\s*s[ựu][^<\n\r]*(?:<br\s*\/?>|\s)*/gi, '');
-  cleaned = cleaned.replace(/(?:<br\s*\/?>|\s)*[bB][ảa]n\s*quy[ềe]n\s*[ảa]nh[^<\n\r]*(?:<br\s*\/?>|\s)*/gi, '');
-  cleaned = cleaned.replace(/(?:<br\s*\/?>|\s)*[ảaẢA][nN]h\s*\d+\s*[\/:]\s*\d+[^<\n\r]*(?:<br\s*\/?>|\s)*/gi, '');
+  cleaned = cleaned.replace(/(?:<br\s*\/?>|\s)*(?:📷|📸)\s*(?:<br\s*\/?>|\s)*/giu, '');
+  cleaned = cleaned.replace(/(?:<br\s*\/?>|\s)*[hH][ìií]nh\s*[ảaá]nh\s*ph[óo]ng\s*s[ựu][^<\n\r]*(?:<br\s*\/?>|\s)*/giu, '');
+  cleaned = cleaned.replace(/(?:<br\s*\/?>|\s)*[bB][ảa]n\s*quy[ềe]n\s*[ảa]nh[^<\n\r]*(?:<br\s*\/?>|\s)*/giu, '');
+  cleaned = cleaned.replace(/(?:<br\s*\/?>|\s)*[ảaẢA][nN]h\s*\d+\s*[\/:]\s*\d+[^<\n\r]*(?:<br\s*\/?>|\s)*/giu, '');
 
-  // 4. Nếu là dòng text trần
-  cleaned = cleaned.replace(/^[ \t]*(?:[📷📸]|.*[hH][ìií]nh\s*[ảaá]nh\s*ph[óo]ng\s*s[ựu]|.*[bB][ảa]n\s*quy[ềe]n\s*[ảa]nh|.*[ảaẢA][nN]h\s*\d+\s*[\/:]\s*\d+).*$/gim, '');
+  // 4. Nếu là dòng text trần chỉ chứa icon máy ảnh hoặc chú thích ảnh
+  cleaned = cleaned.replace(/^[ \t]*(?:(?:📷|📸)|[hH][ìií]nh\s*[ảaá]nh\s*ph[óo]ng\s*s[ựu]|[bB][ảa]n\s*quy[ềe]n\s*[ảa]nh|[ảaẢA][nN]h\s*\d+\s*[\/:]\s*\d+)[ \t]*$/gimu, '');
 
   // 5. Xóa các thẻ <p> rỗng còn sót lại và làm sạch định dạng dòng
   cleaned = cleaned.replace(/<p[^>]*>(?:\s*|<br\s*\/?>|&nbsp;)*<\/p>/gi, '');

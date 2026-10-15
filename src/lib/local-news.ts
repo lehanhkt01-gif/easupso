@@ -59,192 +59,79 @@ export const DEFAULT_LOCAL_CATEGORIES = [
   { id: 'cat-cds', slug: 'chuyen-doi-so', name: 'Chuyển đổi số & Bình dân học vụ số', orgCode: OrgCode.MTTQ, badgeColor: 'gold' },
 ];
 
-// Dữ liệu 6 bản tin khởi tạo mẫu phong phú sát thực tế
-const INITIAL_ARTICLES: LocalArticle[] = [
-  {
-    id: 'art-001',
-    title: 'UBMTTQ Việt Nam xã Ea Súp phát động phong trào "Chung tay xóa nhà tạm, nhà dột nát" năm 2026',
-    slug: 'ubmttq-xa-ea-sup-phat-dong-xoa-nha-tam-nam-2026',
-    summary: 'Ban Thường trực Ủy ban MTTQ Việt Nam xã Ea Súp kêu gọi các cơ quan, đơn vị, doanh nghiệp và các tầng lớp nhân dân đồng lòng ủng hộ, phấn đấu hoàn thành xây mới 15 căn nhà Đại đoàn kết trong năm 2026.',
-    contentHtml: '<p>Sáng nay, tại Hội trường UBND xã Ea Súp, Ban Thường trực Ủy ban MTTQ Việt Nam xã Ea Súp đã chủ trì tổ chức Lễ phát động phong trào thi đua “Chung tay xóa nhà tạm, nhà dột nát” trên địa bàn 20 thôn, buôn.</p><p>Phát biểu chỉ đạo, đồng chí Lê Hồng Hạnh - Ủy viên Ban Thường vụ Đảng ủy, Chủ tịch Ủy ban MTTQ Việt Nam xã nhấn mạnh: "Mỗi ngôi nhà Đại đoàn kết được xây dựng không chỉ là mái ấm che mưa nắng, mà còn là kết tinh của tình làng nghĩa xóm, niềm tin của đồng bào vào sự lãnh đạo của Đảng và chính quyền xã."</p><p>Tại buổi lễ, các cơ quan, doanh nghiệp và các nhà hảo tâm đã trực tiếp ủng hộ và đăng ký ủng hộ vào Quỹ Vì người nghèo xã số tiền hơn 280 triệu đồng.</p>',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=1200&q=80',
-    images: ['https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=1200&q=80'],
-    isFeatured: true,
-    viewCount: 428,
-    status: ArticleStatus.PUBLISHED,
-    categoryId: 'cat-mttq',
-    category: DEFAULT_LOCAL_CATEGORIES[0],
-    villageId: 'THON_THANG_LOI',
-    village: { id: 'THON_THANG_LOI', name: 'Thôn Thắng Lợi', code: 'THON_THANG_LOI', type: 'THON_TEN' },
-    orgCode: OrgCode.MTTQ,
-    authorId: 'root-admin-lehanh',
-    author: { name: 'Lê Hạnh (Quản trị viên Cấp cao)', email: 'lehanhkt01@gmail.com', positionTitle: 'Quản trị viên Hệ thống Cấp cao' },
-    approvedById: 'root-admin-lehanh',
-    approvedBy: { name: 'Lê Hạnh (Quản trị viên Cấp cao)' },
-    publishedAt: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'art-002',
-    title: 'Hội Nông dân xã Ea Súp triển khai mô hình canh tác lúa nước bền vững thích ứng biến đổi khí hậu',
-    slug: 'hoi-nong-dan-ea-sup-canh-tac-lua-nuoc-ben-vung',
-    summary: 'Mô hình liên kết sản xuất lúa chất lượng cao kết hợp phân bón hữu cơ vi sinh được triển khai thí điểm tại cánh đồng Thôn 1 và Thôn 2 với diện tích hơn 40 ha.',
-    contentHtml: '<p>Nhằm nâng cao giá trị hạt gạo Ea Súp và giảm thiểu chi phí vật tư nông nghiệp, Hội Nông dân xã Ea Súp vừa phối hợp cùng Trạm Khuyến nông tổ chức hội thảo đầu bờ mô hình canh tác lúa nước bền vững.</p><p>Chủ tịch Hội Nông dân xã Nguyễn Thị Miên cho biết: "Thông qua chuyển đổi số nông nghiệp trên nền tảng easupso.com, bà con được theo dõi sát sao tình hình sâu bệnh, thời tiết và giá thu mua hàng ngày của các hợp tác xã liên kết."</p>',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=1200&q=80',
-    images: ['https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=1200&q=80'],
-    isFeatured: true,
-    viewCount: 312,
-    status: ArticleStatus.PUBLISHED,
-    categoryId: 'cat-nongdan',
-    category: DEFAULT_LOCAL_CATEGORIES[2],
-    villageId: 'THON_01',
-    village: { id: 'THON_01', name: 'Thôn 1', code: 'THON_01', type: 'THON_SO' },
-    orgCode: OrgCode.NONG_DAN,
-    authorId: 'root-admin-lehanh',
-    author: { name: 'Nguyễn Thị Miên', email: 'Nguyenthimien3@gmail.com', positionTitle: 'Chủ tịch Hội Nông dân xã' },
-    publishedAt: new Date(Date.now() - 86400000).toISOString(),
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-    updatedAt: new Date(Date.now() - 86400000).toISOString(),
-  },
-  {
-    id: 'art-003',
-    title: 'Hội LHPN xã Ea Súp trao vốn sinh kế phụ nữ nghèo khởi nghiệp tại Buôn A và Thôn 8',
-    slug: 'hoi-lhpn-trao-von-sinh-ke-buon-a-va-thon-8',
-    summary: '5 hội viên phụ nữ có hoàn cảnh khó khăn tại Buôn A và Thôn 8 đã được Hội LHPN xã trao nguồn vốn vay ưu đãi không lãi suất để mua dê giống và cây ăn trái phát triển kinh tế.',
-    contentHtml: '<p>Chiều qua, Hội LHPN xã Ea Súp đã tiến hành trao vốn sinh kế hỗ trợ phụ nữ nghèo khởi sự kinh doanh. Tham dự có đồng chí H\' Bun Mi Siu - Phó Chủ tịch UBMTTQ, Chủ tịch Hội LHPN xã.</p><p>Mỗi hộ gia đình được hỗ trợ vay 15 triệu đồng từ nguồn quỹ xoay vòng sinh kế của Hội, đồng thời được cán bộ nông nghiệp xã hướng dẫn kỹ thuật chuồng trại.</p>',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=1200&q=80',
-    images: ['https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=1200&q=80'],
-    isFeatured: false,
-    viewCount: 195,
-    status: ArticleStatus.PUBLISHED,
-    categoryId: 'cat-phunu',
-    category: DEFAULT_LOCAL_CATEGORIES[1],
-    villageId: 'BUON_A',
-    village: { id: 'BUON_A', name: 'Buôn A', code: 'BUON_A', type: 'BUON' },
-    orgCode: OrgCode.PHU_NU,
-    authorId: 'root-admin-lehanh',
-    author: { name: "H' Bun Mi Siu", email: 'bunmisiu@gmail.com', positionTitle: 'Chủ tịch Hội LHPN xã' },
-    publishedAt: new Date(Date.now() - 172800000).toISOString(),
-    createdAt: new Date(Date.now() - 172800000).toISOString(),
-    updatedAt: new Date(Date.now() - 172800000).toISOString(),
-  },
-  {
-    id: 'art-004',
-    title: 'Đoàn Thanh niên xã ra quân "Ngày thứ Bảy tình nguyện" hướng dẫn dịch vụ công số tại Thôn Thắng Lợi',
-    slug: 'doan-thanh-nien-ra-quan-dich-vu-cong-so-thon-thang-loi',
-    summary: 'Đoàn viên thanh niên xã Ea Súp đã trực tiếp đến nhà văn hóa Thôn Thắng Lợi để hỗ trợ trên 70 lượt người dân kích hoạt VNeID và tra cứu thông tin trên Cổng easupso.com.',
-    contentHtml: '<p>Thực hiện chương trình xung kích tình nguyện vì cuộc sống cộng đồng, Đoàn TNCS Hồ Chí Minh xã Ea Súp do Bí thư Đoàn Đặng Văn Tình chủ trì đã tổ chức ngày hội Bình dân học vụ số tại Thôn Thắng Lợi.</p><p>Đội hình thanh niên số đã hướng dẫn bà con đăng ký tài khoản dịch vụ công, nộp hồ sơ trực tuyến và gửi phản ánh hiện trường qua Cổng thông tin xã.</p>',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80',
-    images: ['https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80'],
-    isFeatured: false,
-    viewCount: 240,
-    status: ArticleStatus.PUBLISHED,
-    categoryId: 'cat-doantn',
-    category: DEFAULT_LOCAL_CATEGORIES[3],
-    villageId: 'THON_THANG_LOI',
-    village: { id: 'THON_THANG_LOI', name: 'Thôn Thắng Lợi', code: 'THON_THANG_LOI', type: 'THON_TEN' },
-    orgCode: OrgCode.DOAN_TN,
-    authorId: 'root-admin-lehanh',
-    author: { name: 'Đặng Văn Tình', email: 'Dangvantinht@gmail.com', positionTitle: 'Bí thư Đoàn TNCS Hồ Chí Minh xã' },
-    publishedAt: new Date(Date.now() - 259200000).toISOString(),
-    createdAt: new Date(Date.now() - 259200000).toISOString(),
-    updatedAt: new Date(Date.now() - 259200000).toISOString(),
-  },
-  {
-    id: 'art-005',
-    title: 'Hội Cựu chiến binh xã Ea Súp trao tặng cặp bò giống cho hội viên có hoàn cảnh khó khăn tại Thôn Đoàn Kết',
-    slug: 'hoi-ccb-trao-bo-giong-thon-doan-ket',
-    summary: 'Chương trình “Nghĩa tình đồng đội” của Hội CCB xã tiếp tục nhân rộng mô hình chăn nuôi sinh sản, giúp gia đình hội viên vươn lên thoát nghèo bền vững.',
-    contentHtml: '<p>Sáng ngày 12/10, Thường trực Hội Cựu chiến binh xã Ea Súp do đồng chí Đặng Trung Hiếu - Chủ tịch Hội dẫn đầu đã đến trao tặng cặp bò giống trị giá 22 triệu đồng cho gia đình cựu chiến binh thương binh tại Thôn Đoàn Kết.</p><p>Nguồn kinh phí do hội viên 20 chi hội CCB toàn xã tự nguyện đóng góp xây dựng quỹ giúp nhau xóa đói giảm nghèo.</p>',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1546445317-29f4545e9d53?auto=format&fit=crop&w=1200&q=80',
-    images: ['https://images.unsplash.com/photo-1546445317-29f4545e9d53?auto=format&fit=crop&w=1200&q=80'],
-    isFeatured: false,
-    viewCount: 184,
-    status: ArticleStatus.PUBLISHED,
-    categoryId: 'cat-ccb',
-    category: DEFAULT_LOCAL_CATEGORIES[4],
-    villageId: 'THON_DOAN_KET',
-    village: { id: 'THON_DOAN_KET', name: 'Thôn Đoàn Kết', code: 'THON_DOAN_KET', type: 'THON_TEN' },
-    orgCode: OrgCode.CCB,
-    authorId: 'root-admin-lehanh',
-    author: { name: 'Đặng Trung Hiếu', email: 'trunghieuktkt@gmail.com', positionTitle: 'Chủ tịch Hội CCB xã' },
-    publishedAt: new Date(Date.now() - 345600000).toISOString(),
-    createdAt: new Date(Date.now() - 345600000).toISOString(),
-    updatedAt: new Date(Date.now() - 345600000).toISOString(),
-  },
-  {
-    id: 'art-006',
-    title: 'Tổ Công nghệ số cộng đồng Buôn B phát huy hiệu quả cầu nối thông tin số đến từng bếp lửa',
-    slug: 'to-cong-nghe-so-cong-dong-buon-b-phat-huy-hieu-qua',
-    summary: 'Các thành viên Tổ CNSCĐ Buôn B tích cực phối hợp cùng Ban Tự quản buôn đưa tin tức, cảnh báo thời tiết và các chủ trương chính sách đến từng hộ đồng bào dân tộc thiểu số.',
-    contentHtml: '<p>Tại Buôn B, Tổ công nghệ số cộng đồng đã phối hợp chặt chẽ cùng Già làng và Trưởng buôn ứng dụng điện thoại thông minh để phổ biến bản tin Mặt trận và dịch vụ công xã Ea Súp.</p><p>Đến nay, hơn 85% hộ gia đình trong buôn đã có thể tra cứu thông tin giá nông sản và phản ánh kiến nghị trực tiếp lên chính quyền xã thông qua cổng điện tử.</p>',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=1200&q=80',
-    images: ['https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=1200&q=80'],
-    isFeatured: true,
-    viewCount: 278,
-    status: ArticleStatus.PUBLISHED,
-    categoryId: 'cat-cds',
-    category: DEFAULT_LOCAL_CATEGORIES[6],
-    villageId: 'BUON_B',
-    village: { id: 'BUON_B', name: 'Buôn B', code: 'BUON_B', type: 'BUON' },
-    orgCode: OrgCode.MTTQ,
-    authorId: 'root-admin-lehanh',
-    author: { name: 'Lê Hạnh (Quản trị viên Cấp cao)', email: 'lehanhkt01@gmail.com', positionTitle: 'Quản trị viên Hệ thống Cấp cao' },
-    publishedAt: new Date(Date.now() - 432000000).toISOString(),
-    createdAt: new Date(Date.now() - 432000000).toISOString(),
-    updatedAt: new Date(Date.now() - 432000000).toISOString(),
-  },
-];
+// Danh sách mã định danh bản tin mẫu khởi tạo cần loại bỏ hoàn toàn
+const DUMMY_SAMPLE_SLUGS = new Set([
+  'ubmttq-xa-ea-sup-phat-dong-xoa-nha-tam-nam-2026',
+  'hoi-nong-dan-ea-sup-canh-tac-lua-nuoc-ben-vung',
+  'hoi-nong-dan-trien-khai-mo-hinh-canh-tac-lua-nuoc-thich-ung-bien-doi-khi-hau',
+  'hoi-lhpn-trao-von-sinh-ke-buon-a-va-thon-8',
+  'doan-thanh-nien-ra-quan-dich-vu-cong-so-thon-thang-loi',
+  'hoi-ccb-trao-bo-giong-thon-doan-ket',
+  'to-cong-nghe-so-cong-dong-buon-b-phat-huy-hieu-qua',
+  'to-cnsdc-buon-b-phat-huy-hieu-qua-cau-noi-thong-tin-so',
+]);
+const DUMMY_SAMPLE_IDS = new Set(['art-001', 'art-002', 'art-003', 'art-004', 'art-005', 'art-006']);
+
+// Khởi tạo danh sách bài viết cục bộ rỗng (không chứa bài ảo)
+const INITIAL_ARTICLES: LocalArticle[] = [];
 
 // Bộ nhớ tạm Runtime đảm bảo hệ thống không bao giờ bị gián đoạn kể cả khi quyền file bị hạn chế
-let inMemoryArticles: LocalArticle[] = [...INITIAL_ARTICLES];
+let inMemoryArticles: LocalArticle[] = [];
 
 /**
  * Ghi danh sách bản tin ra file an toàn, triệt tiêu mọi ngoại lệ EACCES
  */
 async function writeArticlesFileSafe(articles: LocalArticle[]): Promise<void> {
-  inMemoryArticles = articles;
+  const cleanArticles = articles.filter(
+    (a) => !DUMMY_SAMPLE_SLUGS.has(a.slug) && !DUMMY_SAMPLE_IDS.has(a.id)
+  );
+  inMemoryArticles = cleanArticles;
   try {
-    await fs.writeFile(LOCAL_ARTICLES_FILE, JSON.stringify(articles, null, 2), 'utf-8');
+    await fs.writeFile(LOCAL_ARTICLES_FILE, JSON.stringify(cleanArticles, null, 2), 'utf-8');
   } catch (err: any) {
     console.warn('[LOCAL_ARTICLES_WRITE_WARN] Không thể ghi đè file /app/public/local-articles.json (bảo vệ phân quyền):', err?.message);
     try {
-      await fs.writeFile(path.join('/tmp', 'local-articles.json'), JSON.stringify(articles, null, 2), 'utf-8');
+      await fs.writeFile(path.join('/tmp', 'local-articles.json'), JSON.stringify(cleanArticles, null, 2), 'utf-8');
     } catch {}
   }
 }
 
 /**
- * Đọc toàn bộ danh sách bản tin từ file JSON cục bộ
+ * Đọc toàn bộ danh sách bản tin từ file JSON cục bộ (tự động loại bỏ mọi bài ảo mẫu)
  */
 export async function getLocalArticles(): Promise<LocalArticle[]> {
   try {
     const raw = await fs.readFile(LOCAL_ARTICLES_FILE, 'utf-8');
     const articles = JSON.parse(raw);
-    if (Array.isArray(articles) && articles.length > 0) {
-      inMemoryArticles = articles;
-      return articles;
+    if (Array.isArray(articles)) {
+      const filtered = articles.filter(
+        (a) => !DUMMY_SAMPLE_SLUGS.has(a.slug) && !DUMMY_SAMPLE_IDS.has(a.id)
+      );
+      inMemoryArticles = filtered;
+      return filtered;
     }
   } catch {
     try {
       const rawTmp = await fs.readFile(path.join('/tmp', 'local-articles.json'), 'utf-8');
       const articlesTmp = JSON.parse(rawTmp);
-      if (Array.isArray(articlesTmp) && articlesTmp.length > 0) {
-        inMemoryArticles = articlesTmp;
-        return articlesTmp;
+      if (Array.isArray(articlesTmp)) {
+        const filtered = articlesTmp.filter(
+          (a) => !DUMMY_SAMPLE_SLUGS.has(a.slug) && !DUMMY_SAMPLE_IDS.has(a.id)
+        );
+        inMemoryArticles = filtered;
+        return filtered;
       }
     } catch {}
   }
 
   // Nếu trong bộ nhớ đã có dữ liệu cập nhật
   if (inMemoryArticles && inMemoryArticles.length > 0) {
-    return inMemoryArticles;
+    return inMemoryArticles.filter(
+      (a) => !DUMMY_SAMPLE_SLUGS.has(a.slug) && !DUMMY_SAMPLE_IDS.has(a.id)
+    );
   }
 
-  // Tự động ghi bộ khởi tạo nếu có quyền
-  writeArticlesFileSafe(INITIAL_ARTICLES).catch(() => {});
-  return INITIAL_ARTICLES;
+  return [];
 }
 
 /**

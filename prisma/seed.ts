@@ -284,114 +284,29 @@ async function main() {
   }
   console.log(`-> Đã nạp thành công 7 chuyên mục tin.`);
 
-  // 5. NẠP 6 BẢN TIN HOẠT ĐỘNG THỰC TẾ
-  console.log('5. Nạp 6 bản tin hoạt động mẫu sát thực tế...');
-  const authorId = userMap.get('lehonghanh@easupso.com') || Array.from(userMap.values())[0];
-  const approverId = authorId;
-
-  const articlesData = [
-    {
-      title: 'UBMTTQ Việt Nam xã Ea Súp phát động phong trào "Chung tay xóa nhà tạm, nhà dột nát" năm 2026',
-      slug: 'ubmttq-xa-ea-sup-phat-dong-xoa-nha-tam-nam-2026',
-      summary: 'Ban Thường trực Ủy ban MTTQ Việt Nam xã Ea Súp kêu gọi các cơ quan, đơn vị, doanh nghiệp và các tầng lớp nhân dân đồng lòng ủng hộ, phấn đấu hoàn thành xây mới 15 căn nhà Đại đoàn kết trong năm 2026.',
-      contentHtml: `<p>Sáng nay, tại Hội trường UBND xã Ea Súp, Ban Thường trực Ủy ban MTTQ Việt Nam xã Ea Súp đã chủ trì tổ chức Lễ phát động phong trào thi đua “Chung tay xóa nhà tạm, nhà dột nát” trên địa bàn 20 thôn, buôn.</p><p>Phát biểu chỉ đạo, đồng chí Lê Hồng Hạnh - Ủy viên Ban Thường vụ Đảng ủy, Chủ tịch Ủy ban MTTQ Việt Nam xã nhấn mạnh: "Mỗi ngôi nhà Đại đoàn kết được xây dựng không chỉ là mái ấm che mưa nắng, mà còn là kết tinh của tình làng nghĩa xóm, niềm tin của đồng bào vào sự lãnh đạo của Đảng và chính quyền xã."</p><p>Tại buổi lễ, các cơ quan, doanh nghiệp và các nhà hảo tâm đã trực tiếp ủng hộ và đăng ký ủng hộ vào Quỹ Vì người nghèo xã số tiền hơn 280 triệu đồng.</p>`,
-      thumbnailUrl: 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=1200&q=80',
-      categoryId: categoryMap.get('mat-tran-to-quoc')!,
-      villageId: villageMap.get('THON_THANG_LOI'),
-      orgCode: OrgCode.MTTQ,
-      isFeatured: true,
-      viewCount: 428,
-      status: ArticleStatus.PUBLISHED,
-      publishedAt: new Date(),
-    },
-    {
-      title: 'Hội Nông dân xã Ea Súp triển khai mô hình canh tác lúa nước bền vững thích ứng biến đổi khí hậu',
-      slug: 'hoi-nong-dan-ea-sup-canh-tac-lua-nuoc-ben-vung',
-      summary: 'Mô hình liên kết sản xuất lúa chất lượng cao kết hợp phân bón hữu cơ vi sinh được triển khai thí điểm tại cánh đồng Thôn 1 và Thôn 2 với diện tích hơn 40 ha.',
-      contentHtml: `<p>Nhằm nâng cao giá trị hạt gạo Ea Súp và giảm thiểu chi phí vật tư nông nghiệp, Hội Nông dân xã Ea Súp vừa phối hợp cùng Trạm Khuyến nông tổ chức hội thảo đầu bờ mô hình canh tác lúa nước bền vững.</p><p>Chủ tịch Hội Nông dân xã Nguyễn Thị Miên cho biết: "Thông qua chuyển đổi số nông nghiệp trên nền tảng easupso.com, bà con được theo dõi sát sao tình hình sâu bệnh, thời tiết và giá thu mua hàng ngày của các hợp tác xã liên kết."</p>`,
-      thumbnailUrl: 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=1200&q=80',
-      categoryId: categoryMap.get('hoi-nong-dan')!,
-      villageId: villageMap.get('THON_01'),
-      orgCode: OrgCode.NONG_DAN,
-      isFeatured: true,
-      viewCount: 312,
-      status: ArticleStatus.PUBLISHED,
-      publishedAt: new Date(Date.now() - 86400000),
-    },
-    {
-      title: 'Hội LHPN xã Ea Súp trao vốn sinh kế phụ nữ nghèo khởi nghiệp tại Buôn A và Thôn 8',
-      slug: 'hoi-lhpn-trao-von-sinh-ke-buon-a-va-thon-8',
-      summary: '5 hội viên phụ nữ có hoàn cảnh khó khăn tại Buôn A và Thôn 8 đã được Hội LHPN xã trao nguồn vốn vay ưu đãi không lãi suất để mua dê giống và cây ăn trái phát triển kinh tế.',
-      contentHtml: `<p>Chiều qua, Hội LHPN xã Ea Súp đã tiến hành trao vốn sinh kế hỗ trợ phụ nữ nghèo khởi sự kinh doanh. Tham dự có đồng chí H' Bun Mi Siu - Phó Chủ tịch UBMTTQ, Chủ tịch Hội LHPN xã.</p><p>Mỗi hộ gia đình được hỗ trợ vay 15 triệu đồng từ nguồn quỹ xoay vòng sinh kế của Hội, đồng thời được cán bộ nông nghiệp xã hướng dẫn kỹ thuật chuồng trại.</p>`,
-      thumbnailUrl: 'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=1200&q=80',
-      categoryId: categoryMap.get('hoi-phu-nu')!,
-      villageId: villageMap.get('BUON_A'),
-      orgCode: OrgCode.PHU_NU,
-      isFeatured: false,
-      viewCount: 195,
-      status: ArticleStatus.PUBLISHED,
-      publishedAt: new Date(Date.now() - 172800000),
-    },
-    {
-      title: 'Đoàn Thanh niên xã ra quân "Ngày thứ Bảy tình nguyện" hướng dẫn dịch vụ công số tại Thôn Thắng Lợi',
-      slug: 'doan-thanh-nien-ra-quan-dich-vu-cong-so-thon-thang-loi',
-      summary: 'Đoàn viên thanh niên xã Ea Súp đã trực tiếp đến nhà văn hóa Thôn Thắng Lợi để hỗ trợ trên 70 lượt người dân kích hoạt VNeID và tra cứu thông tin trên Cổng easupso.com.',
-      contentHtml: `<p>Thực hiện chương trình xung kích tình nguyện vì cuộc sống cộng đồng, Đoàn TNCS Hồ Chí Minh xã Ea Súp do Bí thư Đoàn Đặng Văn Tình chủ trì đã tổ chức ngày hội Bình dân học vụ số tại Thôn Thắng Lợi.</p><p>Đội hình thanh niên số đã hướng dẫn bà con đăng ký tài khoản dịch vụ công, nộp hồ sơ trực tuyến và gửi phản ánh hiện trường qua Cổng thông tin xã.</p>`,
-      thumbnailUrl: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80',
-      categoryId: categoryMap.get('doan-thanh-nien')!,
-      villageId: villageMap.get('THON_THANG_LOI'),
-      orgCode: OrgCode.DOAN_TN,
-      isFeatured: false,
-      viewCount: 240,
-      status: ArticleStatus.PUBLISHED,
-      publishedAt: new Date(Date.now() - 259200000),
-    },
-    {
-      title: 'Hội Cựu chiến binh xã Ea Súp trao tặng cặp bò giống cho hội viên có hoàn cảnh khó khăn tại Thôn Đoàn Kết',
-      slug: 'hoi-ccb-trao-bo-giong-thon-doan-ket',
-      summary: 'Chương trình “Nghĩa tình đồng đội” của Hội CCB xã tiếp tục nhân rộng mô hình chăn nuôi sinh sản, giúp gia đình hội viên vươn lên thoát nghèo bền vững.',
-      contentHtml: `<p>Sáng ngày 12/10, Thường trực Hội Cựu chiến binh xã Ea Súp do đồng chí Đặng Trung Hiếu - Chủ tịch Hội dẫn đầu đã đến trao tặng cặp bò giống trị giá 22 triệu đồng cho gia đình cựu chiến binh thương binh tại Thôn Đoàn Kết.</p><p>Nguồn kinh phí do hội viên 20 chi hội CCB toàn xã tự nguyện đóng góp xây dựng quỹ giúp nhau xóa đói giảm nghèo.</p>`,
-      thumbnailUrl: 'https://images.unsplash.com/photo-1546445317-29f4545e9d53?auto=format&fit=crop&w=1200&q=80',
-      categoryId: categoryMap.get('hoi-cuu-chien-binh')!,
-      villageId: villageMap.get('THON_DOAN_KET'),
-      orgCode: OrgCode.CCB,
-      isFeatured: false,
-      viewCount: 184,
-      status: ArticleStatus.PUBLISHED,
-      publishedAt: new Date(Date.now() - 345600000),
-    },
-    {
-      title: 'Tổ Công nghệ số cộng đồng Buôn B phát huy hiệu quả cầu nối thông tin số đến từng bếp lửa',
-      slug: 'to-cong-nghe-so-cong-dong-buon-b-phat-huy-hieu-qua',
-      summary: 'Các thành viên Tổ CNSCĐ Buôn B tích cực phối hợp cùng Ban Tự quản buôn đưa tin tức, cảnh báo thời tiết và các chủ trương chính sách đến từng hộ đồng bào dân tộc thiểu số.',
-      contentHtml: `<p>Tại Buôn B, Tổ công nghệ số cộng đồng đã phối hợp chặt chẽ cùng Già làng và Trưởng buôn ứng dụng điện thoại thông minh để phổ biến bản tin Mặt trận và dịch vụ công xã Ea Súp.</p><p>Đến nay, hơn 85% hộ gia đình trong buôn đã có thể tra cứu thông tin giá nông sản và phản ánh kiến nghị trực tiếp lên chính quyền xã thông qua cổng điện tử.</p>`,
-      thumbnailUrl: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=1200&q=80',
-      categoryId: categoryMap.get('chuyen-doi-so')!,
-      villageId: villageMap.get('BUON_B'),
-      orgCode: OrgCode.MTTQ,
-      isFeatured: true,
-      viewCount: 278,
-      status: ArticleStatus.PUBLISHED,
-      publishedAt: new Date(Date.now() - 432000000),
-    },
+  // 5. DỌN DẸP BẢN TIN KHỞI TẠO ẢO BAN ĐẦU
+  console.log('5. Tự động dọn dẹp các bản tin khởi tạo mẫu ban đầu...');
+  const dummySlugs = [
+    'ubmttq-xa-ea-sup-phat-dong-xoa-nha-tam-nam-2026',
+    'hoi-nong-dan-ea-sup-canh-tac-lua-nuoc-ben-vung',
+    'hoi-nong-dan-trien-khai-mo-hinh-canh-tac-lua-nuoc-thich-ung-bien-doi-khi-hau',
+    'hoi-lhpn-trao-von-sinh-ke-buon-a-va-thon-8',
+    'doan-thanh-nien-ra-quan-dich-vu-cong-so-thon-thang-loi',
+    'hoi-ccb-trao-bo-giong-thon-doan-ket',
+    'to-cong-nghe-so-cong-dong-buon-b-phat-huy-hieu-qua',
+    'to-cnsdc-buon-b-phat-huy-hieu-qua-cau-noi-thong-tin-so',
   ];
+  const dummyIds = ['art-001', 'art-002', 'art-003', 'art-004', 'art-005', 'art-006'];
 
-  for (const art of articlesData) {
-    await prisma.newsArticle.upsert({
-      where: { slug: art.slug },
-      update: {
-        ...art,
-        authorId,
-        approvedById: approverId,
-      },
-      create: {
-        ...art,
-        authorId,
-        approvedById: approverId,
-      },
-    });
-  }
-  console.log(`-> Đã nạp thành công 6 bản tin hoạt động mẫu.`);
+  const deleteResult = await prisma.newsArticle.deleteMany({
+    where: {
+      OR: [
+        { slug: { in: dummySlugs } },
+        { id: { in: dummyIds } },
+      ],
+    },
+  });
+  console.log(`-> Đã dọn dẹp ${deleteResult.count} bản tin mẫu khỏi CSDL.`);
 
   // 6. NẠP 2 THÔNG BÁO KHẨN / TICKER BAR
   console.log('6. Nạp thông báo Ticker bar trang chủ...');
