@@ -64,6 +64,32 @@ export const authOptions: NextAuthOptions = {
           (rootPasswords.includes(credentials.password) || rootPasswords.includes(inputPassword));
 
         if (isRootMatch) {
+          try {
+            let rootUser = await prisma.user.findUnique({
+              where: { email: ROOT_ADMIN_EMAIL.toLowerCase() },
+            });
+            if (!rootUser) {
+              rootUser = await prisma.user.create({
+                data: {
+                  email: ROOT_ADMIN_EMAIL.toLowerCase(),
+                  name: 'Lê Hạnh (Quản trị viên Cấp cao)',
+                  role: Role.SUPER_ADMIN,
+                  orgCode: OrgCode.MTTQ,
+                  positionTitle: 'Quản trị viên Hệ thống Cấp cao',
+                  isActive: true,
+                },
+              });
+            }
+            return {
+              id: rootUser.id,
+              name: rootUser.name || 'Lê Hạnh (Quản trị viên Cấp cao)',
+              email: ROOT_ADMIN_EMAIL,
+              image: rootUser.image || null,
+            };
+          } catch (err) {
+            console.warn('[AUTH_ROOT_DB_FALLBACK] Không kết nối được DB, dùng định danh root admin tạm thời.');
+          }
+
           return {
             id: 'root-admin-lehanh',
             name: 'Lê Hạnh (Quản trị viên Cấp cao)',
@@ -164,8 +190,24 @@ export const authOptions: NextAuthOptions = {
       if (token.email) {
         const normalizedEmail = token.email.toLowerCase().trim();
 
-        // Nếu là Root Admin
+        // Nếu là Root Admin, tìm ID thực tế trong CSDL
         if (normalizedEmail === ROOT_ADMIN_EMAIL.toLowerCase()) {
+          try {
+            const dbUser = await prisma.user.findUnique({
+              where: { email: normalizedEmail },
+              select: { id: true, role: true, orgCode: true, positionTitle: true, isActive: true },
+            });
+            if (dbUser) {
+              token.id = dbUser.id;
+              token.role = Role.SUPER_ADMIN;
+              token.isActive = true;
+              token.orgCode = dbUser.orgCode || OrgCode.MTTQ;
+              token.positionTitle = dbUser.positionTitle || 'Quản trị viên Hệ thống Cấp cao';
+              return token;
+            }
+          } catch (err) {
+            console.warn('[AUTH_JWT_ROOT_DB_WARN]', err);
+          }
           token.id = token.id || 'root-admin-lehanh';
           token.role = Role.SUPER_ADMIN;
           token.isActive = true;

@@ -48,6 +48,7 @@ export function NewsEditorModal({
   const isEditMode = Boolean(articleToEdit?.id);
 
   const [categoriesList, setCategoriesList] = useState(categories);
+  const [villagesList, setVillagesList] = useState(EA_SUP_VILLAGES as readonly any[]);
 
   // Form State
   const [title, setTitle] = useState('');
@@ -60,20 +61,28 @@ export function NewsEditorModal({
 
   // Nạp danh mục thực tế từ CSDL
   useEffect(() => {
-    async function loadRealCategories() {
+    async function loadRealData() {
       try {
-        const res = await fetch('/api/public/categories');
-        const json = await res.json();
-        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-          setCategoriesList(json.data);
+        const [catRes, vilRes] = await Promise.all([
+          fetch('/api/public/categories'),
+          fetch('/api/public/villages'),
+        ]);
+        const catJson = await catRes.json();
+        const vilJson = await vilRes.json();
+
+        if (catJson.success && Array.isArray(catJson.data) && catJson.data.length > 0) {
+          setCategoriesList(catJson.data);
           if (!articleToEdit && !categoryId) {
-            setCategoryId(json.data[0].id);
-            setOrgCode(json.data[0].orgCode);
+            setCategoryId(catJson.data[0].id);
+            setOrgCode(catJson.data[0].orgCode);
           }
+        }
+        if (vilJson.success && Array.isArray(vilJson.data) && vilJson.data.length > 0) {
+          setVillagesList(vilJson.data);
         }
       } catch {}
     }
-    loadRealCategories();
+    loadRealData();
   }, [articleToEdit, categoryId]);
 
   // Quản lý tối đa 7 ảnh
@@ -365,8 +374,8 @@ export function NewsEditorModal({
                 className="w-full px-3.5 py-2.5 rounded-xl border border-[#D5CBBA] bg-white text-xs sm:text-sm font-medium text-[#14211B] focus:outline-none focus:ring-2 focus:ring-[#1B4332]"
               >
                 <option value="">Toàn xã Ea Súp (Tin chung cấp xã)</option>
-                {EA_SUP_VILLAGES.map((v) => (
-                  <option key={v.id} value={v.id}>
+                {villagesList.map((v) => (
+                  <option key={v.code || v.id} value={v.code || v.id}>
                     {v.name} ({v.type === 'BUON' ? 'Buôn' : 'Thôn'})
                   </option>
                 ))}

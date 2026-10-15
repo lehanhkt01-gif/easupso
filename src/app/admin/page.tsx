@@ -221,13 +221,15 @@ export default async function AdminPage() {
   } catch (err) {
     console.warn('[ADMIN_PAGE_DB_WARN] Không kết nối được CSDL, sử dụng bộ dữ liệu dự phòng an toàn:', err);
     const localHero = await getLocalSiteSetting('HERO_BANNER_IMAGE_URL');
+    const { getLocalArticles } = await import('@/lib/local-news');
+    const localArticles = await getLocalArticles();
     return (
       <AdminDashboardClient
         user={session.user}
         categories={fallbackCategories}
         villages={EA_SUP_VILLAGES}
-        initialArticles={[]}
-        pendingArticles={[]}
+        initialArticles={localArticles}
+        pendingArticles={localArticles.filter((a) => a.status === ArticleStatus.PENDING_APPROVAL)}
         auditLogs={[]}
         quickAnnouncements={[]}
         currentHeroImage={localHero || null}

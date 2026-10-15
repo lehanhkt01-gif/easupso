@@ -91,7 +91,16 @@ export default async function HomePage() {
     console.warn('[HOMEPAGE_FETCH_WARN] Kết nối DB chưa hoàn tất hoặc dữ liệu trống:', error);
   }
 
-  // Nếu DB chưa có, lấy từ file cấu hình cục bộ bền vững
+  // Nếu DB chưa có bản tin, lấy từ file cục bộ bền vững
+  if (initialArticles.length === 0) {
+    try {
+      const { getLocalArticles } = await import('@/lib/local-news');
+      const local = await getLocalArticles();
+      initialArticles = local.filter((a) => a.status === ArticleStatus.PUBLISHED).slice(0, 9);
+    } catch {}
+  }
+
+  // Nếu DB chưa có hero banner, lấy từ file cấu hình cục bộ bền vững
   if (!heroBannerUrl) {
     const { getLocalSiteSetting } = await import('@/lib/site-settings');
     const localSetting = await getLocalSiteSetting('HERO_BANNER_IMAGE_URL');

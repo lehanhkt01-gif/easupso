@@ -32,10 +32,18 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const article = await prisma.newsArticle.findUnique({
-    where: { slug },
-    select: { title: true, summary: true, thumbnailUrl: true },
-  });
+  let article: { title: string; summary: string; thumbnailUrl: string | null } | null = null;
+  try {
+    article = await prisma.newsArticle.findUnique({
+      where: { slug },
+      select: { title: true, summary: true, thumbnailUrl: true },
+    });
+  } catch {}
+
+  if (!article) {
+    const { getLocalArticleBySlug } = await import('@/lib/local-news');
+    article = await getLocalArticleBySlug(slug);
+  }
 
   if (!article) return { title: 'Bản tin không tồn tại' };
 
@@ -53,52 +61,82 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function NewsDetailPage({ params }: Props) {
   const { slug } = await params;
 
-  // Lấy dữ liệu bài viết
-  const article = await prisma.newsArticle.findUnique({
-    where: { slug },
-    include: {
-      category: true,
-      village: true,
-      author: {
-        select: { name: true, positionTitle: true },
+  // Lấy dữ liệu bài viết từ DB hoặc kho cục bộ
+  let article: any = null;
+  try {
+    article = await prisma.newsArticle.findUnique({
+      where: { slug },
+      include: {
+        category: true,
+        village: true,
+        author: {
+          select: { name: true, positionTitle: true },
+        },
       },
-    },
-  });
+    });
+  } catch (err) {
+    console.warn('[NEWS_DETAIL_DB_WARN] CSDL chưa sẵn sàng, lấy từ file cục bộ:', err);
+  }
+
+  if (!article) {
+    const { getLocalArticleBySlug } = await import('@/lib/local-news');
+    article = await getLocalArticleBySlug(slug);
+  }
 
   if (!article || article.status !== ArticleStatus.PUBLISHED) {
     notFound();
   }
 
   // Tăng lượt xem (Fire and forget)
-  prisma.newsArticle
-    .update({
-      where: { id: article.id },
-      data: { viewCount: { increment: 1 } },
-    })
-    .catch((err) => console.error('Lỗi tăng viewCount:', err));
+  try {
+    prisma.newsArticle
+      .update({
+        where: { id: article.id },
+        data: { viewCount: { increment: 1 } },
+      })
+      .catch(() => {});
+  } catch {}
 
   // Lấy 3 bài viết liên quan
-  const relatedArticles = await prisma.newsArticle.findMany({
-    where: {
-      status: ArticleStatus.PUBLISHED,
-      id: { not: article.id },
-      OR: [
-        { categoryId: article.categoryId },
-        ...(article.villageId ? [{ villageId: article.villageId }] : []),
-      ],
-    },
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      summary: true,
-      thumbnailUrl: true,
-      publishedAt: true,
-      category: { select: { name: true } },
-    },
-    take: 3,
-    orderBy: { publishedAt: 'desc' },
-  });
+  let relatedArticles: any[] = [];
+  try {
+    relatedArticles = await prisma.newsArticle.findMany({
+      where: {
+        status: ArticleStatus.PUBLISHED,
+        id: { not: article.id },
+        OR: [
+          { categoryId: article.categoryId },
+          ...(article.villageId ? [{ villageId: article.villageId }] : []),
+        ],
+      },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        summary: true,
+        thumbnailUrl: true,
+      },
+      orderBy: { publishedAt: 'desc' },
+      take: 3,
+    });
+  } catch {}
+
+  if (relatedArticles.length === 0) {
+    try {
+      const { getLocalArticles } = await import('@/lib/local-news');
+      const all = await getLocalArticles();
+      relatedArticles = all
+        .filter((a) => a.status === ArticleStatus.PUBLISHED && a.id !== article.id)
+        .slice(0, 3)
+        .map((a) => ({
+          id: a.id,
+          title: a.title,
+          slug: a.slug,
+          summary: a.summary,
+          thumbnailUrl: a.thumbnailUrl,
+        }));
+    } catch {}
+  }
 
   const fullUrl = `https://easupso.com/news/${article.slug}`;
   const zaloShareUrl = `https://sp.zalo.me/share?url=${encodeURIComponent(fullUrl)}&title=${encodeURIComponent(article.title)}`;

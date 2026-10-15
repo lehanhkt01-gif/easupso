@@ -30,6 +30,7 @@ services:
     volumes:
       - ./public/uploads:/app/public/uploads
       - ./public/site-settings.json:/app/public/site-settings.json
+      - ./public/local-articles.json:/app/public/local-articles.json
     depends_on:
       easupso_portal_db:
         condition: service_healthy
