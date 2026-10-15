@@ -280,10 +280,14 @@ export function NewsEditorModal({
         onSuccess(json.data);
         onClose();
       } else {
-        setSubmitError(json.error || 'Thao tác lưu bài viết thất bại.');
+        const errorMsg = json.error || 'Thao tác lưu bài viết thất bại.';
+        setSubmitError(errorMsg);
+        alert(`Không thể lưu bản tin: ${errorMsg}`);
       }
     } catch (err: any) {
-      setSubmitError(err?.message || 'Lỗi mạng khi lưu bài viết.');
+      const errorMsg = err?.message || 'Lỗi mạng khi lưu bài viết.';
+      setSubmitError(errorMsg);
+      alert(`Lỗi hệ thống: ${errorMsg}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -549,6 +553,14 @@ export function NewsEditorModal({
               <span className="text-[#6B7C73]">Lưu bản nháp</span>
             </label>
           </div>
+
+          {/* THÔNG BÁO LỖI NẾU CÓ Ở CUỐI FORM */}
+          {submitError && (
+            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-semibold flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+              <span>{submitError}</span>
+            </div>
+          )}
 
           {/* MODAL FOOTER */}
           <div className="pt-4 border-t border-[#D5CBBA] flex items-center justify-end gap-3">

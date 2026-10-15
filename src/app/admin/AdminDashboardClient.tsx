@@ -2012,7 +2012,14 @@ export function AdminDashboardClient({
         onSuccess={(saved) => {
           if (articleBeingEdited) {
             setArticlesList((prev) =>
-              prev.map((item) => (item.id === saved.id ? { ...item, ...saved } : item))
+              prev.map((item) =>
+                item.id === saved.id ||
+                item.slug === saved.slug ||
+                item.id === articleBeingEdited.id ||
+                item.slug === articleBeingEdited.slug
+                  ? { ...item, ...saved }
+                  : item
+              )
             );
             alert('Đã cập nhật bản tin thành công!');
           } else {

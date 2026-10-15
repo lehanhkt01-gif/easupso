@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { getServerAuthSession } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { canUpdateArticle, canDeleteArticle, canApproveArticle } from '@/lib/permissions';
@@ -6,7 +7,14 @@ import { sanitizeHtml, sanitizePlainText } from '@/lib/sanitize';
 import { writeAuditLog } from '@/lib/audit';
 import { ArticleStatus, OrgCode, Role } from '@prisma/client';
 import { bundleContentWithGallery, extractGalleryImages } from '@/lib/news-gallery';
-import { getLocalArticleById, updateLocalArticle, deleteLocalArticle, DEFAULT_LOCAL_CATEGORIES } from '@/lib/local-news';
+import {
+  getLocalArticleById,
+  getLocalArticleBySlug,
+  updateLocalArticle,
+  deleteLocalArticle,
+  saveLocalArticle,
+  DEFAULT_LOCAL_CATEGORIES,
+} from '@/lib/local-news';
 import { EA_SUP_VILLAGES } from '@/constants/easup-data';
 
 interface RouteContext {
@@ -15,7 +23,7 @@ interface RouteContext {
 
 /**
  * PATCH /api/admin/news/[id]
- * Cập nhật hoặc phê duyệt xuất bản bản tin (Chống IDOR & kiểm tra quyền chặt chẽ)
+ * Cập nhật hoặc phê duyệt xuất bản bản tin (Chống IDOR, đồng bộ vững chắc PostgreSQL & Local Store)
  */
 export async function PATCH(req: NextRequest, context: RouteContext) {
   try {
@@ -26,18 +34,26 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 
     const { id } = await context.params;
 
-    // Tìm trong DB hoặc local file
+    // Tìm trong DB hoặc local file (hỗ trợ cả id lẫn slug)
     let existing: any = null;
     try {
-      existing = await prisma.newsArticle.findUnique({ where: { id } });
-    } catch {}
-
-    if (!existing) {
-      existing = await getLocalArticleById(id);
+      existing = await prisma.newsArticle.findFirst({
+        where: { OR: [{ id }, { slug: id }] },
+        include: {
+          category: true,
+          village: true,
+        },
+      });
+    } catch (err: any) {
+      console.warn('[API_ADMIN_NEWS_PATCH_FIND_WARN]', err?.message);
     }
 
     if (!existing) {
-      return NextResponse.json({ success: false, error: 'Bản tin không tồn tại.' }, { status: 404 });
+      existing = (await getLocalArticleById(id)) || (await getLocalArticleBySlug(id));
+    }
+
+    if (!existing) {
+      return NextResponse.json({ success: false, error: 'Bản tin không tồn tại hoặc đã bị xóa.' }, { status: 404 });
     }
 
     const body = await req.json();
@@ -80,53 +96,59 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     if (title !== undefined) updatePayload.title = sanitizePlainText(title);
     if (summary !== undefined) updatePayload.summary = sanitizePlainText(summary);
 
-    // Chuyên mục
+    // Chuyên mục: Khớp an toàn vào DB CSDL
     let matchedCat: any = null;
-    if (categoryId !== undefined) {
+    if (categoryId !== undefined || orgCode !== undefined) {
       try {
         matchedCat = await prisma.newsCategory.findFirst({
           where: {
             OR: [
-              { id: categoryId },
-              { slug: categoryId },
-              { orgCode: (orgCode as OrgCode) || existing.orgCode },
+              ...(categoryId ? [{ id: categoryId }, { slug: categoryId }] : []),
+              ...(orgCode ? [{ orgCode: orgCode as OrgCode }] : []),
+              ...(existing.orgCode ? [{ orgCode: existing.orgCode as OrgCode }] : []),
             ],
           },
         });
       } catch {}
+
+      if (!matchedCat) {
+        try {
+          matchedCat =
+            (await prisma.newsCategory.findFirst({
+              where: { orgCode: (orgCode as OrgCode) || existing.orgCode || OrgCode.MTTQ },
+            })) || (await prisma.newsCategory.findFirst());
+        } catch {}
+      }
+
       if (matchedCat) {
         updatePayload.categoryId = matchedCat.id;
         updatePayload.orgCode = matchedCat.orgCode;
-      } else {
-        const localCat = DEFAULT_LOCAL_CATEGORIES.find((c) => c.id === categoryId || c.slug === categoryId || c.orgCode === orgCode);
-        if (localCat) {
-          updatePayload.categoryId = localCat.id;
-          updatePayload.orgCode = localCat.orgCode;
-        }
       }
-    } else if (orgCode !== undefined) {
-      updatePayload.orgCode = orgCode;
     }
 
-    // Thôn buôn
+    // Thôn buôn: Khớp ID CSDL, tuyệt đối không chèn sai khóa ngoại
     if (villageId !== undefined) {
       if (!villageId) {
         updatePayload.villageId = null;
       } else {
-        const vMatch = EA_SUP_VILLAGES.find((v) => v.id === villageId || v.code === villageId);
-        const searchCode = vMatch ? vMatch.code : villageId;
+        const foundVillage = EA_SUP_VILLAGES.find((v) => v.id === villageId || v.code === villageId);
+        const searchCode = foundVillage ? foundVillage.code : villageId;
         try {
           const dbVillage = await prisma.village.findFirst({
-            where: { OR: [{ id: villageId }, { code: searchCode }] },
+            where: {
+              OR: [{ id: villageId }, { code: searchCode }, { code: villageId }],
+            },
           });
           updatePayload.villageId = dbVillage ? dbVillage.id : null;
         } catch {
-          updatePayload.villageId = searchCode;
+          updatePayload.villageId = null;
         }
       }
     }
 
-    if (beneficiaryName !== undefined) updatePayload.beneficiaryName = beneficiaryName ? sanitizePlainText(beneficiaryName) : null;
+    if (beneficiaryName !== undefined) {
+      updatePayload.beneficiaryName = beneficiaryName ? sanitizePlainText(beneficiaryName) : null;
+    }
     if (thumbnailUrl !== undefined) updatePayload.thumbnailUrl = thumbnailUrl;
     if (isFeatured !== undefined) updatePayload.isFeatured = Boolean(isFeatured);
 
@@ -150,66 +172,170 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       }
     }
 
-    // 4. Cập nhật vào DB nếu khả dụng
-    let updatedDb: any = null;
-    try {
-      // Tìm tác giả / người duyệt hợp lệ
-      let approverUser = null;
-      if (session.user.id && session.user.id !== 'root-admin-lehanh') {
+    // 4. Tìm tác giả / người duyệt hợp lệ trong CSDL
+    let approverUser: any = null;
+    if (session.user.id && session.user.id !== 'root-admin-lehanh') {
+      try {
         approverUser = await prisma.user.findUnique({ where: { id: session.user.id } });
-      }
-      if (!approverUser && session.user.email) {
+      } catch {}
+    }
+    if (!approverUser && session.user.email) {
+      try {
         approverUser = await prisma.user.findUnique({
           where: { email: session.user.email.toLowerCase().trim() },
         });
-      }
-      if (isApproving && approverUser) {
-        updatePayload.approvedById = approverUser.id;
-      }
-
-      updatedDb = await prisma.newsArticle.update({
-        where: { id },
-        data: updatePayload,
-        include: {
-          category: { select: { id: true, name: true, slug: true, badgeColor: true } },
-          village: { select: { id: true, name: true, code: true } },
-          author: { select: { name: true, email: true, positionTitle: true } },
-          approvedBy: { select: { name: true } },
-        },
-      });
-
-      await writeAuditLog({
-        userId: approverUser?.id || session.user.id,
-        userEmail: session.user.email,
-        action: isApproving ? 'APPROVE' : 'UPDATE',
-        targetTable: 'news_articles',
-        targetId: id,
-        oldData: { title: existing.title, status: existing.status },
-        newData: { title: updatedDb.title, status: updatedDb.status },
-        req,
-      });
-    } catch (err: any) {
-      console.warn('[API_ADMIN_NEWS_PATCH_DB_WARN] Cập nhật CSDL thất bại, đồng bộ file cục bộ:', err?.message);
+      } catch {}
+    }
+    if (isApproving && approverUser) {
+      updatePayload.approvedById = approverUser.id;
     }
 
-    // 5. Luôn cập nhật kho lưu trữ cục bộ
-    const updatedLocal = await updateLocalArticle(id, {
-      ...(title !== undefined ? { title: String(updatePayload.title) } : {}),
-      ...(summary !== undefined ? { summary: String(updatePayload.summary) } : {}),
-      ...(updatePayload.contentHtml !== undefined ? { contentHtml: String(updatePayload.contentHtml) } : {}),
-      ...(updatePayload.thumbnailUrl !== undefined ? { thumbnailUrl: updatePayload.thumbnailUrl as string | null } : {}),
-      ...(targetImages !== undefined ? { images: targetImages } : {}),
-      ...(isFeatured !== undefined ? { isFeatured: Boolean(isFeatured) } : {}),
-      ...(status !== undefined ? { status: status as ArticleStatus } : {}),
-      ...(updatePayload.categoryId ? { categoryId: String(updatePayload.categoryId) } : {}),
-      ...(updatePayload.villageId !== undefined ? { villageId: updatePayload.villageId as string | null } : {}),
-      ...(updatePayload.orgCode ? { orgCode: updatePayload.orgCode as OrgCode } : {}),
-      ...(beneficiaryName !== undefined ? { beneficiaryName: beneficiaryName ? sanitizePlainText(beneficiaryName) : null } : {}),
-    });
+    // 5. CẬP NHẬT VÀO CSDL POSTGRESQL (TỰ ĐỘNG CHUYỂN BÀI VÀO DB NẾU BAN ĐẦU CHỈ CÓ TRONG LOCAL STORE)
+    let updatedDb: any = null;
+    try {
+      const dbArticle = await prisma.newsArticle.findFirst({
+        where: { OR: [{ id }, { slug: id }, { slug: existing.slug }] },
+      });
+
+      if (dbArticle) {
+        updatedDb = await prisma.newsArticle.update({
+          where: { id: dbArticle.id },
+          data: updatePayload,
+          include: {
+            category: { select: { id: true, name: true, slug: true, badgeColor: true } },
+            village: { select: { id: true, name: true, code: true } },
+            author: { select: { name: true, email: true, positionTitle: true } },
+            approvedBy: { select: { name: true } },
+          },
+        });
+      } else {
+        // Bài viết này chưa có trong CSDL PostgreSQL -> Tự động nạp vào PostgreSQL
+        let authorUser = approverUser;
+        if (!authorUser) {
+          authorUser = await prisma.user.findFirst({ where: { isActive: true } });
+        }
+        if (!authorUser && session.user.email) {
+          try {
+            authorUser = await prisma.user.create({
+              data: {
+                email: session.user.email.toLowerCase().trim(),
+                name: session.user.name || 'Lê Hạnh (Quản trị viên Cấp cao)',
+                role: session.user.role || Role.SUPER_ADMIN,
+                orgCode: (updatePayload.orgCode as OrgCode) || OrgCode.MTTQ,
+                positionTitle: 'Quản trị viên Hệ thống Cấp cao',
+                isActive: true,
+              },
+            });
+          } catch {}
+        }
+
+        if (authorUser) {
+          // Đảm bảo categoryId hợp lệ
+          let targetCatId = updatePayload.categoryId as string | undefined;
+          if (!targetCatId) {
+            const firstCat = await prisma.newsCategory.findFirst();
+            targetCatId = firstCat?.id;
+          }
+
+          if (targetCatId) {
+            updatedDb = await prisma.newsArticle.create({
+              data: {
+                title: String(updatePayload.title || existing.title),
+                slug: existing.slug,
+                summary: String(updatePayload.summary || existing.summary),
+                contentHtml: String(updatePayload.contentHtml || existing.contentHtml),
+                thumbnailUrl: (updatePayload.thumbnailUrl as string) || existing.thumbnailUrl || null,
+                categoryId: targetCatId,
+                villageId: (updatePayload.villageId as string | null) ?? null,
+                orgCode: (updatePayload.orgCode as OrgCode) || existing.orgCode || OrgCode.MTTQ,
+                authorId: authorUser.id,
+                status: (updatePayload.status as ArticleStatus) || existing.status || ArticleStatus.PUBLISHED,
+                isFeatured: Boolean(updatePayload.isFeatured ?? existing.isFeatured),
+                publishedAt: isApproving || updatePayload.status === ArticleStatus.PUBLISHED ? new Date() : null,
+              },
+              include: {
+                category: { select: { id: true, name: true, slug: true, badgeColor: true } },
+                village: { select: { id: true, name: true, code: true } },
+                author: { select: { name: true, email: true, positionTitle: true } },
+                approvedBy: { select: { name: true } },
+              },
+            });
+          }
+        }
+      }
+
+      if (updatedDb) {
+        await writeAuditLog({
+          userId: approverUser?.id || session.user.id,
+          userEmail: session.user.email,
+          action: isApproving ? 'APPROVE' : 'UPDATE',
+          targetTable: 'news_articles',
+          targetId: updatedDb.id,
+          oldData: { title: existing.title, status: existing.status },
+          newData: { title: updatedDb.title, status: updatedDb.status },
+          req,
+        });
+      }
+    } catch (err: any) {
+      console.warn('[API_ADMIN_NEWS_PATCH_DB_WARN] Lỗi cập nhật PostgreSQL:', err?.message);
+    }
+
+    // 6. Luôn cập nhật kho lưu trữ cục bộ
+    let updatedLocal = null;
+    try {
+      updatedLocal = await updateLocalArticle(existing.id || id, {
+        ...(title !== undefined ? { title: String(updatePayload.title) } : {}),
+        ...(summary !== undefined ? { summary: String(updatePayload.summary) } : {}),
+        ...(updatePayload.contentHtml !== undefined ? { contentHtml: String(updatePayload.contentHtml) } : {}),
+        ...(updatePayload.thumbnailUrl !== undefined ? { thumbnailUrl: updatePayload.thumbnailUrl as string | null } : {}),
+        ...(targetImages !== undefined ? { images: targetImages } : {}),
+        ...(isFeatured !== undefined ? { isFeatured: Boolean(isFeatured) } : {}),
+        ...(status !== undefined ? { status: status as ArticleStatus } : {}),
+        ...(updatePayload.categoryId ? { categoryId: String(updatePayload.categoryId) } : {}),
+        ...(updatePayload.villageId !== undefined ? { villageId: updatePayload.villageId as string | null } : {}),
+        ...(updatePayload.orgCode ? { orgCode: updatePayload.orgCode as OrgCode } : {}),
+        ...(beneficiaryName !== undefined ? { beneficiaryName: beneficiaryName ? sanitizePlainText(beneficiaryName) : null } : {}),
+      });
+
+      if (!updatedLocal && updatedDb) {
+        // Ghi bản sao lưu vào local
+        await saveLocalArticle({
+          id: updatedDb.id,
+          title: updatedDb.title,
+          slug: updatedDb.slug,
+          summary: updatedDb.summary,
+          contentHtml: updatedDb.contentHtml,
+          thumbnailUrl: updatedDb.thumbnailUrl,
+          images: targetImages,
+          status: updatedDb.status,
+          orgCode: updatedDb.orgCode,
+        });
+      }
+    } catch {}
 
     const finalResult = updatedDb
       ? { ...updatedDb, images: extractGalleryImages(updatedDb.contentHtml, updatedDb.thumbnailUrl) }
       : updatedLocal;
+
+    if (!finalResult) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Không thể lưu bản tin vào cơ sở dữ liệu. Vui lòng kiểm tra lại quyền cán bộ và đường truyền.',
+        },
+        { status: 500 }
+      );
+    }
+
+    // 7. Làm mới bộ nhớ cache của Next.js SSR
+    try {
+      revalidatePath('/admin');
+      revalidatePath('/');
+      revalidatePath(`/news/${existing.slug}`);
+      if (updatedDb?.slug && updatedDb.slug !== existing.slug) {
+        revalidatePath(`/news/${updatedDb.slug}`);
+      }
+    } catch {}
 
     return NextResponse.json({
       success: true,
@@ -236,11 +362,13 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
 
     let existing: any = null;
     try {
-      existing = await prisma.newsArticle.findUnique({ where: { id } });
+      existing = await prisma.newsArticle.findFirst({
+        where: { OR: [{ id }, { slug: id }] },
+      });
     } catch {}
 
     if (!existing) {
-      existing = await getLocalArticleById(id);
+      existing = (await getLocalArticleById(id)) || (await getLocalArticleBySlug(id));
     }
 
     if (!existing) {
@@ -254,13 +382,15 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
     }
 
     try {
-      await prisma.newsArticle.delete({ where: { id } });
+      await prisma.newsArticle.deleteMany({
+        where: { OR: [{ id: existing.id }, { slug: existing.slug }] },
+      });
       await writeAuditLog({
         userId: session.user.id,
         userEmail: session.user.email,
         action: 'DELETE',
         targetTable: 'news_articles',
-        targetId: id,
+        targetId: existing.id,
         oldData: { title: existing.title, slug: existing.slug, status: existing.status },
         req,
       });
@@ -268,7 +398,17 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
       console.warn('[API_ADMIN_NEWS_DELETE_DB_WARN] Xóa CSDL không khả dụng, xóa file cục bộ:', err?.message);
     }
 
-    await deleteLocalArticle(id);
+    await deleteLocalArticle(existing.id);
+    if (existing.slug) {
+      await deleteLocalArticle(existing.slug);
+    }
+
+    try {
+      revalidatePath('/admin');
+      revalidatePath('/');
+      revalidatePath(`/news/${existing.slug}`);
+    } catch {}
+
     return NextResponse.json({ success: true, message: 'Đã xóa bản tin thành công.' });
   } catch (error: any) {
     console.error('[API_ADMIN_NEWS_DELETE_ERROR]', error);
