@@ -18,15 +18,20 @@ cd "$APP_DIR"
 echo "🔄 Đang đồng bộ mã nguồn mới nhất từ GitHub..."
 git pull origin main || true
 
-# 1. Tạo các thư mục cần thiết
-echo "📁 Đang chuẩn bị các thư mục lưu trữ..."
+# 1. Tạo các thư mục cần thiết và cấp quyền ghi cho container
+echo "📁 Đang chuẩn bị các thư mục lưu trữ và phân quyền..."
 mkdir -p "$APP_DIR/nginx/ssl"
 mkdir -p "$APP_DIR/public/uploads"
 if [ ! -f "$APP_DIR/public/site-settings.json" ]; then
   echo "{}" > "$APP_DIR/public/site-settings.json"
 fi
-chmod -R 777 "$APP_DIR/public/uploads"
-chmod 666 "$APP_DIR/public/site-settings.json"
+if [ ! -f "$APP_DIR/public/local-articles.json" ]; then
+  echo "[]" > "$APP_DIR/public/local-articles.json"
+fi
+chmod 666 "$APP_DIR/public/local-articles.json" 2>/dev/null || true
+chmod 666 "$APP_DIR/public/site-settings.json" 2>/dev/null || true
+chmod -R 777 "$APP_DIR/public/uploads" 2>/dev/null || true
+chown -R 1001:1001 "$APP_DIR/public" 2>/dev/null || true
 
 # 2. Sinh chứng chỉ SSL nội bộ cho Nginx (kết nối an toàn với Cloudflare) nếu chưa có
 if [ ! -f "$APP_DIR/nginx/ssl/easupso.com.crt" ]; then
@@ -84,8 +89,8 @@ sleep 8
 
 # 6. Chạy Prisma Schema Push và Seed dữ liệu chuẩn 20 thôn buôn
 echo "📦 Đang đồng bộ cấu trúc CSDL và khởi tạo 20 thôn buôn..."
-docker compose exec -T easupso_portal_web ./node_modules/.bin/prisma db push --accept-data-loss || true
-docker compose exec -T easupso_portal_web ./node_modules/.bin/tsx prisma/seed.ts || true
+docker compose exec -T easupso_portal_web npx prisma db push --accept-data-loss || docker compose exec -T easupso_portal_web ./node_modules/.bin/prisma db push --accept-data-loss || true
+docker compose exec -T easupso_portal_web npx tsx prisma/seed.ts || docker compose exec -T easupso_portal_web ./node_modules/.bin/tsx prisma/seed.ts || true
 
 echo ""
 echo "=========================================================="

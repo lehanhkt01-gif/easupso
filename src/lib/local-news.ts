@@ -197,6 +197,24 @@ const INITIAL_ARTICLES: LocalArticle[] = [
   },
 ];
 
+// Bộ nhớ tạm Runtime đảm bảo hệ thống không bao giờ bị gián đoạn kể cả khi quyền file bị hạn chế
+let inMemoryArticles: LocalArticle[] = [...INITIAL_ARTICLES];
+
+/**
+ * Ghi danh sách bản tin ra file an toàn, triệt tiêu mọi ngoại lệ EACCES
+ */
+async function writeArticlesFileSafe(articles: LocalArticle[]): Promise<void> {
+  inMemoryArticles = articles;
+  try {
+    await fs.writeFile(LOCAL_ARTICLES_FILE, JSON.stringify(articles, null, 2), 'utf-8');
+  } catch (err: any) {
+    console.warn('[LOCAL_ARTICLES_WRITE_WARN] Không thể ghi đè file /app/public/local-articles.json (bảo vệ phân quyền):', err?.message);
+    try {
+      await fs.writeFile(path.join('/tmp', 'local-articles.json'), JSON.stringify(articles, null, 2), 'utf-8');
+    } catch {}
+  }
+}
+
 /**
  * Đọc toàn bộ danh sách bản tin từ file JSON cục bộ
  */
@@ -205,19 +223,27 @@ export async function getLocalArticles(): Promise<LocalArticle[]> {
     const raw = await fs.readFile(LOCAL_ARTICLES_FILE, 'utf-8');
     const articles = JSON.parse(raw);
     if (Array.isArray(articles) && articles.length > 0) {
+      inMemoryArticles = articles;
       return articles;
     }
   } catch {
-    // File chưa tồn tại hoặc rỗng -> Ghi bộ khởi tạo mặc định
+    try {
+      const rawTmp = await fs.readFile(path.join('/tmp', 'local-articles.json'), 'utf-8');
+      const articlesTmp = JSON.parse(rawTmp);
+      if (Array.isArray(articlesTmp) && articlesTmp.length > 0) {
+        inMemoryArticles = articlesTmp;
+        return articlesTmp;
+      }
+    } catch {}
   }
 
-  // Tự động ghi bộ khởi tạo để lần đọc sau nhanh hơn
-  try {
-    await fs.writeFile(LOCAL_ARTICLES_FILE, JSON.stringify(INITIAL_ARTICLES, null, 2), 'utf-8');
-  } catch (err) {
-    console.error('[LOCAL_ARTICLES_WRITE_INIT_ERR]', err);
+  // Nếu trong bộ nhớ đã có dữ liệu cập nhật
+  if (inMemoryArticles && inMemoryArticles.length > 0) {
+    return inMemoryArticles;
   }
 
+  // Tự động ghi bộ khởi tạo nếu có quyền
+  writeArticlesFileSafe(INITIAL_ARTICLES).catch(() => {});
   return INITIAL_ARTICLES;
 }
 
@@ -312,7 +338,7 @@ export async function saveLocalArticle(data: {
 
   // Đẩy bản tin mới lên đầu danh sách
   const updatedList = [newArticle, ...currentArticles.filter((a) => a.id !== newArticle.id)];
-  await fs.writeFile(LOCAL_ARTICLES_FILE, JSON.stringify(updatedList, null, 2), 'utf-8');
+  await writeArticlesFileSafe(updatedList);
 
   return newArticle;
 }
@@ -343,7 +369,7 @@ export async function updateLocalArticle(
   }
 
   currentArticles[index] = updated;
-  await fs.writeFile(LOCAL_ARTICLES_FILE, JSON.stringify(currentArticles, null, 2), 'utf-8');
+  await writeArticlesFileSafe(currentArticles);
   return updated;
 }
 
@@ -355,7 +381,7 @@ export async function deleteLocalArticle(id: string): Promise<boolean> {
   const nextList = currentArticles.filter((a) => a.id !== id && a.slug !== id);
   if (nextList.length === currentArticles.length) return false;
 
-  await fs.writeFile(LOCAL_ARTICLES_FILE, JSON.stringify(nextList, null, 2), 'utf-8');
+  await writeArticlesFileSafe(nextList);
   return true;
 }
 

@@ -306,9 +306,35 @@ export async function POST(req: NextRequest) {
       console.warn('[API_ADMIN_NEWS_POST_DB_WARN] Không thể lưu vào CSDL PostgreSQL, kích hoạt kho lưu trữ dự phòng:', dbErr?.message);
     }
 
-    // 6. Đồng bộ lưu vào kho lưu trữ cục bộ bền vững (đảm bảo không bao giờ mất tin dù DB offline)
+    // 6. Nếu đã lưu thành công vào CSDL PostgreSQL chuẩn: Trả về kết quả ngay
+    if (savedArticle) {
+      // Đồng bộ ngầm vào kho dự phòng mà không làm gián đoạn phản hồi
+      saveLocalArticle({
+        id: savedArticle.id,
+        title: cleanTitle,
+        slug: savedArticle.slug || baseSlug,
+        summary: cleanSummary,
+        contentHtml: bundledContentHtml,
+        thumbnailUrl: finalThumbnailUrl,
+        images: imageList,
+        isFeatured: Boolean(isFeatured),
+        status: finalStatus,
+        categoryId,
+        villageId: villageId || null,
+        orgCode: orgCode as OrgCode,
+        authorId: session.user.id,
+        authorName: session.user.name,
+        authorEmail: session.user.email,
+        positionTitle: session.user.positionTitle,
+        approvedById: isPublishingNow ? session.user.id : null,
+        beneficiaryName: cleanBeneficiaryName,
+      }).catch((err) => console.warn('[SYNC_LOCAL_WARN]', err?.message));
+
+      return NextResponse.json({ success: true, data: savedArticle }, { status: 201 });
+    }
+
+    // 7. Trường hợp CSDL PostgreSQL tạm thời ngoại tuyến, sử dụng kho dự phòng an toàn
     const localSaved = await saveLocalArticle({
-      id: savedArticle?.id,
       title: cleanTitle,
       slug: baseSlug,
       summary: cleanSummary,
@@ -328,8 +354,7 @@ export async function POST(req: NextRequest) {
       beneficiaryName: cleanBeneficiaryName,
     });
 
-    const finalResult = savedArticle || localSaved;
-    return NextResponse.json({ success: true, data: finalResult }, { status: 201 });
+    return NextResponse.json({ success: true, data: localSaved }, { status: 201 });
   } catch (error: any) {
     console.error('[API_ADMIN_NEWS_POST_ERROR]', error);
     return NextResponse.json(
