@@ -31,21 +31,24 @@ interface Props {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug: rawSlug } = await params;
+  const slug = decodeURIComponent(rawSlug);
   let article: { title: string; summary: string; thumbnailUrl: string | null } | null = null;
   try {
-    article = await prisma.newsArticle.findUnique({
-      where: { slug },
+    article = await prisma.newsArticle.findFirst({
+      where: {
+        OR: [{ slug }, { slug: rawSlug }],
+      },
       select: { title: true, summary: true, thumbnailUrl: true },
     });
   } catch {}
 
   if (!article) {
     const { getLocalArticleBySlug } = await import('@/lib/local-news');
-    article = await getLocalArticleBySlug(slug);
+    article = (await getLocalArticleBySlug(slug)) || (await getLocalArticleBySlug(rawSlug));
   }
 
-  if (!article) return { title: 'Bản tin không tồn tại' };
+  if (!article) return { title: 'Bản tin không tồn tại — Cổng thông tin Ea Súp' };
 
   return {
     title: `${article.title} — Cổng thông tin Ea Súp`,
@@ -59,13 +62,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function NewsDetailPage({ params }: Props) {
-  const { slug } = await params;
+  const { slug: rawSlug } = await params;
+  const slug = decodeURIComponent(rawSlug);
 
   // Lấy dữ liệu bài viết từ DB hoặc kho cục bộ
   let article: any = null;
   try {
-    article = await prisma.newsArticle.findUnique({
-      where: { slug },
+    article = await prisma.newsArticle.findFirst({
+      where: {
+        OR: [{ slug }, { slug: rawSlug }],
+      },
       include: {
         category: true,
         village: true,
@@ -80,7 +86,7 @@ export default async function NewsDetailPage({ params }: Props) {
 
   if (!article) {
     const { getLocalArticleBySlug } = await import('@/lib/local-news');
-    article = await getLocalArticleBySlug(slug);
+    article = (await getLocalArticleBySlug(slug)) || (await getLocalArticleBySlug(rawSlug));
   }
 
   if (!article || article.status !== ArticleStatus.PUBLISHED) {
@@ -88,14 +94,16 @@ export default async function NewsDetailPage({ params }: Props) {
   }
 
   // Tăng lượt xem (Fire and forget)
-  try {
-    prisma.newsArticle
-      .update({
-        where: { id: article.id },
-        data: { viewCount: { increment: 1 } },
-      })
-      .catch(() => {});
-  } catch {}
+  if (article.id) {
+    try {
+      prisma.newsArticle
+        .update({
+          where: { id: article.id },
+          data: { viewCount: { increment: 1 } },
+        })
+        .catch(() => {});
+    } catch {}
+  }
 
   // Lấy 3 bài viết liên quan
   let relatedArticles: any[] = [];
@@ -104,10 +112,14 @@ export default async function NewsDetailPage({ params }: Props) {
       where: {
         status: ArticleStatus.PUBLISHED,
         id: { not: article.id },
-        OR: [
-          { categoryId: article.categoryId },
-          ...(article.villageId ? [{ villageId: article.villageId }] : []),
-        ],
+        ...(article.categoryId || article.villageId
+          ? {
+              OR: [
+                ...(article.categoryId ? [{ categoryId: article.categoryId }] : []),
+                ...(article.villageId ? [{ villageId: article.villageId }] : []),
+              ],
+            }
+          : {}),
       },
       select: {
         id: true,
@@ -115,6 +127,11 @@ export default async function NewsDetailPage({ params }: Props) {
         slug: true,
         summary: true,
         thumbnailUrl: true,
+        category: {
+          select: {
+            name: true,
+          },
+        },
       },
       orderBy: { publishedAt: 'desc' },
       take: 3,
@@ -134,22 +151,25 @@ export default async function NewsDetailPage({ params }: Props) {
           slug: a.slug,
           summary: a.summary,
           thumbnailUrl: a.thumbnailUrl,
+          category: a.category ? { name: a.category.name } : { name: 'Bản tin' },
         }));
     } catch {}
   }
 
   const fullUrl = `https://easupso.com/news/${article.slug}`;
-  const zaloShareUrl = `https://sp.zalo.me/share?url=${encodeURIComponent(fullUrl)}&title=${encodeURIComponent(article.title)}`;
+  const zaloShareUrl = `https://sp.zalo.me/share?url=${encodeURIComponent(fullUrl)}&title=${encodeURIComponent(article.title || '')}`;
   const fbShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(fullUrl)}`;
 
   const session = await getServerAuthSession();
   const isStaff = Boolean(session?.user && session.user.role && session.user.role !== 'PUBLIC');
-  const galleryImages = extractGalleryImages(article.contentHtml, article.thumbnailUrl);
+  const galleryImages = extractGalleryImages(article.contentHtml || '', article.thumbnailUrl);
   const articleWithImages = {
     ...article,
+    category: article.category || { name: 'Ủy ban MTTQ xã' },
+    author: article.author || { name: 'Cán bộ Mặt trận xã', positionTitle: 'Cán bộ biên tập' },
     images: galleryImages,
   };
-  const cleanContentHtml = stripGalleryFromHtml(article.contentHtml);
+  const cleanContentHtml = stripGalleryFromHtml(article.contentHtml || '');
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF7F2]">
@@ -166,7 +186,9 @@ export default async function NewsDetailPage({ params }: Props) {
             Bản tin Mặt trận &amp; Đoàn thể
           </Link>
           <ChevronRight className="w-3.5 h-3.5 text-[#D5CBBA]" />
-          <span className="text-[#1B4332] font-bold truncate max-w-xs">{article.category.name}</span>
+          <span className="text-[#1B4332] font-bold truncate max-w-xs">
+            {article.category?.name || 'Ủy ban MTTQ xã'}
+          </span>
         </nav>
 
         {/* Thanh công cụ cán bộ: Sửa / Xóa bài trực tiếp */}
@@ -180,7 +202,7 @@ export default async function NewsDetailPage({ params }: Props) {
           {/* Huy hiệu chuyên mục & Thôn buôn */}
           <div className="flex flex-wrap items-center gap-2 mb-4">
             <span className="px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wider bg-[#1B4332] text-white">
-              {article.category.name}
+              {article.category?.name || 'Bản tin'}
             </span>
             {article.village && (
               <span className="px-3 py-1 rounded-md text-xs font-bold bg-[#FAF0EC] text-[#C85A32] border border-[#EBBAA7] flex items-center gap-1">
@@ -207,15 +229,15 @@ export default async function NewsDetailPage({ params }: Props) {
                 <User className="w-4 h-4" />
               </div>
               <div>
-                <p className="font-bold text-[#14211B]">{article.author.name}</p>
-                <p className="text-[11px] text-[#4A5B52]">{article.author.positionTitle || 'Cán bộ Mặt trận xã'}</p>
+                <p className="font-bold text-[#14211B]">{article.author?.name || 'Cán bộ Mặt trận xã'}</p>
+                <p className="text-[11px] text-[#4A5B52]">{article.author?.positionTitle || 'Cán bộ biên tập'}</p>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5 text-[#C85A32]" />
-                {new Date(article.publishedAt || article.createdAt).toLocaleDateString('vi-VN', {
+                {new Date(article.publishedAt || article.createdAt || Date.now()).toLocaleDateString('vi-VN', {
                   day: '2-digit',
                   month: '2-digit',
                   year: 'numeric',
@@ -225,7 +247,7 @@ export default async function NewsDetailPage({ params }: Props) {
               </span>
               <span className="flex items-center gap-1">
                 <Eye className="w-3.5 h-3.5" />
-                {article.viewCount + 1} lượt xem
+                {Number(article.viewCount || 0) + 1} lượt xem
               </span>
             </div>
           </div>
@@ -307,7 +329,7 @@ export default async function NewsDetailPage({ params }: Props) {
                 >
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-[#C85A32]">
-                      {rel.category.name}
+                      {rel.category?.name || 'Bản tin'}
                     </span>
                     <h4 className="text-sm font-bold text-[#14211B] group-hover:text-[#1B4332] line-clamp-2 mt-1 mb-2">
                       {rel.title}
