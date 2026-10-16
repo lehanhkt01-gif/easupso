@@ -53,6 +53,7 @@ export function EditorialArticleView({
   // Điều chỉnh cỡ chữ đọc báo (15px -> 21px, mặc định 17px)
   const [fontSize, setFontSize] = useState<number>(17);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   // Lọc danh sách media hợp lệ
@@ -102,6 +103,28 @@ export function EditorialArticleView({
   const pageUrl = typeof window !== 'undefined' && slug ? `https://easupso.com/news/${slug}` : (slug ? `https://easupso.com/news/${slug}` : 'https://easupso.com');
   const zaloShareUrl = `https://sp.zalo.me/share?url=${encodeURIComponent(pageUrl)}&title=${encodeURIComponent(title || '')}`;
   const fbShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(pageUrl)}`;
+
+  // Hàm chia sẻ đa nền tảng (Web Share API + Popover Fallback)
+  async function handleShare() {
+    const url = slug ? `https://easupso.com/news/${slug}` : (typeof window !== 'undefined' ? window.location.href : 'https://easupso.com');
+    const shareData = {
+      title: title || 'Cổng thông tin xã Ea Súp',
+      text: summary || title || 'Bản tin từ Hệ sinh thái số xã Ea Súp (easupso.com)',
+      url: url,
+    };
+
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
+      }
+    }
+
+    // Nếu không hỗ trợ Web Share API (như trên desktop): Bật menu lựa chọn
+    setShowShareMenu((prev) => !prev);
+  }
 
   // Tách và chuẩn hóa các khối nội dung bài viết
   const parsedBlocks = useMemo(() => {
@@ -535,40 +558,84 @@ export function EditorialArticleView({
         </div>
       </div>
 
-      {/* 5. KHỐI CHIA SẺ BÀI BÁO ĐẾN BÀ CON THÔN BUÔN */}
-      <div className="px-6 sm:px-10 py-5 bg-[#FAF7F2] border-t border-[#E8E2D5] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2 text-xs font-bold text-[#1B4332] uppercase">
+      {/* 5. KHỐI CHIA SẺ BẢN TIN ĐA NỀN TẢNG */}
+      <div className="px-6 sm:px-10 py-4 bg-[#FAF7F2] border-t border-[#E8E2D5] flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-[#1B4332] uppercase tracking-wide">
           <Share2 className="w-4 h-4 text-[#C85A32]" />
-          <span>Chia sẻ bản tin đến người dân 20 thôn buôn:</span>
+          <span>Chia sẻ</span>
         </div>
 
-        <div className="flex items-center gap-2">
-          <a
-            href={zaloShareUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0068FF] hover:bg-[#0052cc] text-white text-xs font-bold transition shadow-sm"
-          >
-            <span>Chia sẻ qua Zalo</span>
-          </a>
-
-          <a
-            href={fbShareUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#1877F2] hover:bg-[#0d65d9] text-white text-xs font-bold transition shadow-sm"
-          >
-            <span>Facebook</span>
-          </a>
-
+        <div className="relative">
           <button
             type="button"
-            onClick={handleCopyLink}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-stone-50 border border-[#D5CBBA] text-[#14211B] text-xs font-bold transition shadow-sm"
+            onClick={handleShare}
+            className="inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-[#0068FF] hover:bg-[#0052cc] text-white text-xs sm:text-sm font-bold shadow-sm active:scale-95 transition cursor-pointer"
+            title="Chia sẻ đến các ứng dụng (Zalo, Facebook, Tin nhắn...)"
           >
-            {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-            <span>{copiedLink ? 'Đã chép link' : 'Chép link'}</span>
+            <Share2 className="w-4 h-4" />
+            <span>Chia sẻ</span>
           </button>
+
+          {/* Menu chia sẻ đa nền tảng (Dự phòng cho máy tính hoặc trình duyệt không hỗ trợ Web Share) */}
+          {showShareMenu && (
+            <div className="absolute right-0 bottom-full mb-2 w-56 sm:w-64 bg-white rounded-2xl border border-[#E8E2D5] shadow-xl p-2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
+              <div className="px-3 py-1.5 border-b border-[#E8E2D5] flex items-center justify-between text-[11px] font-bold text-[#6B7C73] uppercase tracking-wider">
+                <span>Chia sẻ bản tin</span>
+                <button
+                  type="button"
+                  onClick={() => setShowShareMenu(false)}
+                  className="text-stone-400 hover:text-stone-600 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="py-1 space-y-1">
+                {/* Zalo */}
+                <a
+                  href={zaloShareUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setShowShareMenu(false)}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#14211B] hover:bg-[#0068FF]/10 hover:text-[#0068FF] transition"
+                >
+                  <span className="w-6 h-6 rounded-lg bg-[#0068FF] text-white flex items-center justify-center font-bold text-[10px] shrink-0">
+                    Z
+                  </span>
+                  <span>Chia sẻ qua Zalo</span>
+                </a>
+
+                {/* Facebook */}
+                <a
+                  href={fbShareUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setShowShareMenu(false)}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#14211B] hover:bg-[#1877F2]/10 hover:text-[#1877F2] transition"
+                >
+                  <span className="w-6 h-6 rounded-lg bg-[#1877F2] text-white flex items-center justify-center font-bold text-[11px] shrink-0">
+                    f
+                  </span>
+                  <span>Chia sẻ lên Facebook</span>
+                </a>
+
+                {/* Sao chép link */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleCopyLink();
+                    setTimeout(() => setShowShareMenu(false), 900);
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#14211B] hover:bg-[#FAF7F2] transition text-left cursor-pointer"
+                >
+                  <div className="w-6 h-6 rounded-lg bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-600 shrink-0">
+                    {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  </div>
+                  <span>{copiedLink ? 'Đã chép liên kết!' : 'Sao chép liên kết'}</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
