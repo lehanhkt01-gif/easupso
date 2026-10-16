@@ -133,11 +133,13 @@ export function EcosystemBentoGrid() {
     <section id="ecosystem-grid" className="pt-2 pb-8 sm:pb-12 bg-transparent relative z-10">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* TIÊU ĐỀ KHU VỰC */}
-        <div className="text-center mb-6 sm:mb-8">
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-serif font-bold text-red-600 uppercase tracking-wide drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)]">
-            CÁC ỨNG DỤNG THUỘC HỆ SINH THÁI EA SÚP SỐ
-          </h2>
+        {/* TIÊU ĐỀ KHU VỰC: NỀN ĐỎ CHỮ SÁNG MÀU VÀNG TRANG TRỌNG */}
+        <div className="text-center mb-6 sm:mb-8 flex justify-center">
+          <div className="inline-block bg-gradient-to-r from-red-700 via-red-600 to-red-700 px-6 py-2.5 sm:px-10 sm:py-3 rounded-xl border border-yellow-400/60 shadow-lg shadow-black/35">
+            <h2 className="text-lg sm:text-2xl lg:text-3xl font-serif font-bold text-yellow-300 uppercase tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+              CÁC ỨNG DỤNG THUỘC HỆ SINH THÁI EA SÚP SỐ
+            </h2>
+          </div>
         </div>
 
         {/* LƯỚI 6 THẺ PHÂN HỆ SỐ CỐT LÕI - TĂNG MÀU SẮC, HIỆU ỨNG CHỌN NỔI BẬT */}
