@@ -135,7 +135,7 @@ export function EcosystemBentoGrid() {
         
         {/* TIÊU ĐỀ KHU VỰC */}
         <div className="text-center mb-6 sm:mb-8">
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-red-600 uppercase tracking-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)]">
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-serif font-bold text-red-600 uppercase tracking-wide drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)]">
             CÁC ỨNG DỤNG THUỘC HỆ SINH THÁI EA SÚP SỐ
           </h2>
         </div>
