@@ -17,7 +17,7 @@ const ECOSYSTEM_APPS = [
     title: 'Lịch Công Tác Số',
     domain: 'lichcongtac.easupso.com',
     url: 'https://lichcongtac.easupso.com',
-    desc: 'Lịch họp, lịch tiếp dân & điều hành của Đảng ủy, HĐND, UBND, MTTQ',
+    desc: 'Lịch công tác tuần của Đảng ủy, HĐND, UBND, UBMTTQ',
     actionText: 'Xem lịch tuần',
     icon: CalendarDays,
     colorStyle: {
@@ -36,7 +36,7 @@ const ECOSYSTEM_APPS = [
     title: 'Tiếng Nói Cử Tri',
     domain: 'ykien.easupso.com',
     url: 'https://ykien.easupso.com',
-    desc: 'Tiếp nhận phản ánh, tâm tư và kiến nghị của nhân dân 20 thôn, buôn',
+    desc: 'Trung tâm tiếp nhận, trả lời phản ánh của cử tri',
     actionText: 'Gửi phản ánh',
     icon: MessageSquareText,
     colorStyle: {
@@ -55,7 +55,7 @@ const ECOSYSTEM_APPS = [
     title: 'Nông Nghiệp Số',
     domain: 'nongnghiep.easupso.com',
     url: 'https://nongnghiep.easupso.com',
-    desc: 'Giá nông sản Ea Súp (lúa, xoài, cà phê, điều), khuyến nông & mùa vụ',
+    desc: 'Khởi tạo nông hộ, nhật ký vụ mùa, mã số vùng trồng; CHỢ NÔNG SẢN SỐ',
     actionText: 'Chợ nông sản',
     icon: Sprout,
     colorStyle: {
@@ -74,7 +74,7 @@ const ECOSYSTEM_APPS = [
     title: 'Du Lịch & Văn Hóa',
     domain: 'dulich.easupso.com',
     url: 'https://dulich.easupso.com',
-    desc: 'Tháp Chăm Yang Prông, hồ Ea Súp Thượng, cồng chiêng & ẩm thực',
+    desc: 'Món ngon Ea Súp, Bản đồ danh lam/thắng cảnh',
     actionText: 'Khám phá ngay',
     icon: Compass,
     colorStyle: {
@@ -93,7 +93,7 @@ const ECOSYSTEM_APPS = [
     title: 'Hội Cựu Chiến Binh',
     domain: 'ccb.easupso.com',
     url: 'https://ccb.easupso.com',
-    desc: 'Hoạt động truyền thống, nghĩa tình đồng đội 20 chi hội thôn buôn',
+    desc: 'Hệ thống điều hành và Nghiệp vụ Hội Cựu chiến binh E-CCB',
     actionText: 'Vào phân hệ',
     icon: ShieldCheck,
     colorStyle: {
@@ -112,7 +112,7 @@ const ECOSYSTEM_APPS = [
     title: 'An Sinh Xã Hội',
     domain: 'nguoingheo.easupso.com',
     url: 'https://nguoingheo.easupso.com',
-    desc: 'Quỹ Vì người nghèo, nhà Đại đoàn kết, sao kê minh bạch thời gian thực',
+    desc: 'Ủng hộ Quỹ vì người nghèo, sao kê thu chi theo thời gian thực...',
     actionText: 'Ủng hộ & Sao kê',
     icon: HeartHandshake,
     colorStyle: {
@@ -142,7 +142,7 @@ export function EcosystemBentoGrid() {
           </div>
         </div>
 
-        {/* LƯỚI 6 THẺ PHÂN HỆ SỐ CỐT LÕI - TĂNG MÀU SẮC, HIỆU ỨNG CHỌN NỔI BẬT */}
+        {/* LƯỚI 6 THẺ PHÂN HỆ SỐ CỐT LÕI - TỐI ƯU BỐ CỤC KHÔNG ĐỂ TRỐNG */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4.5">
           {ECOSYSTEM_APPS.map((app) => {
             const IconComponent = app.icon;
@@ -154,27 +154,41 @@ export function EcosystemBentoGrid() {
                 href={app.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`group bg-white/95 backdrop-blur-xs rounded-2xl p-4 sm:p-5 border border-[#E8E2D5] border-t-4 ${style.borderTop} ${style.borderHover} ${style.hoverBg} ${style.hoverGlow} shadow-xs hover:-translate-y-1.5 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-out flex flex-col`}
+                className={`group bg-white/95 backdrop-blur-xs rounded-2xl p-4 sm:p-4.5 border border-[#E8E2D5] border-t-4 ${style.borderTop} ${style.borderHover} ${style.hoverBg} ${style.hoverGlow} shadow-xs hover:-translate-y-1.5 hover:scale-[1.01] active:scale-[0.98] transition-all duration-300 ease-out flex flex-col justify-between h-full`}
               >
-                {/* Header: Icon badge sắc nét & Mũi tên tương tác */}
-                <div className="flex items-center justify-between mb-3">
-                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center bg-gradient-to-br ${style.iconGradient} text-white shadow-md group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300`}>
-                    <IconComponent className="w-5 h-5" />
-                  </div>
-                  <div className="w-7 h-7 rounded-full bg-[#FAF7F2] border border-[#E8E2D5] flex items-center justify-center group-hover:bg-white group-hover:shadow-xs transition-colors">
-                    <ArrowUpRight className="w-3.5 h-3.5 text-[#6B7C73] group-hover:text-[#14211B] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                {/* PHẦN TRÊN: ICON NẰM NGANG VỚI TÊN PHÂN HỆ & LINK DOMAIN */}
+                <div>
+                  <div className="flex items-start gap-3">
+                    {/* Icon container */}
+                    <div className={`w-12 h-12 sm:w-10 sm:h-10 lg:w-10 lg:h-10 rounded-xl shrink-0 flex items-center justify-center bg-gradient-to-br ${style.iconGradient} text-white shadow-md group-hover:scale-105 group-hover:rotate-2 transition-transform duration-300`}>
+                      <IconComponent className="w-6 h-6 sm:w-5 sm:h-5" />
+                    </div>
+
+                    {/* Dòng tên và link nằm ngang với icon */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-1">
+                        <h3 className="text-base sm:text-sm lg:text-[14px] xl:text-[15px] font-bold text-[#14211B] group-hover:text-[#1B4332] transition-colors leading-tight">
+                          {app.title}
+                        </h3>
+                        <div className="w-6 h-6 rounded-full bg-[#FAF7F2] border border-[#E8E2D5] shrink-0 flex items-center justify-center group-hover:bg-white group-hover:shadow-xs transition-colors">
+                          <ArrowUpRight className="w-3.5 h-3.5 text-[#6B7C73] group-hover:text-[#14211B] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                        </div>
+                      </div>
+
+                      {/* Subdomain link badge */}
+                      <span className={`inline-block text-xs sm:text-[10px] font-mono px-2 py-0.5 rounded-md mt-1 truncate max-w-full font-semibold ${style.domainBadge}`}>
+                        {app.domain}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Tên phân hệ */}
-                <h3 className="text-sm sm:text-base font-extrabold text-[#14211B] group-hover:text-[#1B4332] transition-colors leading-snug">
-                  {app.title}
-                </h3>
-
-                {/* Tên miền phân hệ dạng huy hiệu nổi bật */}
-                <span className={`inline-block text-[10px] font-mono px-2 py-0.5 rounded-md mt-2 truncate max-w-full font-semibold self-start ${style.domainBadge}`}>
-                  {app.domain}
-                </span>
+                {/* PHẦN DƯỚI: NỘI DUNG MÔ TẢ ĐƯỢC ĐIỀN ĐẦY ĐỦ ĐỂ TRÁNH TRỐNG */}
+                <div className="mt-3.5 pt-3 border-t border-[#E8E2D5]/70 flex-1 flex flex-col justify-between">
+                  <p className="text-sm sm:text-xs text-[#556960] group-hover:text-[#14211B] leading-relaxed transition-colors">
+                    {app.desc}
+                  </p>
+                </div>
               </a>
             );
           })}
