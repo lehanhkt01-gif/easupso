@@ -57,7 +57,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: article.title,
       description: article.summary,
-      images: article.thumbnailUrl ? [article.thumbnailUrl] : [],
+      images: article.thumbnailUrl ? [article.thumbnailUrl] : ['/images/og-share.png'],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: article.title,
+      description: article.summary,
+      images: article.thumbnailUrl ? [article.thumbnailUrl] : ['/images/og-share.png'],
     },
   };
 }

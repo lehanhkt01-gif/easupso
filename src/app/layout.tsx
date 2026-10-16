@@ -43,13 +43,39 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: 'Ủy ban MTTQ Việt Nam xã Ea Súp' }],
   metadataBase: new URL('https://easupso.com'),
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/images/logo-easup.png', type: 'image/png' },
+      { url: '/icon.png', sizes: '192x192', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: [
+      { url: '/apple-icon.png' },
+      { url: '/images/logo-easup.png' },
+    ],
+  },
   openGraph: {
-    title: 'Hệ sinh thái số xã Ea Súp — easupso.com',
-    description: 'Chính quyền số phục vụ – Mặt trận số gần dân – Kinh tế số bền vững trên địa bàn 20 thôn, buôn.',
+    title: 'Hệ sinh thái số xã Ea Súp — Cổng thông tin easupso.com',
+    description: 'Chính quyền số phục vụ – Mặt trận số gần dân – Kinh tế số bền vững trên địa bàn 20 thôn, buôn xã Ea Súp.',
     url: 'https://easupso.com',
     siteName: 'easupso.com',
     locale: 'vi_VN',
     type: 'website',
+    images: [
+      {
+        url: '/images/og-share.png',
+        width: 1200,
+        height: 630,
+        alt: 'Cổng thông tin & Hệ sinh thái Chuyển đổi số xã Ea Súp',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Hệ sinh thái số xã Ea Súp — Cổng thông tin easupso.com',
+    description: 'Chính quyền số phục vụ – Mặt trận số gần dân – Kinh tế số bền vững trên địa bàn 20 thôn, buôn xã Ea Súp.',
+    images: ['/images/og-share.png'],
   },
   manifest: '/site.webmanifest',
 };
