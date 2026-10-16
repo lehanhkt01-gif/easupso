@@ -124,8 +124,8 @@ apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin do
 mkdir -p /var/www/easupso
 cd /var/www/easupso
 
-# Clone mã nguồn
-git clone https://github.com/your-org/easupso-portal.git .
+# Clone mã nguồn từ GitHub
+git clone https://github.com/lehanhkt01-gif/easupso.git .
 ```
 
 ### Bước 4: Tạo file `.env` thực tế từ Bitwarden Secure Note
