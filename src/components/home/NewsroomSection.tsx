@@ -50,13 +50,13 @@ export interface NewsItem {
 }
 
 const CATEGORY_TABS = [
-  { id: 'all', label: 'Tất cả bản tin', slug: '' },
-  { id: 'mttq', label: 'Ủy ban MTTQ', slug: 'mat-tran-to-quoc' },
-  { id: 'phu-nu', label: 'Hội Phụ nữ', slug: 'hoi-phu-nu' },
-  { id: 'nong-dan', label: 'Hội Nông dân', slug: 'hoi-nong-dan' },
-  { id: 'doan-tn', label: 'Đoàn Thanh niên', slug: 'doan-thanh-nien' },
-  { id: 'ccb', label: 'Hội CCB', slug: 'hoi-cuu-chien-binh' },
-  { id: 'thon-buon', label: '20 Thôn Buôn', slug: 'hoat-dong-thon-buon' },
+  { id: 'all', label: 'Tất cả bản tin', shortLabel: 'Tất cả', slug: '' },
+  { id: 'mttq', label: 'Ủy ban MTTQ', shortLabel: 'UB MTTQ', slug: 'mat-tran-to-quoc' },
+  { id: 'phu-nu', label: 'Hội Phụ nữ', shortLabel: 'Phụ Nữ', slug: 'hoi-phu-nu' },
+  { id: 'nong-dan', label: 'Hội Nông dân', shortLabel: 'Nông Dân', slug: 'hoi-nong-dan' },
+  { id: 'doan-tn', label: 'Đoàn Thanh niên', shortLabel: 'Đoàn TN', slug: 'doan-thanh-nien' },
+  { id: 'ccb', label: 'Hội CCB', shortLabel: 'Hội CCB', slug: 'hoi-cuu-chien-binh' },
+  { id: 'thon-buon', label: '20 Thôn Buôn', shortLabel: 'Thôn/buôn', slug: 'hoat-dong-thon-buon' },
 ];
 
 export function NewsroomSection({
@@ -219,20 +219,22 @@ export function NewsroomSection({
         )}
 
         {/* CÁC NÚT TAB CHUYÊN MỤC TRÒN BO CONG */}
-        <div className="flex items-center justify-center gap-2 flex-wrap mb-10">
+        <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap mb-8 sm:mb-10 max-w-4xl mx-auto px-1">
           {CATEGORY_TABS.map((tab) => {
             const isActive = selectedCategory === tab.slug;
             return (
               <button
                 key={tab.id}
                 onClick={() => setSelectedCategory(tab.slug)}
-                className={`px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all border cursor-pointer ${
+                className={`px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-[11.5px] sm:text-sm font-semibold transition-all border cursor-pointer whitespace-nowrap shrink-0 ${
                   isActive
-                    ? 'bg-[#173C2D] text-white border-[#173C2D] shadow-sm'
+                    ? 'bg-[#173C2D] text-white border-[#173C2D] shadow-xs'
                     : 'bg-white text-[#4A5B52] border-[#D5CBBA] hover:border-[#173C2D] hover:text-[#173C2D]'
                 }`}
               >
-                {tab.label}
+                {/* Trên giao diện điện thoại hiển thị tên viết tắt thu nhỏ vừa 2 hàng, trên máy tính hiển thị tên đầy đủ */}
+                <span className="sm:hidden">{tab.shortLabel}</span>
+                <span className="hidden sm:inline">{tab.label}</span>
               </button>
             );
           })}
