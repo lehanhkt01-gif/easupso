@@ -78,8 +78,13 @@ export default function LoginPage() {
         
         {/* Header định danh */}
         <div className="text-center space-y-2">
-          <div className="w-14 h-14 rounded-full bg-[#1B4332] border-2 border-[#D4AF37] mx-auto flex items-center justify-center shadow-md">
-            <span className="font-serif text-[#D4AF37] font-black text-2xl leading-none">★</span>
+          <div className="w-16 h-16 rounded-full bg-white border-2 border-[#D4AF37] mx-auto p-1 flex items-center justify-center shadow-md overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/logo-mttq.png"
+              alt="Biểu trưng Mặt trận Tổ quốc Việt Nam"
+              className="w-full h-full object-contain rounded-full"
+            />
           </div>
 
           <h1 className="text-xl sm:text-2xl font-extrabold text-[#1B4332] tracking-tight">

@@ -16,8 +16,13 @@ export function Footer() {
           {/* CỘT 1: CƠ QUAN CHỦ QUẢN & LIÊN HỆ ĐIỀU HÀNH */}
           <div className="md:col-span-7 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#1B4332] border border-[#D4AF37] flex items-center justify-center font-serif text-[#D4AF37] font-bold text-lg">
-                ★
+              <div className="relative shrink-0 w-11 h-11 sm:w-12 sm:h-12 rounded-full p-0.5 shadow-md overflow-hidden border border-[#D4AF37] bg-white flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/images/logo-mttq.png"
+                  alt="Biểu trưng Mặt trận Tổ quốc Việt Nam"
+                  className="w-full h-full object-contain rounded-full"
+                />
               </div>
               <div>
                 <p className="text-[11px] uppercase tracking-wider text-[#D4AF37] font-bold">
