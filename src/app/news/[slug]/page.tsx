@@ -186,17 +186,17 @@ export default async function NewsDetailPage({ params }: Props) {
       <Header />
 
       <main className="flex-1 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 w-full">
-        {/* Breadcrumb điều hướng */}
-        <nav className="flex items-center gap-2 text-xs text-[#6B7C73] mb-6 overflow-x-auto whitespace-nowrap">
-          <Link href="/" className="hover:text-[#1B4332] font-semibold">
+        {/* Breadcrumb điều hướng: Thu nhỏ và để sát nhau hơn, tránh bị che trên điện thoại */}
+        <nav className="flex items-center flex-wrap gap-1 sm:gap-1.5 text-[10.5px] sm:text-xs text-[#6B7C73] mb-4 sm:mb-6 leading-tight">
+          <Link href="/" className="hover:text-[#1B4332] font-semibold transition-colors shrink-0">
             Trang chủ
           </Link>
-          <ChevronRight className="w-3.5 h-3.5 text-[#D5CBBA]" />
-          <Link href="/#tin-tuc" className="hover:text-[#1B4332] font-semibold">
+          <ChevronRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#D5CBBA] shrink-0" />
+          <Link href="/#tin-tuc" className="hover:text-[#1B4332] font-semibold transition-colors shrink-0">
             Bản tin Mặt trận &amp; Đoàn thể
           </Link>
-          <ChevronRight className="w-3.5 h-3.5 text-[#D5CBBA]" />
-          <span className="text-[#1B4332] font-bold truncate max-w-xs">
+          <ChevronRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#D5CBBA] shrink-0" />
+          <span className="text-[#1B4332] font-bold shrink-0">
             {article.category?.name || 'Ủy ban MTTQ xã'}
           </span>
         </nav>
