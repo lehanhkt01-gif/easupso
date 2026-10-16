@@ -95,7 +95,7 @@ export function HeroBanner({
   const currentAnnouncement = announcements[activeTickerIdx];
 
   return (
-    <div className="relative">
+    <div className="relative z-30">
       
       {/* 1. DẢI TICKER THÔNG BÁO (NHỎ GỌN TRÊN CÙNG) */}
       {currentAnnouncement && (
@@ -140,10 +140,10 @@ export function HeroBanner({
         </div>
       )}
 
-      {/* 2. KHUNG HERO THU GỌN - KẾT NỐI LIỀN MẠCH VỚI TOÀN BỘ NỀN */}
-      <div className="relative min-h-[150px] sm:min-h-[170px] lg:min-h-[190px] flex items-center justify-center">
+      {/* 2. KHUNG HERO THU GỌN - NỔI LÊN TRÊN CÙNG VỚI Z-30 */}
+      <div className="relative z-30 min-h-[150px] sm:min-h-[170px] lg:min-h-[190px] flex items-center justify-center">
         {/* Khối nội dung chính giữa thu gọn thanh lịch */}
-        <div className="relative z-10 max-w-3xl mx-auto px-4 text-center py-4 sm:py-6 space-y-3 sm:space-y-4">
+        <div className="relative z-30 max-w-3xl mx-auto px-4 text-center py-4 sm:py-6 space-y-3 sm:space-y-4">
           
           {/* Tiêu đề chính luận thu gọn, trang trọng */}
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)] uppercase">
@@ -153,8 +153,8 @@ export function HeroBanner({
             </span>
           </h1>
 
-          {/* Thanh tìm kiếm tròn bo cong thanh thoát */}
-          <div ref={searchContainerRef} className="relative max-w-lg mx-auto">
+          {/* Thanh tìm kiếm tròn bo cong - đặt z-40 để dropdown kết quả luôn nổi trên cùng */}
+          <div ref={searchContainerRef} className="relative z-40 max-w-lg mx-auto">
             <div className="relative flex items-center bg-white/95 hover:bg-white rounded-full shadow-lg px-4 py-1.5 border border-[#D5CBBA] focus-within:ring-2 focus-within:ring-[#D4AF37]/50 focus-within:border-[#1B4332] transition-all">
               <Search className="w-4 h-4 text-[#4A5B52] flex-shrink-0 mr-2.5" />
 
@@ -190,7 +190,7 @@ export function HeroBanner({
 
             {/* Dropdown kết quả tìm kiếm */}
             {isDropdownOpen && searchResults && (
-              <div className="absolute left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-[#D5CBBA] text-left z-50 overflow-hidden max-h-[380px] overflow-y-auto">
+              <div className="absolute left-0 right-0 mt-2 bg-white rounded-2xl shadow-[0_20px_60px_-10px_rgba(0,0,0,0.5)] border border-[#D5CBBA] text-left z-50 overflow-hidden max-h-[380px] overflow-y-auto">
                 <div className="p-3 bg-[#FAF7F2] border-b border-[#E8E2D5] flex items-center justify-between text-xs text-[#4A5B52]">
                   <span>Kết quả cho: &ldquo;<strong>{searchResults.query}</strong>&rdquo;</span>
                   <span className="font-bold text-[#1B4332]">{searchResults.totalResults} kết quả</span>

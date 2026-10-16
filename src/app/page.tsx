@@ -144,11 +144,15 @@ export default async function HomePage() {
 
           {/* Nội dung tương tác bên trên hình nền */}
           <div className="relative z-10">
-            {/* 2. Hero Banner & Dải Ticker Thông báo */}
-            <HeroBanner initialAnnouncements={announcements} heroImageUrl={heroBannerUrl} />
+            {/* 2. Hero Banner & Dải Ticker Thông báo (Đặt z-30 để ô tìm kiếm và dropdown nổi trên cùng, không bị che) */}
+            <div className="relative z-30">
+              <HeroBanner initialAnnouncements={announcements} heroImageUrl={heroBannerUrl} />
+            </div>
 
-            {/* 3. Trung tâm điều hành & 06 Ứng dụng số cốt lõi */}
-            <EcosystemBentoGrid />
+            {/* 3. Trung tâm điều hành & 06 Ứng dụng số cốt lõi (Đặt z-10) */}
+            <div className="relative z-10">
+              <EcosystemBentoGrid />
+            </div>
           </div>
         </section>
 
