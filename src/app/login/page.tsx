@@ -185,7 +185,7 @@ export default function LoginPage() {
             <Lock className="w-3 h-3 text-[#10B981]" />
             Kết nối mã hóa SSL 256-bit chuẩn Gov Zero-Trust
           </p>
-          <p>Đường dây nóng hỗ trợ: <strong>0943 170 770</strong> | noreply@easupso.com</p>
+          <p>Đường dây nóng hỗ trợ: <strong>0888 023 023</strong> | Easupsohoa@gmail.com</p>
         </div>
       </div>
 

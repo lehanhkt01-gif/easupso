@@ -3,7 +3,7 @@
 
 > **Cơ quan chủ quản**: Ủy ban Mặt trận Tổ quốc Việt Nam xã Ea Súp, tỉnh Đắk Lắk  
 > **Tên miền chính thức**: [https://easupso.com](https://easupso.com)  
-> **Đường dây nóng hỗ trợ**: 0943 170 770 | **Email**: noreply@easupso.com  
+> **Đường dây nóng hỗ trợ**: 0888 023 023 | **Email**: Easupsohoa@gmail.com  
 > **Kiến trúc máy chủ**: Cloud Server Gdata (Ubuntu 22.04 LTS / 24.04 LTS, Docker & Docker Compose, Nginx Reverse Proxy, PostgreSQL 16)
 
 ---
@@ -176,6 +176,6 @@ docker compose logs -f easupso_portal_web
 ---
 
 ## BẢNG TRA CỨU ĐƯỜNG DÂY NÓNG HỖ TRỢ KỸ THUẬT
-- **Kỹ thuật viên quản trị hệ thống**: `0943 170 770`
-- **Email tiếp nhận sự cố kỹ thuật**: `noreply@easupso.com`
+- **Kỹ thuật viên quản trị hệ thống**: `0888 023 023`
+- **Email tiếp nhận sự cố kỹ thuật**: `Easupsohoa@gmail.com`
 - **Địa bàn hành chính**: Xã Ea Súp, tỉnh Đắk Lắk (Tuyệt đối không còn cấp huyện).

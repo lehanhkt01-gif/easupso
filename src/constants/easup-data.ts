@@ -2,7 +2,7 @@
  * HỆ SINH THÁI CHUYỂN ĐỔI SỐ XÃ EA SÚP - HẰNG SỐ CỐT LÕI (EASUP DATA CONSTANTS)
  * Địa giới hành chính: Cấp xã trực thuộc tỉnh Đắk Lắk (TUYỆT ĐỐI KHÔNG CÒN CẤP HUYỆN)
  * Cơ quan chủ quản: Ủy ban Mặt trận Tổ quốc Việt Nam xã Ea Súp
- * Đường dây nóng: 0943 170 770 | Email: noreply@easupso.com
+ * Đường dây nóng: 0888 023 023 | Email: Easupsohoa@gmail.com
  */
 
 export type VillageType = 'THON_SO' | 'THON_TEN' | 'BUON';
@@ -157,8 +157,8 @@ export const CORE_WEBAPPS: readonly CoreWebAppDefinition[] = [
     iconName: 'ShieldCheck',
     bentoSpan: 'col-span-12 md:col-span-6 lg:col-span-4',
     ctaPrimaryText: 'Bản Tin CCB',
-    ctaSecondaryText: 'Hotline 0943 170 770',
-    ctaSecondaryUrl: 'tel:0943170770',
+    ctaSecondaryText: 'Hotline 0888 023 023',
+    ctaSecondaryUrl: 'tel:0888023023',
     displayOrder: 5,
     isCore: true,
     liveMetrics: {

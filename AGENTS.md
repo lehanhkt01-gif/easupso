@@ -3,7 +3,7 @@
 > **Dự án**: Cổng thông tin & Trang chủ Hệ sinh thái Chuyển đổi số xã Ea Súp, tỉnh Đắk Lắk  
 > **Tên miền chính thức**: [https://easupso.com](https://easupso.com)  
 > **Cơ quan chủ quản**: Ủy ban Mặt trận Tổ quốc Việt Nam xã Ea Súp chủ trì, phối hợp cùng Đảng ủy, HĐND, UBND và các tổ chức chính trị - xã hội xã Ea Súp, tỉnh Đắk Lắk.  
-> **Đường dây nóng**: 0943 170 770 | **Email**: noreply@easupso.com
+> **Đường dây nóng**: 0888 023 023 | **Email**: Easupsohoa@gmail.com
 
 ---
 

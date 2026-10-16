@@ -50,8 +50,8 @@ export const EASUP_SYSTEM_METADATA = {
     'Ủy ban nhân dân xã Ea Súp',
     'Các tổ chức chính trị - xã hội xã Ea Súp',
   ],
-  hotline: '0943 170 770',
-  email: 'noreply@easupso.com',
+  hotline: '0888 023 023',
+  email: 'Easupsohoa@gmail.com',
   subsystems: [
     {
       id: 'lichcongtac',

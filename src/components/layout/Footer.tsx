@@ -37,15 +37,15 @@ export function Footer() {
               <div className="flex items-center gap-2.5">
                 <PhoneCall className="w-4 h-4 text-[#D4AF37] flex-shrink-0" />
                 <span>Đường dây nóng điều hành: </span>
-                <a href="tel:0943170770" className="font-bold text-white hover:text-[#D4AF37] underline">
-                  0943 170 770
+                <a href="tel:0888023023" className="font-bold text-white hover:text-[#D4AF37] underline">
+                  0888 023 023
                 </a>
               </div>
               <div className="flex items-center gap-2.5">
                 <Mail className="w-4 h-4 text-[#A3D7BB] flex-shrink-0" />
                 <span>Thư điện tử công vụ: </span>
-                <a href="mailto:noreply@easupso.com" className="font-bold text-white hover:underline">
-                  noreply@easupso.com
+                <a href="mailto:Easupsohoa@gmail.com" className="font-bold text-white hover:underline">
+                  Easupsohoa@gmail.com
                 </a>
               </div>
             </div>

@@ -179,9 +179,18 @@ export function Header() {
             )}
           </nav>
 
-          {/* 3. KHỐI NÚT ĐIỆN THOẠI: NÚT ĐĂNG NHẬP (CHỈ ICON) + NÚT 3 GẠCH NGANG */}
+          {/* 3. KHỐI NÚT ĐIỆN THOẠI: NÚT 3 GẠCH NGANG TRƯỚC, BIỂU TƯỢNG ĐĂNG NHẬP SAU */}
           <div className="flex xl:hidden items-center gap-2 shrink-0">
-            {/* Nút Đăng nhập: Trên điện thoại CHỈ HIỂN THỊ BIỂU TƯỢNG */}
+            {/* NÚT 3 GẠCH NGANG (HAMBURGER): Mở menu chứa Trang chủ & 6 ứng dụng */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white text-[#1B4332] border border-[#E8E2D5] flex items-center justify-center shrink-0 shadow-2xs hover:bg-[#FAF7F2] active:scale-95 transition cursor-pointer"
+              aria-label="Menu 6 ứng dụng hệ sinh thái số"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+
+            {/* Nút Đăng nhập: Trên điện thoại CHỈ HIỂN THỊ BIỂU TƯỢNG (NẰM BÊN PHẢI NGOÀI CÙNG) */}
             {session?.user ? (
               <Link
                 href="/admin"
@@ -201,15 +210,6 @@ export function Header() {
                 <User className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
               </Link>
             )}
-
-            {/* NÚT 3 GẠCH NGANG (HAMBURGER): Mở menu chứa Trang chủ & 6 ứng dụng */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white text-[#1B4332] border border-[#E8E2D5] flex items-center justify-center shrink-0 shadow-2xs hover:bg-[#FAF7F2] active:scale-95 transition cursor-pointer"
-              aria-label="Menu 6 ứng dụng hệ sinh thái số"
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
           </div>
         </div>
       </div>
