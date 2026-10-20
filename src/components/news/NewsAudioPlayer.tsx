@@ -361,14 +361,11 @@ export function NewsAudioPlayer({
       }
     }
 
-    // 2. Nếu chưa nạp xong, duy trì luồng audio bằng silent loop
+    // 2. Nếu chưa nạp xong, duy trì luồng audio bằng dữ liệu im lặng tuyệt đối trong bộ nhớ
     try {
-      audio.loop = true;
-      audio.src = '/audio/silence.mp3';
-      await audio.play().catch(async () => {
-        audio.src = SILENT_BASE64_WAV;
-        await audio.play();
-      });
+      audio.loop = false;
+      audio.src = SILENT_BASE64_WAV;
+      await audio.play().catch(() => {});
     } catch {}
 
     setStatus('loading');
@@ -418,12 +415,14 @@ export function NewsAudioPlayer({
     if (!audio) return;
 
     const handleLoadedMetadata = () => {
+      if (audio.src && audio.src.startsWith('data:audio')) return;
       if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
         setDuration(audio.duration);
       }
     };
 
     const handleTimeUpdate = () => {
+      if (audio.src && audio.src.startsWith('data:audio')) return;
       if (!isDraggingRef.current && audio) {
         setCurrentTime(audio.currentTime);
 
@@ -448,6 +447,7 @@ export function NewsAudioPlayer({
     };
 
     const handleEnded = () => {
+      if ((audio.src && audio.src.startsWith('data:audio')) || status === 'loading') return;
       if (autoPlayNextRef.current && nextArticleRef.current) {
         handlePlayNext();
       } else {
@@ -458,10 +458,12 @@ export function NewsAudioPlayer({
     };
 
     const handlePlay = () => {
+      if (audio.src && audio.src.startsWith('data:audio')) return;
       setStatus('playing');
     };
 
     const handlePause = () => {
+      if (audio.src && audio.src.startsWith('data:audio')) return;
       if (status !== 'loading') {
         setStatus('paused');
       }
@@ -489,14 +491,11 @@ export function NewsAudioPlayer({
     const audio = getMasterAudio();
     if (!audio) return;
 
-    // Mở khóa Media Pipeline tức thời trên iOS / Android
+    // Mở khóa Media Pipeline tức thời trên iOS / Android bằng dữ liệu im lặng tuyệt đối trong bộ nhớ
     try {
-      audio.loop = true;
-      audio.src = '/audio/silence.mp3';
-      await audio.play().catch(async () => {
-        audio.src = SILENT_BASE64_WAV;
-        await audio.play();
-      });
+      audio.loop = false;
+      audio.src = SILENT_BASE64_WAV;
+      await audio.play().catch(() => {});
     } catch (e) {
       console.warn('[PRIMING_AUDIO_WARN]', e);
     }
@@ -806,11 +805,10 @@ export function NewsAudioPlayer({
     return (
       <div
         className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50/90 text-emerald-800 font-semibold text-xs border border-emerald-200 shrink-0 ${className}`}
-        role="status"
-        aria-live="polite"
+        aria-hidden="true"
       >
         <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-700" />
-        <span className="text-[11px] sm:text-xs">Đang chuẩn bị giọng đọc...</span>
+        <span className="text-[11px] sm:text-xs">Đang tải bản tin</span>
       </div>
     );
   }

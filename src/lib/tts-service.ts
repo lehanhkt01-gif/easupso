@@ -83,7 +83,7 @@ export function extractCleanSpeechText(title: string, summary?: string | null, c
       .replace(/&#39;|&apos;/gi, "'")
       .replace(/&lt;/gi, '<')
       .replace(/&gt;/gi, '>')
-      .replace(/&hellip;/gi, '...')
+      .replace(/&hellip;/gi, ', ')
       .replace(/&bull;/gi, ', ')
       .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)));
 
@@ -133,7 +133,15 @@ export function extractCleanSpeechText(title: string, summary?: string | null, c
 
   script = script.replace(/ngày\s+ngày\s+/gi, 'ngày ');
 
+  // Làm sạch dấu ba chấm: Thay thế toàn bộ ký tự &hellip;, … (U+2026) và các chuỗi chấm liên tiếp (\.{2,}) thành dấu phẩy
+  // Giúp giọng đọc dừng nghỉ tự nhiên theo nhịp câu mà không bao giờ phát âm "chấm, chấm, chấm"
   script = script
+    .replace(/&hellip;/gi, ', ')
+    .replace(/[…\u2026]/g, ', ')
+    .replace(/\.{2,}/g, ', ')
+    .replace(/,\s*,+/g, ', ')
+    .replace(/\.\s*,+/g, '. ')
+    .replace(/,\s*\.+/g, '. ')
     .replace(/\s*([,.:;?!])\s*/g, '$1 ')
     .replace(/(\. ){2,}/g, '. ')
     .trim();
@@ -293,9 +301,21 @@ export async function getOrGenerateNewsAudio(options: TTSOptions): Promise<TTSRe
   }
 
   // 2. BÓC TÁCH NỘI DUNG VĂN BẢN
-  const textToRead = options.text?.trim()
+  let textToRead = options.text?.trim()
     ? options.text.trim()
     : extractCleanSpeechText(options.title, options.summary, options.contentHtml);
+
+  // Đảm bảo văn bản đưa vào bộ đọc (kể cả khi truyền qua options.text) được làm sạch hoàn toàn dấu ba chấm
+  textToRead = textToRead
+    .replace(/&hellip;/gi, ', ')
+    .replace(/[…\u2026]/g, ', ')
+    .replace(/\.{2,}/g, ', ')
+    .replace(/,\s*,+/g, ', ')
+    .replace(/\.\s*,+/g, '. ')
+    .replace(/,\s*\.+/g, '. ')
+    .replace(/\s*([,.:;?!])\s*/g, '$1 ')
+    .replace(/(\. ){2,}/g, '. ')
+    .trim();
 
   if (!textToRead || textToRead.length < 5) {
     return {
