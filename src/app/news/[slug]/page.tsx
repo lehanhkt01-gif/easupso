@@ -181,6 +181,58 @@ export default async function NewsDetailPage({ params }: Props) {
   };
   const cleanContentHtml = stripGalleryFromHtml(article.contentHtml || '');
 
+  // Tìm bản tin liền kề tiếp theo để tự động đọc liên tục khi hết bài
+  let nextArticle: { id: string; title: string; slug: string; summary?: string | null } | null = null;
+  try {
+    const nextDb = await prisma.newsArticle.findFirst({
+      where: {
+        status: ArticleStatus.PUBLISHED,
+        id: { not: article.id },
+        ...(article.publishedAt ? { publishedAt: { lt: article.publishedAt } } : {}),
+      },
+      orderBy: { publishedAt: 'desc' },
+      select: { id: true, title: true, slug: true, summary: true },
+    });
+    if (nextDb) {
+      nextArticle = nextDb;
+    }
+  } catch {}
+
+  if (!nextArticle) {
+    try {
+      const { getLocalArticles } = await import('@/lib/local-news');
+      const allArticles = await getLocalArticles();
+      const currentIdx = allArticles.findIndex((a) => a.id === article.id || a.slug === article.slug);
+      if (currentIdx !== -1 && currentIdx + 1 < allArticles.length) {
+        nextArticle = {
+          id: allArticles[currentIdx + 1].id,
+          title: allArticles[currentIdx + 1].title,
+          slug: allArticles[currentIdx + 1].slug,
+          summary: allArticles[currentIdx + 1].summary,
+        };
+      } else if (allArticles.length > 1) {
+        const other = allArticles.find((a) => a.id !== article.id && a.slug !== article.slug);
+        if (other) {
+          nextArticle = {
+            id: other.id,
+            title: other.title,
+            slug: other.slug,
+            summary: other.summary,
+          };
+        }
+      }
+    } catch {}
+  }
+
+  if (!nextArticle && relatedArticles.length > 0) {
+    nextArticle = {
+      id: relatedArticles[0].id,
+      title: relatedArticles[0].title,
+      slug: relatedArticles[0].slug,
+      summary: relatedArticles[0].summary,
+    };
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF7F2]">
       <Header />
@@ -222,6 +274,7 @@ export default async function NewsDetailPage({ params }: Props) {
             viewCount={article.viewCount || 0}
             slug={article.slug}
             beneficiaryName={article.beneficiaryName || null}
+            nextArticle={nextArticle}
           />
         </div>
 

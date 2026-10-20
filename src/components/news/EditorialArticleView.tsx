@@ -36,6 +36,12 @@ interface EditorialArticleViewProps {
   viewCount?: number;
   slug?: string;
   beneficiaryName?: string | null;
+  nextArticle?: {
+    id: string;
+    title: string;
+    slug: string;
+    summary?: string | null;
+  } | null;
 }
 
 export function EditorialArticleView({
@@ -52,6 +58,7 @@ export function EditorialArticleView({
   viewCount = 0,
   slug,
   beneficiaryName,
+  nextArticle,
 }: EditorialArticleViewProps) {
   // Điều chỉnh cỡ chữ đọc báo (15px -> 21px, mặc định 17px)
   const [fontSize, setFontSize] = useState<number>(17);
@@ -387,31 +394,8 @@ export function EditorialArticleView({
               title={title}
               summary={summary}
               contentHtml={contentHtml}
+              nextArticle={nextArticle}
             />
-
-            <span className="w-px h-4 bg-[#D5CBBA] mx-1" />
-
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="p-1.5 rounded-lg hover:bg-[#FAF7F2] text-[#4A5B52] hover:text-[#1B4332] transition flex items-center gap-1"
-              title="In bài báo"
-            >
-              <Printer className="w-3.5 h-3.5" />
-            </button>
-
-            <button
-              type="button"
-              onClick={handleCopyLink}
-              className="p-1.5 rounded-lg hover:bg-[#FAF7F2] text-[#4A5B52] hover:text-[#1B4332] transition flex items-center gap-1"
-              title="Sao chép liên kết bài viết"
-            >
-              {copiedLink ? (
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
-              ) : (
-                <Copy className="w-3.5 h-3.5" />
-              )}
-            </button>
           </div>
         </div>
 

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Volume2,
   Play,
@@ -9,8 +10,8 @@ import {
   RotateCw,
   X,
   Loader2,
-  Gauge,
-  Sparkles,
+  SkipForward,
+  Repeat,
 } from 'lucide-react';
 
 interface NewsAudioPlayerProps {
@@ -19,6 +20,12 @@ interface NewsAudioPlayerProps {
   summary?: string | null;
   contentHtml?: string | null;
   className?: string;
+  nextArticle?: {
+    id: string;
+    title: string;
+    slug: string;
+    summary?: string | null;
+  } | null;
 }
 
 type PlayerStatus = 'idle' | 'loading' | 'playing' | 'paused';
@@ -67,14 +74,17 @@ export function NewsAudioPlayer({
   summary,
   contentHtml,
   className = '',
+  nextArticle,
 }: NewsAudioPlayerProps) {
+  const router = useRouter();
+
   const [status, setStatus] = useState<PlayerStatus>('idle');
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
   const [speed, setSpeed] = useState<PlaybackSpeed>(1.0);
   const [isSpeechFallback, setIsSpeechFallback] = useState<boolean>(false);
-  const [speechProgress, setSpeechProgress] = useState<number>(0);
+  const [autoPlayNext, setAutoPlayNext] = useState<boolean>(true); // Mặc định bật chế độ đọc liên tục
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -99,7 +109,7 @@ export function NewsAudioPlayer({
     setIsSpeechFallback(false);
   }, []);
 
-  // Đăng ký dọn dẹp khi unmount hoặc tắt tab
+  // Đăng ký dọn dẹp khi unmount hoặc tắt tab (CHÚ Ý: Không ngắt khi màn hình tắt/document.hidden)
   useEffect(() => {
     function handleBeforeUnload() {
       stopAllAudio();
@@ -116,7 +126,6 @@ export function NewsAudioPlayer({
     if (audioRef.current) {
       audioRef.current.playbackRate = speed;
     }
-    // Đối với Web Speech API, cần restart utterance với rate mới nếu đang phát
     if (isSpeechFallback && status === 'playing' && speechUtteranceRef.current) {
       speechUtteranceRef.current.rate = speed;
     }
@@ -145,7 +154,6 @@ export function NewsAudioPlayer({
       const isVi = lang.startsWith('vi') || lang.includes('vn') || name.includes('vietnam') || name.includes('tiếng việt');
       if (!isVi) return false;
 
-      // Ưu tiên các giọng nữ
       return (
         name.includes('hoaimy') ||
         name.includes('hoài my') ||
@@ -179,6 +187,24 @@ export function NewsAudioPlayer({
       }) || null
     );
   }, []);
+
+  // Chuyển sang đọc tiếp bản tin liền kề
+  const handlePlayNext = useCallback(() => {
+    if (!nextArticle) {
+      stopAllAudio();
+      return;
+    }
+
+    // Đánh dấu cờ tự động phát cho bài tiếp theo
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('easupso_news_autoplay', '1');
+    }
+
+    setStatus('loading');
+
+    // Chuyển trang mượt mà qua App Router
+    router.push(`/news/${nextArticle.slug}?autoplay=1`);
+  }, [nextArticle, router, stopAllAudio]);
 
   // Khởi chạy chế độ Web Speech API dự phòng (khi server chưa sinh được file MP3)
   const startSpeechFallback = useCallback(() => {
@@ -217,14 +243,17 @@ export function NewsAudioPlayer({
       setIsSpeechFallback(true);
       setStatus('playing');
 
-      let elapsed = 0;
       speechIntervalRef.current = setInterval(() => {
-        elapsed += 1;
         setCurrentTime((prev) => Math.min(prev + 1, estDuration));
       }, 1000 / speed);
 
+      // KHI HẾT BÀI: Tự động chuyển và đọc tiếp bài liền kề nếu đang bật chế độ liên tục
       utterance.onend = () => {
-        stopAllAudio();
+        if (autoPlayNext && nextArticle) {
+          handlePlayNext();
+        } else {
+          stopAllAudio();
+        }
       };
 
       utterance.onerror = (e) => {
@@ -237,9 +266,36 @@ export function NewsAudioPlayer({
       console.error('[SPEECH_FALLBACK_FAIL]', err);
       stopAllAudio();
     }
-  }, [title, summary, contentHtml, speed, getBestVietnameseFemaleVoice, stopAllAudio]);
+  }, [title, summary, contentHtml, speed, getBestVietnameseFemaleVoice, autoPlayNext, nextArticle, handlePlayNext, stopAllAudio]);
 
-  // Khởi tạo và phát qua HTML5 Audio Element
+  // Tua lùi 10 giây
+  const handleRewind10 = useCallback(() => {
+    if (isSpeechFallback) {
+      setCurrentTime((prev) => Math.max(0, prev - 10));
+      return;
+    }
+    if (audioRef.current) {
+      const nextTime = Math.max(0, audioRef.current.currentTime - 10);
+      audioRef.current.currentTime = nextTime;
+      setCurrentTime(nextTime);
+    }
+  }, [isSpeechFallback]);
+
+  // Tua tới 10 giây
+  const handleForward10 = useCallback(() => {
+    if (isSpeechFallback) {
+      setCurrentTime((prev) => Math.min(duration, prev + 10));
+      return;
+    }
+    if (audioRef.current) {
+      const maxDuration = audioRef.current.duration || duration || 1000;
+      const nextTime = Math.min(maxDuration, audioRef.current.currentTime + 10);
+      audioRef.current.currentTime = nextTime;
+      setCurrentTime(nextTime);
+    }
+  }, [isSpeechFallback, duration]);
+
+  // Khởi tạo và phát qua HTML5 Audio Element (HỖ TRỢ DUY TRÌ PHÁT KHI TẮT MÀN HÌNH ĐIỆN THOẠI)
   const playWithHtml5Audio = useCallback(
     (url: string) => {
       let audio = audioRef.current;
@@ -261,12 +317,34 @@ export function NewsAudioPlayer({
       audio.ontimeupdate = () => {
         if (!isDraggingRef.current && audio) {
           setCurrentTime(audio.currentTime);
+
+          // Cập nhật vị trí cho thanh điều khiển màn hình khóa (Lock Screen Timeline)
+          if (
+            typeof window !== 'undefined' &&
+            'mediaSession' in navigator &&
+            'setPositionState' in navigator.mediaSession &&
+            audio.duration &&
+            !isNaN(audio.duration)
+          ) {
+            try {
+              navigator.mediaSession.setPositionState({
+                duration: audio.duration,
+                playbackRate: audio.playbackRate || 1.0,
+                position: Math.min(audio.currentTime, audio.duration),
+              });
+            } catch {}
+          }
         }
       };
 
+      // KHI HẾT BÀI: Tự động chuyển và đọc tiếp bài liền kề nếu đang bật chế độ liên tục
       audio.onended = () => {
-        setStatus('idle');
-        setCurrentTime(0);
+        if (autoPlayNext && nextArticle) {
+          handlePlayNext();
+        } else {
+          setStatus('idle');
+          setCurrentTime(0);
+        }
       };
 
       audio.onerror = () => {
@@ -283,16 +361,15 @@ export function NewsAudioPlayer({
           })
           .catch((err) => {
             console.warn('[AUDIO_PLAY_AUTOPLAY_BLOCK]', err);
-            // Một số trình duyệt di động chặn autoplay nếu gọi bất đồng bộ quá lâu -> Chuyển sang fallback
             startSpeechFallback();
           });
       }
     },
-    [speed, startSpeechFallback]
+    [speed, autoPlayNext, nextArticle, handlePlayNext, startSpeechFallback]
   );
 
   // Xử lý khi nhấn nút "Nghe đọc"
-  const handleStartPlay = async () => {
+  const handleStartPlay = useCallback(async () => {
     // 1. Mở khóa đối tượng Audio ngay trong tương tác bấm chuột của người dùng (User Gesture)
     if (!audioRef.current) {
       audioRef.current = new Audio();
@@ -346,7 +423,78 @@ export function NewsAudioPlayer({
       console.warn('[NEWS_TTS_FETCH_FAIL] Kích hoạt giọng đọc nữ tiếng Việt dự phòng:', err);
       startSpeechFallback();
     }
-  };
+  }, [audioUrl, newsId, title, summary, contentHtml, playWithHtml5Audio, startSpeechFallback]);
+
+  // Tự động kích hoạt phát khi chuyển trang có cờ autoplay (chế độ đọc liên tục)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const autoplayFlag = sessionStorage.getItem('easupso_news_autoplay');
+      const urlParams = new URLSearchParams(window.location.search);
+      if (autoplayFlag === '1' || urlParams.get('autoplay') === '1') {
+        sessionStorage.removeItem('easupso_news_autoplay');
+        const timer = setTimeout(() => {
+          handleStartPlay();
+        }, 400);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [handleStartPlay]);
+
+  // ĐĂNG KÝ MEDIA SESSION API ĐỂ DUY TRÌ ĐỌC KHI TẮT MÀN HÌNH VÀ HIỂN THỊ TRÊN MÀN HÌNH KHÓA (LOCK SCREEN)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('mediaSession' in navigator)) return;
+
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: title || 'Bản tin Ea Súp',
+        artist: 'Ủy ban MTTQ Việt Nam xã Ea Súp',
+        album: 'Cổng thông tin số easupso.com',
+        artwork: [
+          { src: '/images/og-share.png', sizes: '512x512', type: 'image/png' },
+        ],
+      });
+
+      navigator.mediaSession.setActionHandler('play', () => {
+        if (audioRef.current) {
+          audioRef.current.play().catch(() => {});
+          setStatus('playing');
+        }
+      });
+
+      navigator.mediaSession.setActionHandler('pause', () => {
+        if (audioRef.current) {
+          audioRef.current.pause();
+          setStatus('paused');
+        }
+      });
+
+      navigator.mediaSession.setActionHandler('seekbackward', () => {
+        handleRewind10();
+      });
+
+      navigator.mediaSession.setActionHandler('seekforward', () => {
+        handleForward10();
+      });
+
+      if (nextArticle) {
+        navigator.mediaSession.setActionHandler('nexttrack', () => {
+          handlePlayNext();
+        });
+      } else {
+        navigator.mediaSession.setActionHandler('nexttrack', null);
+      }
+    } catch (e) {
+      console.warn('[MEDIA_SESSION_WARN]', e);
+    }
+  }, [title, nextArticle, handleRewind10, handleForward10, handlePlayNext]);
+
+  // Cập nhật trạng thái phát cho Media Session (Playing / Paused)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'mediaSession' in navigator) {
+      navigator.mediaSession.playbackState =
+        status === 'playing' ? 'playing' : status === 'paused' ? 'paused' : 'none';
+    }
+  }, [status]);
 
   // Tạm dừng / Tiếp tục
   const handleTogglePause = () => {
@@ -378,33 +526,6 @@ export function NewsAudioPlayer({
     }
   };
 
-  // Tua lùi 10 giây
-  const handleRewind10 = () => {
-    if (isSpeechFallback) {
-      setCurrentTime((prev) => Math.max(0, prev - 10));
-      return;
-    }
-    if (audioRef.current) {
-      const nextTime = Math.max(0, audioRef.current.currentTime - 10);
-      audioRef.current.currentTime = nextTime;
-      setCurrentTime(nextTime);
-    }
-  };
-
-  // Tua tới 10 giây
-  const handleForward10 = () => {
-    if (isSpeechFallback) {
-      setCurrentTime((prev) => Math.min(duration, prev + 10));
-      return;
-    }
-    if (audioRef.current) {
-      const maxDuration = audioRef.current.duration || duration || 1000;
-      const nextTime = Math.min(maxDuration, audioRef.current.currentTime + 10);
-      audioRef.current.currentTime = nextTime;
-      setCurrentTime(nextTime);
-    }
-  };
-
   // Xử lý kéo thanh trượt thời gian (Scrubber)
   const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
@@ -433,7 +554,6 @@ export function NewsAudioPlayer({
     if (status === 'idle') return;
 
     function handleKeyDown(e: KeyboardEvent) {
-      // Bỏ qua nếu đang gõ văn bản
       const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
       if (tag === 'input' || tag === 'textarea' || (e.target as HTMLElement)?.isContentEditable) {
         return;
@@ -467,7 +587,7 @@ export function NewsAudioPlayer({
         type="button"
         onClick={handleStartPlay}
         className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 hover:text-emerald-900 font-semibold text-xs border border-emerald-200/80 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0 ${className}`}
-        title="Nghe đọc tự động bản tin (Giọng nữ Hoài My - Hà Nội)"
+        title="Nghe đọc tự động bản tin (Giọng nữ Hoài My - Hỗ trợ đọc khi tắt màn hình)"
         aria-label="Nghe đọc bản tin tự động"
       >
         <Volume2 className="w-3.5 h-3.5 text-emerald-700" />
@@ -497,7 +617,7 @@ export function NewsAudioPlayer({
     <div
       className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 py-1 rounded-xl bg-[#FAF7F2] border border-[#D5CBBA] shadow-xs text-xs text-[#14211B] transition-all max-w-full ${className}`}
       role="region"
-      aria-label="Trình phát âm thanh đọc bản tin"
+      aria-label="Trình phát âm thanh đọc bản tin tự động"
     >
       {/* 1. Nút Tạm dừng / Tiếp tục */}
       <button
@@ -534,8 +654,22 @@ export function NewsAudioPlayer({
         <span className="hidden sm:inline">10s</span>
       </button>
 
+      {/* Nút chuyển trực tiếp sang bài tiếp theo (nếu có bản tin liền kề) */}
+      {nextArticle && (
+        <button
+          type="button"
+          onClick={handlePlayNext}
+          className="p-1 rounded-md hover:bg-stone-200/70 text-stone-700 transition shrink-0 flex items-center gap-0.5 text-[10px] font-bold"
+          title={`Chuyển sang bản tin kế tiếp: ${nextArticle.title}`}
+          aria-label="Chuyển sang bản tin kế tiếp"
+        >
+          <SkipForward className="w-3 h-3 text-stone-600" />
+          <span className="hidden lg:inline text-[9px]">Tiếp</span>
+        </button>
+      )}
+
       {/* 4. Thanh tiến trình thời gian nghe (Progress bar & Time display) */}
-      <div className="flex items-center gap-1.5 px-1 min-w-[70px] sm:min-w-[120px]">
+      <div className="flex items-center gap-1.5 px-1 min-w-[65px] sm:min-w-[110px]">
         <input
           type="range"
           min="0"
@@ -551,14 +685,14 @@ export function NewsAudioPlayer({
           onChange={handleSeekChange}
           onMouseUp={handleSeekCommit}
           onTouchEnd={handleSeekCommit}
-          className="w-14 sm:w-20 md:w-24 h-1.5 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-emerald-700"
+          className="w-12 sm:w-16 md:w-20 h-1.5 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-emerald-700"
           style={{
             background: `linear-gradient(to right, #047857 ${progressPercent}%, #E5E7EB ${progressPercent}%)`,
           }}
           aria-label="Thanh trượt thời gian đọc"
         />
 
-        <span className="font-mono text-[10px] sm:text-[11px] text-[#4A5B52] whitespace-nowrap min-w-[36px] sm:min-w-[68px] text-right">
+        <span className="font-mono text-[10px] sm:text-[11px] text-[#4A5B52] whitespace-nowrap min-w-[34px] sm:min-w-[65px] text-right">
           <span className="font-semibold text-emerald-800">{formatTime(currentTime)}</span>
           <span className="hidden sm:inline text-stone-400">/{formatTime(duration)}</span>
         </span>
@@ -574,6 +708,28 @@ export function NewsAudioPlayer({
       >
         {speed.toFixed(1)}x
       </button>
+
+      {/* Nút bật/tắt chế độ Đọc liên tục (Tự động đọc bài tiếp theo khi hết bài) */}
+      {nextArticle && (
+        <button
+          type="button"
+          onClick={() => setAutoPlayNext((prev) => !prev)}
+          className={`px-1.5 py-0.5 rounded-md font-mono font-bold text-[10px] transition shrink-0 border flex items-center gap-1 ${
+            autoPlayNext
+              ? 'bg-emerald-100/80 text-emerald-800 border-emerald-300'
+              : 'bg-stone-100 text-stone-400 border-stone-200 hover:text-stone-700'
+          }`}
+          title={
+            autoPlayNext
+              ? `Tự động đọc bài kế tiếp khi hết bản tin: BẬT (Bài tiếp: "${nextArticle.title}")`
+              : 'Tự động đọc bài kế tiếp: TẮT (Bấm để bật)'
+          }
+          aria-label={autoPlayNext ? 'Đọc liên tục: Bật' : 'Đọc liên tục: Tắt'}
+        >
+          <Repeat className="w-2.5 h-2.5" />
+          <span className="hidden sm:inline text-[9px]">Liên tục</span>
+        </button>
+      )}
 
       {/* Huy hiệu hiển thị giọng đọc nữ tiếng Việt chuẩn */}
       <span
