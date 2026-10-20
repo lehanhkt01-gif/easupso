@@ -209,6 +209,7 @@ export default async function NewsDetailPage({ params }: Props) {
         {/* Tòa soạn Báo điện tử chuyên nghiệp chuẩn @hallmark */}
         <div className="mb-10">
           <EditorialArticleView
+            newsId={article.id}
             title={article.title}
             summary={article.summary}
             contentHtml={cleanContentHtml}

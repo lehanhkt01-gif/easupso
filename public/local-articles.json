@@ -1,1 +1,38 @@
-[]
+[
+  {
+    "id": "art-ea-sup-99-y-kien",
+    "title": "EA SÚP CÔNG KHAI TRẢ LỜI 99 Ý KIẾN CỬ TRI TRÊN NỀN TẢNG SỐ DÂN NGUYỆN",
+    "slug": "ea-sup-cong-khai-tra-loi-99-y-kien-cu-tri-tren-nen-tang-so-dan-nguyen",
+    "summary": "Thiết thực hưởng ứng đợt cao điểm \"Tháng lắng nghe dân nói\", Ủy ban nhân dân và các cơ quan chức năng xã Ea Súp vừa hoàn thành việc xử lý, trả lời 99 ý kiến, kiến nghị của cử tri 20 thôn, buôn gửi gắm sau kỳ họp Hội đồng nhân dân xã và các diễn đàn đối thoại trực tiếp.",
+    "contentHtml": "<p>Thiết thực hưởng ứng đợt cao điểm \"Tháng lắng nghe dân nói\", Ủy ban nhân dân và các cơ quan chức năng xã Ea Súp vừa hoàn thành việc xử lý, trả lời 99 ý kiến, kiến nghị của cử tri 20 thôn, buôn gửi gắm sau kỳ họp Hội đồng nhân dân xã và các diễn đàn đối thoại trực tiếp.</p>\n<p>Trong đợt tiếp xúc cử tri vừa qua, người dân 20 thôn, buôn trực thuộc xã Ea Súp đã gửi gắm nhiều ý kiến tâm huyết, thiết thực liên quan đến phát triển kinh tế - xã hội, bảo tồn bản sắc văn hóa và xây dựng chính quyền số phục vụ nhân dân.</p>\n<p>Các nội dung trọng tâm bao gồm: nâng cấp đường giao thông liên thôn buôn, hỗ trợ cây giống lúa nước và cây ăn trái thích ứng biến đổi khí hậu, hướng dẫn chuyển đổi số bình dân học vụ số và giải quyết thủ tục hành chính công trực tuyến.</p>\n<p>Đồng chí Chủ tịch UBND xã Ea Súp nhấn mạnh: Toàn bộ tiến độ giải quyết và kết quả trả lời 99 ý kiến cử tri đều được công khai minh bạch trên Cổng thông tin easupso.com và phân hệ Ý kiến cử tri (ykien.easupso.com) để nhân dân theo dõi, giám sát.</p>",
+    "thumbnailUrl": null,
+    "images": [],
+    "mediaItems": [],
+    "isFeatured": false,
+    "status": "PUBLISHED",
+    "viewCount": 0,
+    "categoryId": "cat-mttq",
+    "category": {
+      "id": "cat-mttq",
+      "slug": "mat-tran-to-quoc",
+      "name": "Ủy ban MTTQ xã",
+      "orgCode": "MTTQ",
+      "badgeColor": "forest"
+    },
+    "villageId": null,
+    "village": null,
+    "orgCode": "MTTQ",
+    "authorId": "root-admin-lehanh",
+    "author": {
+      "name": "Lê Hạnh",
+      "email": "lehanhkt01@gmail.com",
+      "positionTitle": "Quản trị viên Hệ thống Cấp cao"
+    },
+    "approvedById": null,
+    "approvedBy": null,
+    "beneficiaryName": null,
+    "publishedAt": null,
+    "createdAt": "2026-10-20T02:28:32.708Z",
+    "updatedAt": "2026-10-20T02:28:32.708Z"
+  }
+]

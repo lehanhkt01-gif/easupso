@@ -20,8 +20,10 @@ import {
   Feather,
 } from 'lucide-react';
 import { ArticleMediaItem, ImagePlacement } from '@/lib/news-gallery';
+import { NewsAudioPlayer } from './NewsAudioPlayer';
 
 interface EditorialArticleViewProps {
+  newsId?: string;
   title: string;
   summary: string;
   contentHtml: string;
@@ -37,6 +39,7 @@ interface EditorialArticleViewProps {
 }
 
 export function EditorialArticleView({
+  newsId,
   title,
   summary,
   contentHtml,
@@ -351,8 +354,8 @@ export function EditorialArticleView({
             )}
           </div>
 
-          {/* Công cụ tiện ích đọc báo: A- / A+, In, Sao chép link */}
-          <div className="flex items-center gap-1.5 bg-white border border-[#D5CBBA] p-1 rounded-xl shadow-xs text-xs text-[#14211B]">
+          {/* Công cụ tiện ích đọc báo: A- / A+, Nghe đọc bản tin, In, Sao chép link */}
+          <div className="flex items-center flex-wrap gap-1.5 bg-white border border-[#D5CBBA] p-1 rounded-xl shadow-xs text-xs text-[#14211B]">
             <button
               type="button"
               onClick={() => setFontSize((prev) => Math.max(15, prev - 1))}
@@ -374,6 +377,16 @@ export function EditorialArticleView({
             >
               <Plus className="w-3.5 h-3.5" />
             </button>
+
+            <span className="w-px h-4 bg-[#D5CBBA] mx-1" />
+
+            {/* Nút nghe đọc bản tin tự động (Audio Player) */}
+            <NewsAudioPlayer
+              newsId={newsId || slug || 'article'}
+              title={title}
+              summary={summary}
+              contentHtml={contentHtml}
+            />
 
             <span className="w-px h-4 bg-[#D5CBBA] mx-1" />
 
