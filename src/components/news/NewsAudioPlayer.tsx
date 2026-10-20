@@ -14,58 +14,87 @@ import {
   Repeat,
 } from 'lucide-react';
 
+interface ArticleMeta {
+  id: string;
+  title: string;
+  slug: string;
+  summary?: string | null;
+  contentHtml?: string | null;
+}
+
 interface NewsAudioPlayerProps {
   newsId: string;
   title: string;
   summary?: string | null;
   contentHtml?: string | null;
   className?: string;
-  nextArticle?: {
-    id: string;
-    title: string;
-    slug: string;
-    summary?: string | null;
-  } | null;
+  nextArticle?: ArticleMeta | null;
 }
 
 type PlayerStatus = 'idle' | 'loading' | 'playing' | 'paused';
 type PlaybackSpeed = 0.9 | 1.0 | 1.2;
 
-/**
- * Trích xuất văn bản thuần cho chế độ Dự phòng Web Speech API
- */
-function getPlainTextFromContent(title: string, summary?: string | null, contentHtml?: string | null): string {
-  let plain = (title || '').trim();
-  if (summary?.trim()) {
-    plain += `. ${summary.trim()}`;
-  }
-  if (contentHtml) {
-    const text = contentHtml
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ')
-      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ')
-      .replace(/<!--[\s\S]*?-->/gi, ' ')
-      .replace(/<\/(p|h1|h2|h3|h4|h5|h6|li|blockquote|div)>/gi, '. ')
-      .replace(/<br\s*\/?>/gi, '. ')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/&nbsp;/gi, ' ')
-      .replace(/&amp;/gi, ' và ')
-      .replace(/&quot;/gi, '"')
-      .replace(/&#39;|&apos;/gi, "'")
-      .replace(/https?:\/\/\S+/gi, '')
-      .replace(/\s+/g, ' ');
-    plain += `. ${text}`;
-  }
-  return plain.trim();
-}
+// Đoạn âm thanh im lặng (0.2s Silent 8000Hz WAV Base64) đảm bảo mở khóa tức thời Media Pipeline trên iOS Safari / Android ngay trong chuỗi click
+const SILENT_BASE64_WAV =
+  'data:audio/wav;base64,UklGRmQGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YUAGAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA=';
 
-/**
- * Định dạng số giây thành chuỗi mm:ss
- */
+// Định dạng thời gian mm:ss
 function formatTime(seconds: number): string {
   if (!seconds || isNaN(seconds) || seconds < 0) return '00:00';
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+// Biến lưu giữ ID bài viết đang phát trên toàn trang web
+let activeMasterNewsId: string | null = null;
+let wakeLockSentinel: any = null;
+
+/**
+ * Lấy hoặc tạo đối tượng HTMLAudioElement gắn trực tiếp vào DOM (document.body).
+ * ĐẶC BIỆT QUAN TRỌNG:
+ * Trên iOS Safari & Chrome Android, phần tử audio NẾU KHÔNG ĐƯỢC GẮN VÀO DOM (detached)
+ * sẽ bị hệ điều hành tiêu diệt/đình chỉ ngay khi màn hình tối hoặc bấm tắt nút nguồn.
+ * Gắn vào document.body bảo đảm duy trì luồng âm thanh ngầm vĩnh cửu.
+ */
+function getMasterAudio(): HTMLAudioElement | null {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return null;
+
+  let audio = document.getElementById('easupso-master-audio') as HTMLAudioElement | null;
+  if (!audio) {
+    audio = document.createElement('audio');
+    audio.id = 'easupso-master-audio';
+    audio.setAttribute('preload', 'auto');
+    audio.setAttribute('playsinline', 'true');
+    audio.setAttribute('webkit-playsinline', 'true');
+    audio.setAttribute('x-webkit-airplay', 'allow');
+    audio.style.display = 'none';
+    document.body.appendChild(audio);
+  }
+  return audio;
+}
+
+/**
+ * Yêu cầu Wake Lock giữ sáng màn hình khi người dùng mở trang web (tránh tự tối bất thường)
+ */
+async function requestScreenWakeLock() {
+  if (typeof navigator !== 'undefined' && 'wakeLock' in navigator) {
+    try {
+      wakeLockSentinel = await (navigator as any).wakeLock.request('screen');
+      wakeLockSentinel.addEventListener('release', () => {
+        wakeLockSentinel = null;
+      });
+    } catch {}
+  }
+}
+
+function releaseScreenWakeLock() {
+  if (wakeLockSentinel) {
+    try {
+      wakeLockSentinel.release();
+    } catch {}
+    wakeLockSentinel = null;
+  }
 }
 
 export function NewsAudioPlayer({
@@ -74,335 +103,419 @@ export function NewsAudioPlayer({
   summary,
   contentHtml,
   className = '',
-  nextArticle,
+  nextArticle: initialNextArticle,
 }: NewsAudioPlayerProps) {
   const router = useRouter();
 
+  // Trạng thái bài viết đang đọc hiện tại
+  const [currentArticle, setCurrentArticle] = useState<ArticleMeta>({
+    id: newsId,
+    title,
+    slug: newsId,
+    summary,
+    contentHtml,
+  });
+
+  // Trạng thái bài viết kế tiếp
+  const [nextArticle, setNextArticle] = useState<ArticleMeta | null>(initialNextArticle || null);
+
   const [status, setStatus] = useState<PlayerStatus>('idle');
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
   const [speed, setSpeed] = useState<PlaybackSpeed>(1.0);
-  const [isSpeechFallback, setIsSpeechFallback] = useState<boolean>(false);
-  const [autoPlayNext, setAutoPlayNext] = useState<boolean>(true); // Mặc định bật chế độ đọc liên tục
+  const [autoPlayNext, setAutoPlayNext] = useState<boolean>(true); // Mặc định BẬT tự động phát tiếp
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-  const speechIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  // Refs lưu giữ giá trị mới nhất cho các event listener bất đồng bộ (tránh closure cũ)
+  const currentArticleRef = useRef<ArticleMeta>(currentArticle);
+  const nextArticleRef = useRef<ArticleMeta | null>(nextArticle);
+  const nextAudioUrlRef = useRef<string | null>(null);
+  const autoPlayNextRef = useRef<boolean>(autoPlayNext);
+  const speedRef = useRef<PlaybackSpeed>(speed);
   const isDraggingRef = useRef<boolean>(false);
 
-  // Dọn dẹp tài nguyên khi unmount hoặc rời trang
-  const stopAllAudio = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
-    if (speechIntervalRef.current) {
-      clearInterval(speechIntervalRef.current);
-      speechIntervalRef.current = null;
-    }
-    setStatus('idle');
-    setCurrentTime(0);
-    setIsSpeechFallback(false);
-  }, []);
-
-  // Đăng ký dọn dẹp khi unmount hoặc tắt tab (CHÚ Ý: Không ngắt khi màn hình tắt/document.hidden)
+  // Đồng bộ props vào refs
   useEffect(() => {
-    function handleBeforeUnload() {
-      stopAllAudio();
-    }
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      stopAllAudio();
+    currentArticleRef.current = {
+      id: newsId,
+      title,
+      slug: newsId,
+      summary,
+      contentHtml,
     };
-  }, [stopAllAudio]);
-
-  // Cập nhật tốc độ đọc khi speed thay đổi
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.playbackRate = speed;
-    }
-    if (isSpeechFallback && status === 'playing' && speechUtteranceRef.current) {
-      speechUtteranceRef.current.rate = speed;
-    }
-  }, [speed, isSpeechFallback, status]);
-
-  // Khởi tạo và nạp sẵn danh sách giọng đọc của trình duyệt khi mount
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.getVoices();
-      window.speechSynthesis.onvoiceschanged = () => {
-        window.speechSynthesis.getVoices();
-      };
-    }
-  }, []);
-
-  // Hàm tìm kiếm giọng nữ tiếng Việt chuẩn xác nhất từ hệ điều hành
-  const getBestVietnameseFemaleVoice = useCallback((): SpeechSynthesisVoice | null => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
-    const voices = window.speechSynthesis.getVoices();
-    if (!voices || voices.length === 0) return null;
-
-    // 1. Nhận diện chính xác các giọng nữ tiếng Việt tự nhiên (Hoài My, Google tiếng Việt, Linh, Mai, Chi, Hương, v.v.)
-    const femaleViVoice = voices.find((v) => {
-      const name = (v.name || '').toLowerCase();
-      const lang = (v.lang || '').toLowerCase();
-      const isVi = lang.startsWith('vi') || lang.includes('vn') || name.includes('vietnam') || name.includes('tiếng việt');
-      if (!isVi) return false;
-
-      return (
-        name.includes('hoaimy') ||
-        name.includes('hoài my') ||
-        name.includes('female') ||
-        name.includes('nữ') ||
-        name.includes('google tiếng việt') ||
-        name.includes('mai') ||
-        name.includes('linh') ||
-        name.includes('chi') ||
-        name.includes('huong') ||
-        name.includes('hương')
-      );
+    setCurrentArticle({
+      id: newsId,
+      title,
+      slug: newsId,
+      summary,
+      contentHtml,
     });
-    if (femaleViVoice) return femaleViVoice;
+  }, [newsId, title, summary, contentHtml]);
 
-    // 2. Nếu không có tên nữ rõ ràng, loại trừ triệt để các giọng nam đã biết (NamMinh, Nam, Male, Trai)
-    const nonMaleViVoice = voices.find((v) => {
-      const name = (v.name || '').toLowerCase();
-      const lang = (v.lang || '').toLowerCase();
-      const isVi = lang.startsWith('vi') || lang.includes('vn') || name.includes('vietnam');
-      if (!isVi) return false;
-      return !name.includes('namminh') && !name.includes('nam') && !name.includes('male') && !name.includes('trai');
-    });
-    if (nonMaleViVoice) return nonMaleViVoice;
+  useEffect(() => {
+    nextArticleRef.current = initialNextArticle || null;
+    setNextArticle(initialNextArticle || null);
+    nextAudioUrlRef.current = null;
+  }, [initialNextArticle]);
 
-    // 3. Cuối cùng mới lấy giọng tiếng Việt bất kỳ nếu có
-    return (
-      voices.find((v) => {
-        const lang = (v.lang || '').toLowerCase();
-        return lang.startsWith('vi') || lang.includes('vn');
-      }) || null
-    );
-  }, []);
+  useEffect(() => {
+    autoPlayNextRef.current = autoPlayNext;
+  }, [autoPlayNext]);
 
-  // Chuyển sang đọc tiếp bản tin liền kề
-  const handlePlayNext = useCallback(() => {
-    if (!nextArticle) {
-      stopAllAudio();
-      return;
-    }
-
-    // Đánh dấu cờ tự động phát cho bài tiếp theo
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('easupso_news_autoplay', '1');
-    }
-
-    setStatus('loading');
-
-    // Chuyển trang mượt mà qua App Router
-    router.push(`/news/${nextArticle.slug}?autoplay=1`);
-  }, [nextArticle, router, stopAllAudio]);
-
-  // Khởi chạy chế độ Web Speech API dự phòng (khi server chưa sinh được file MP3)
-  const startSpeechFallback = useCallback(() => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      alert('Trình duyệt của bạn không hỗ trợ tính năng chuyển giọng đọc văn bản.');
-      setStatus('idle');
-      return;
-    }
-
-    try {
-      window.speechSynthesis.cancel();
-      const plainText = getPlainTextFromContent(title, summary, contentHtml);
-      if (!plainText) {
-        setStatus('idle');
-        return;
-      }
-
-      const utterance = new SpeechSynthesisUtterance(plainText);
-      speechUtteranceRef.current = utterance;
-      utterance.lang = 'vi-VN';
-      utterance.rate = speed;
-
-      // Mặc định thiết lập giọng nữ tiếng Việt chuẩn
-      const viFemaleVoice = getBestVietnameseFemaleVoice();
-      if (viFemaleVoice) {
-        utterance.voice = viFemaleVoice;
-      }
-
-      // Tinh chỉnh cao độ nhẹ nhàng thanh thoát (pitch 1.06) để đảm bảo âm sắc giọng nữ tự nhiên
-      utterance.pitch = 1.06;
-
-      // Ước lượng thời lượng đọc (~20 ký tự / giây ở tốc độ 1.0x)
-      const estDuration = Math.max(10, Math.ceil(plainText.length / 20));
-      setDuration(estDuration);
-      setCurrentTime(0);
-      setIsSpeechFallback(true);
-      setStatus('playing');
-
-      speechIntervalRef.current = setInterval(() => {
-        setCurrentTime((prev) => Math.min(prev + 1, estDuration));
-      }, 1000 / speed);
-
-      // KHI HẾT BÀI: Tự động chuyển và đọc tiếp bài liền kề nếu đang bật chế độ liên tục
-      utterance.onend = () => {
-        if (autoPlayNext && nextArticle) {
-          handlePlayNext();
-        } else {
-          stopAllAudio();
-        }
-      };
-
-      utterance.onerror = (e) => {
-        console.warn('[SPEECH_SYNTHESIS_ERROR]', e);
-        stopAllAudio();
-      };
-
-      window.speechSynthesis.speak(utterance);
-    } catch (err) {
-      console.error('[SPEECH_FALLBACK_FAIL]', err);
-      stopAllAudio();
-    }
-  }, [title, summary, contentHtml, speed, getBestVietnameseFemaleVoice, autoPlayNext, nextArticle, handlePlayNext, stopAllAudio]);
-
-  // Tua lùi 10 giây
-  const handleRewind10 = useCallback(() => {
-    if (isSpeechFallback) {
-      setCurrentTime((prev) => Math.max(0, prev - 10));
-      return;
-    }
-    if (audioRef.current) {
-      const nextTime = Math.max(0, audioRef.current.currentTime - 10);
-      audioRef.current.currentTime = nextTime;
-      setCurrentTime(nextTime);
-    }
-  }, [isSpeechFallback]);
-
-  // Tua tới 10 giây
-  const handleForward10 = useCallback(() => {
-    if (isSpeechFallback) {
-      setCurrentTime((prev) => Math.min(duration, prev + 10));
-      return;
-    }
-    if (audioRef.current) {
-      const maxDuration = audioRef.current.duration || duration || 1000;
-      const nextTime = Math.min(maxDuration, audioRef.current.currentTime + 10);
-      audioRef.current.currentTime = nextTime;
-      setCurrentTime(nextTime);
-    }
-  }, [isSpeechFallback, duration]);
-
-  // Khởi tạo và phát qua HTML5 Audio Element (HỖ TRỢ DUY TRÌ PHÁT KHI TẮT MÀN HÌNH ĐIỆN THOẠI)
-  const playWithHtml5Audio = useCallback(
-    (url: string) => {
-      let audio = audioRef.current;
-      if (!audio) {
-        audio = new Audio();
-        audioRef.current = audio;
-      }
-
-      audio.src = url;
+  useEffect(() => {
+    speedRef.current = speed;
+    const audio = getMasterAudio();
+    if (audio) {
       audio.playbackRate = speed;
-      audio.preload = 'auto';
+    }
+  }, [speed]);
 
-      audio.onloadedmetadata = () => {
-        if (audio && audio.duration && !isNaN(audio.duration)) {
-          setDuration(audio.duration);
-        }
-      };
+  /**
+   * Cập nhật thông tin bản tin lên Lock Screen (Màn hình khóa điện thoại)
+   * Sử dụng URL tuyệt đối để iOS media service hiển thị ảnh bìa chuẩn xác
+   */
+  const updateMediaSession = useCallback((articleTitle: string) => {
+    if (typeof window === 'undefined' || !('mediaSession' in navigator)) return;
+    try {
+      const origin = window.location.origin;
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: articleTitle || 'Bản tin Ea Súp',
+        artist: 'Ủy ban MTTQ Việt Nam xã Ea Súp',
+        album: 'Cổng thông tin Chuyển đổi số easupso.com',
+        artwork: [
+          { src: `${origin}/images/og-share.png`, sizes: '512x512', type: 'image/png' },
+          { src: `${origin}/icon-192.png`, sizes: '192x192', type: 'image/png' },
+        ],
+      });
+    } catch (err) {
+      console.warn('[MEDIA_SESSION_ERROR]', err);
+    }
+  }, []);
 
-      audio.ontimeupdate = () => {
-        if (!isDraggingRef.current && audio) {
-          setCurrentTime(audio.currentTime);
+  /**
+   * Tự động nạp trước (Prefetch) file âm thanh MP3 của bài viết tiếp theo
+   */
+  const prefetchNextAudio = useCallback((nextItem: ArticleMeta | null) => {
+    if (!nextItem || !nextItem.id) return;
 
-          // Cập nhật vị trí cho thanh điều khiển màn hình khóa (Lock Screen Timeline)
-          if (
-            typeof window !== 'undefined' &&
-            'mediaSession' in navigator &&
-            'setPositionState' in navigator.mediaSession &&
-            audio.duration &&
-            !isNaN(audio.duration)
-          ) {
-            try {
-              navigator.mediaSession.setPositionState({
-                duration: audio.duration,
-                playbackRate: audio.playbackRate || 1.0,
-                position: Math.min(audio.currentTime, audio.duration),
-              });
-            } catch {}
+    fetch('/api/news/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        newsId: nextItem.id,
+        title: nextItem.title,
+        summary: nextItem.summary || null,
+        voice: 'vi-VN-HoaiMyNeural',
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.audioUrl) {
+          nextAudioUrlRef.current = data.audioUrl;
+          // Tạo liên kết prefetch trong HTML Head để trình duyệt cache sẵn dữ liệu
+          if (typeof document !== 'undefined') {
+            const preLink = document.createElement('link');
+            preLink.rel = 'prefetch';
+            preLink.as = 'fetch';
+            preLink.href = data.audioUrl;
+            document.head.appendChild(preLink);
           }
         }
-      };
+      })
+      .catch(() => {});
+  }, []);
 
-      // KHI HẾT BÀI: Tự động chuyển và đọc tiếp bài liền kề nếu đang bật chế độ liên tục
-      audio.onended = () => {
-        if (autoPlayNext && nextArticle) {
-          handlePlayNext();
-        } else {
-          setStatus('idle');
-          setCurrentTime(0);
+  /**
+   * Tự động dò tìm bài viết tiếp theo nữa để duy trì chuỗi đọc liên tục không giới hạn
+   */
+  const fetchNextSubsequentArticle = useCallback(
+    async (currentId: string) => {
+      try {
+        const res = await fetch('/api/public/news?limit=20');
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          const list = json.data;
+          const idx = list.findIndex((a: any) => a.id === currentId || a.slug === currentId);
+          if (idx !== -1 && idx + 1 < list.length) {
+            const nextNext = list[idx + 1];
+            const meta: ArticleMeta = {
+              id: nextNext.id,
+              title: nextNext.title,
+              slug: nextNext.slug,
+              summary: nextNext.summary,
+            };
+            setNextArticle(meta);
+            nextArticleRef.current = meta;
+            prefetchNextAudio(meta);
+          }
         }
-      };
-
-      audio.onerror = () => {
-        console.warn('[AUDIO_ELEMENT_ERROR] Không thể phát file MP3, chuyển sang Web Speech API fallback.');
-        startSpeechFallback();
-      };
-
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            setStatus('playing');
-            setIsSpeechFallback(false);
-          })
-          .catch((err) => {
-            console.warn('[AUDIO_PLAY_AUTOPLAY_BLOCK]', err);
-            startSpeechFallback();
-          });
-      }
+      } catch {}
     },
-    [speed, autoPlayNext, nextArticle, handlePlayNext, startSpeechFallback]
+    [prefetchNextAudio]
   );
 
-  // Xử lý khi nhấn nút "Nghe đọc"
-  const handleStartPlay = useCallback(async () => {
-    // 1. Mở khóa đối tượng Audio ngay trong tương tác bấm chuột của người dùng (User Gesture)
-    if (!audioRef.current) {
-      audioRef.current = new Audio();
-    }
-    const audio = audioRef.current;
+  /**
+   * Đồng bộ điều hướng giao diện Next.js mà không làm đứt đoạn âm thanh nền:
+   * - Nếu màn hình đang mở (visible): Điều hướng mềm bằng router.replace
+   * - Nếu màn hình đang tắt (hidden / trong túi): Giữ nguyên trang, đợi người dùng mở màn hình mới đồng bộ
+   */
+  const syncPageNavigation = useCallback(
+    (slug: string) => {
+      if (typeof document === 'undefined') return;
 
-    // 2. Nếu đã có file âm thanh sẵn trong bộ nhớ component
-    if (audioUrl && audio.src) {
+      if (document.visibilityState === 'visible') {
+        router.replace(`/news/${slug}`, { scroll: false });
+      } else {
+        const handleVisibilityChange = () => {
+          if (document.visibilityState === 'visible') {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            router.replace(`/news/${slug}`, { scroll: false });
+          }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+      }
+    },
+    [router]
+  );
+
+  /**
+   * Dừng toàn bộ âm thanh và dọn dẹp tài nguyên
+   */
+  const stopAllAudio = useCallback(() => {
+    activeMasterNewsId = null;
+    releaseScreenWakeLock();
+
+    const audio = getMasterAudio();
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.removeAttribute('src');
+      audio.load();
+    }
+
+    if (typeof window !== 'undefined' && 'mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = 'none';
+    }
+
+    setStatus('idle');
+    setCurrentTime(0);
+    setDuration(0);
+  }, []);
+
+  /**
+   * HÀM THEN CHỐT: CHUYỂN VÀ PHÁT BẢN TIN TIẾP THEO MÀ KHÔNG BỊ TẮT KHI MÀN HÌNH ĐANG KHÓA
+   */
+  const handlePlayNext = useCallback(async () => {
+    const next = nextArticleRef.current;
+    if (!next) {
+      stopAllAudio();
+      return;
+    }
+
+    const audio = getMasterAudio();
+    if (!audio) return;
+
+    // Cập nhật thông tin bài viết hiện tại
+    currentArticleRef.current = next;
+    setCurrentArticle(next);
+    activeMasterNewsId = next.id;
+
+    // Cập nhật giao diện Lock Screen và Tiêu đề tab ngay lập tức
+    updateMediaSession(next.title);
+    if (typeof document !== 'undefined') {
+      document.title = `${next.title} — Cổng thông tin Ea Súp`;
+    }
+
+    // Cập nhật URL trình duyệt (bảo lưu lịch sử, không reload)
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `/news/${next.slug}`);
+    }
+
+    const preloadedUrl = nextAudioUrlRef.current;
+
+    // 1. Nếu đã có sẵn URL âm thanh đã nạp trước (Trường hợp tối ưu nhất)
+    if (preloadedUrl) {
       try {
+        audio.loop = false;
+        audio.src = preloadedUrl;
+        audio.currentTime = 0;
+        audio.playbackRate = speedRef.current;
         await audio.play();
+
         setStatus('playing');
-        setIsSpeechFallback(false);
+        nextAudioUrlRef.current = null; // Đã dùng xong
+
+        // Nạp trước bài tiếp theo sau đó
+        fetchNextSubsequentArticle(next.id);
+
+        // Đồng bộ giao diện
+        syncPageNavigation(next.slug);
         return;
-      } catch {
-        // Tiếp tục thử tải lại nếu bị gián đoạn
+      } catch (err) {
+        console.warn('[PLAY_PRELOADED_NEXT_FAIL]', err);
       }
     }
+
+    // 2. Nếu bài tiếp theo chưa nạp kịp:
+    // TUYỆT ĐỐI KHÔNG ĐỂ LUỒNG ÂM THANH BỊ NGẮT (TRÁNH HỆ ĐIỀU HÀNH DI ĐỘNG KHÓA BACKGROUND AUDIO)
+    // Cho phát lặp đoạn im lặng trong tích tắc để giữ nguyên phiên Audio Session
+    try {
+      audio.loop = true;
+      audio.src = '/audio/silence.mp3';
+      await audio.play().catch(async () => {
+        audio.src = SILENT_BASE64_WAV;
+        await audio.play();
+      });
+    } catch {}
 
     setStatus('loading');
 
     try {
-      // 3. Gọi API kiểm tra / sinh file âm thanh giọng nữ Hoài My
+      const res = await fetch('/api/news/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          newsId: next.id,
+          title: next.title,
+          summary: next.summary || null,
+          voice: 'vi-VN-HoaiMyNeural',
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success && data.audioUrl) {
+        // Chuyển từ âm thanh im lặng sang MP3 thực tế
+        audio.loop = false;
+        audio.src = data.audioUrl;
+        audio.currentTime = 0;
+        audio.playbackRate = speedRef.current;
+        await audio.play();
+
+        setStatus('playing');
+        fetchNextSubsequentArticle(next.id);
+        syncPageNavigation(next.slug);
+      } else {
+        stopAllAudio();
+      }
+    } catch (err) {
+      console.error('[PLAY_NEXT_FETCH_FAIL]', err);
+      stopAllAudio();
+    }
+  }, [
+    updateMediaSession,
+    syncPageNavigation,
+    fetchNextSubsequentArticle,
+    stopAllAudio,
+  ]);
+
+  /**
+   * ĐĂNG KÝ VÀ LẮNG NGHE SỰ KIỆN TRÊN ĐỐI TƯỢNG AUDIO MASTER
+   */
+  useEffect(() => {
+    const audio = getMasterAudio();
+    if (!audio) return;
+
+    const handleLoadedMetadata = () => {
+      if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+        setDuration(audio.duration);
+      }
+    };
+
+    const handleTimeUpdate = () => {
+      if (!isDraggingRef.current && audio) {
+        setCurrentTime(audio.currentTime);
+
+        // Cập nhật tiến trình cho Lock Screen Scrubber
+        if (
+          typeof window !== 'undefined' &&
+          'mediaSession' in navigator &&
+          'setPositionState' in navigator.mediaSession &&
+          audio.duration &&
+          !isNaN(audio.duration) &&
+          isFinite(audio.duration) &&
+          audio.duration > 0
+        ) {
+          try {
+            navigator.mediaSession.setPositionState({
+              duration: Math.max(1, audio.duration),
+              playbackRate: audio.playbackRate || 1.0,
+              position: Math.min(Math.max(0, audio.currentTime), audio.duration),
+            });
+          } catch {}
+        }
+      }
+    };
+
+    // SỰ KIỆN ĐẶC BIỆT: HẾT BÀI -> TỰ ĐỘNG PHÁT BÀI TIẾP THEO KỂ CẢ KHI TẮT MÀN HÌNH
+    const handleEnded = () => {
+      if (autoPlayNextRef.current && nextArticleRef.current) {
+        handlePlayNext();
+      } else {
+        setStatus('idle');
+        setCurrentTime(0);
+        releaseScreenWakeLock();
+      }
+    };
+
+    const handlePlay = () => {
+      setStatus('playing');
+    };
+
+    const handlePause = () => {
+      if (status !== 'loading') {
+        setStatus('paused');
+      }
+    };
+
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+
+    return () => {
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+    };
+  }, [handlePlayNext, status]);
+
+  /**
+   * BẮT ĐẦU PHÁT ÂM THANH KHI NGƯỜI DÙNG BẤM "NGHE ĐỌC"
+   */
+  const handleStartPlay = useCallback(async () => {
+    const audio = getMasterAudio();
+    if (!audio) return;
+
+    // BƯỚC SỐNG CÒN CHO ĐIỆN THOẠI DI ĐỘNG (IOS SAFARI & ANDROID):
+    // Phải mở khóa Media Pipeline NGAY LẬP TỨC đồng bộ trong cú chạm ngón tay của người dùng!
+    // Bằng cách phát lặp (loop = true) đoạn âm thanh im lặng trong lúc chờ API sinh MP3.
+    try {
+      audio.loop = true;
+      audio.src = '/audio/silence.mp3';
+      await audio.play().catch(async () => {
+        audio.src = SILENT_BASE64_WAV;
+        await audio.play();
+      });
+    } catch (e) {
+      console.warn('[PRIMING_AUDIO_WARN]', e);
+    }
+
+    requestScreenWakeLock();
+    setStatus('loading');
+    activeMasterNewsId = currentArticle.id;
+
+    try {
       const response = await fetch('/api/news/tts', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          newsId: newsId || `art-${Date.now()}`,
-          title: title,
-          summary: summary || null,
-          contentHtml: contentHtml || null,
-          voice: 'vi-VN-HoaiMyNeural', // Mặc định giọng nữ nhẹ nhàng, truyền cảm
+          newsId: currentArticle.id,
+          title: currentArticle.title,
+          summary: currentArticle.summary || null,
+          contentHtml: currentArticle.contentHtml || null,
+          voice: 'vi-VN-HoaiMyNeural',
         }),
       });
 
@@ -413,82 +526,102 @@ export function NewsAudioPlayer({
       const data = await response.json();
 
       if (data.success && data.audioUrl) {
-        setAudioUrl(data.audioUrl);
-        playWithHtml5Audio(data.audioUrl);
+        // Chuyển mượt mà từ âm thanh im lặng sang MP3 chính thức của bản tin
+        audio.loop = false;
+        audio.src = data.audioUrl;
+        audio.currentTime = 0;
+        audio.playbackRate = speedRef.current;
+        await audio.play();
+
+        setStatus('playing');
+        updateMediaSession(currentArticle.title);
+
+        // Nạp ngầm trước bài kế tiếp
+        prefetchNextAudio(nextArticleRef.current);
       } else {
-        // Server báo fallback sang browser
-        startSpeechFallback();
+        audio.loop = false;
+        audio.pause();
+        setStatus('idle');
+        alert('Máy chủ đang bận, vui lòng thử lại sau giây lát.');
       }
     } catch (err) {
-      console.warn('[NEWS_TTS_FETCH_FAIL] Kích hoạt giọng đọc nữ tiếng Việt dự phòng:', err);
-      startSpeechFallback();
+      console.error('[NEWS_TTS_FETCH_FAIL]', err);
+      audio.loop = false;
+      audio.pause();
+      setStatus('idle');
     }
-  }, [audioUrl, newsId, title, summary, contentHtml, playWithHtml5Audio, startSpeechFallback]);
+  }, [currentArticle, updateMediaSession, prefetchNextAudio]);
 
-  // Tự động kích hoạt phát khi chuyển trang có cờ autoplay (chế độ đọc liên tục)
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const autoplayFlag = sessionStorage.getItem('easupso_news_autoplay');
-      const urlParams = new URLSearchParams(window.location.search);
-      if (autoplayFlag === '1' || urlParams.get('autoplay') === '1') {
-        sessionStorage.removeItem('easupso_news_autoplay');
-        const timer = setTimeout(() => {
-          handleStartPlay();
-        }, 400);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [handleStartPlay]);
-
-  // ĐĂNG KÝ MEDIA SESSION API ĐỂ DUY TRÌ ĐỌC KHI TẮT MÀN HÌNH VÀ HIỂN THỊ TRÊN MÀN HÌNH KHÓA (LOCK SCREEN)
+  /**
+   * ĐĂNG KÝ MEDIA SESSION CONTROLS CHO MÀN HÌNH KHÓA (LOCK SCREEN)
+   */
   useEffect(() => {
     if (typeof window === 'undefined' || !('mediaSession' in navigator)) return;
 
     try {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: title || 'Bản tin Ea Súp',
-        artist: 'Ủy ban MTTQ Việt Nam xã Ea Súp',
-        album: 'Cổng thông tin số easupso.com',
-        artwork: [
-          { src: '/images/og-share.png', sizes: '512x512', type: 'image/png' },
-        ],
-      });
+      updateMediaSession(currentArticle.title);
 
+      // 1. Play
       navigator.mediaSession.setActionHandler('play', () => {
-        if (audioRef.current) {
-          audioRef.current.play().catch(() => {});
+        const audio = getMasterAudio();
+        if (audio) {
+          audio.play().catch(() => {});
           setStatus('playing');
+          requestScreenWakeLock();
         }
       });
 
+      // 2. Pause
       navigator.mediaSession.setActionHandler('pause', () => {
-        if (audioRef.current) {
-          audioRef.current.pause();
+        const audio = getMasterAudio();
+        if (audio) {
+          audio.pause();
           setStatus('paused');
+          releaseScreenWakeLock();
         }
       });
 
+      // 3. Tua lùi 10s
       navigator.mediaSession.setActionHandler('seekbackward', () => {
-        handleRewind10();
+        const audio = getMasterAudio();
+        if (audio) {
+          audio.currentTime = Math.max(0, audio.currentTime - 10);
+          setCurrentTime(audio.currentTime);
+        }
       });
 
+      // 4. Tua tới 10s
       navigator.mediaSession.setActionHandler('seekforward', () => {
-        handleForward10();
+        const audio = getMasterAudio();
+        if (audio) {
+          audio.currentTime = Math.min(audio.duration || 1000, audio.currentTime + 10);
+          setCurrentTime(audio.currentTime);
+        }
       });
 
-      if (nextArticle) {
-        navigator.mediaSession.setActionHandler('nexttrack', () => {
-          handlePlayNext();
+      // 5. Chuyển sang bài tiếp theo (Next Track)
+      navigator.mediaSession.setActionHandler('nexttrack', () => {
+        handlePlayNext();
+      });
+
+      // 6. Tua thanh trượt trên màn hình khóa (Seek To)
+      try {
+        navigator.mediaSession.setActionHandler('seekto', (details) => {
+          const audio = getMasterAudio();
+          if (audio && details.seekTime !== undefined) {
+            audio.currentTime = details.seekTime;
+            setCurrentTime(details.seekTime);
+          }
         });
-      } else {
-        navigator.mediaSession.setActionHandler('nexttrack', null);
-      }
+      } catch {}
     } catch (e) {
       console.warn('[MEDIA_SESSION_WARN]', e);
     }
-  }, [title, nextArticle, handleRewind10, handleForward10, handlePlayNext]);
+  }, [currentArticle.title, handlePlayNext, updateMediaSession]);
 
-  // Cập nhật trạng thái phát cho Media Session (Playing / Paused)
+  /**
+   * Cập nhật trạng thái hiển thị Playback State của Media Session
+   */
   useEffect(() => {
     if (typeof window !== 'undefined' && 'mediaSession' in navigator) {
       navigator.mediaSession.playbackState =
@@ -496,37 +629,52 @@ export function NewsAudioPlayer({
     }
   }, [status]);
 
-  // Tạm dừng / Tiếp tục
+  /**
+   * Tạm dừng hoặc tiếp tục phát
+   */
   const handleTogglePause = () => {
-    if (isSpeechFallback) {
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        if (status === 'playing') {
-          window.speechSynthesis.pause();
-          if (speechIntervalRef.current) clearInterval(speechIntervalRef.current);
-          setStatus('paused');
-        } else if (status === 'paused') {
-          window.speechSynthesis.resume();
-          speechIntervalRef.current = setInterval(() => {
-            setCurrentTime((prev) => Math.min(prev + 1, duration));
-          }, 1000 / speed);
-          setStatus('playing');
-        }
-      }
-      return;
-    }
-
-    if (!audioRef.current) return;
+    const audio = getMasterAudio();
+    if (!audio) return;
 
     if (status === 'playing') {
-      audioRef.current.pause();
+      audio.pause();
       setStatus('paused');
+      releaseScreenWakeLock();
     } else if (status === 'paused') {
-      audioRef.current.play().catch(() => {});
+      audio.play().catch(() => {});
       setStatus('playing');
+      requestScreenWakeLock();
     }
   };
 
-  // Xử lý kéo thanh trượt thời gian (Scrubber)
+  /**
+   * Tua lùi 10 giây
+   */
+  const handleRewind10 = () => {
+    const audio = getMasterAudio();
+    if (audio) {
+      const nextTime = Math.max(0, audio.currentTime - 10);
+      audio.currentTime = nextTime;
+      setCurrentTime(nextTime);
+    }
+  };
+
+  /**
+   * Tua tới 10 giây
+   */
+  const handleForward10 = () => {
+    const audio = getMasterAudio();
+    if (audio) {
+      const maxDur = audio.duration || duration || 1000;
+      const nextTime = Math.min(maxDur, audio.currentTime + 10);
+      audio.currentTime = nextTime;
+      setCurrentTime(nextTime);
+    }
+  };
+
+  /**
+   * Kéo thanh trượt thời gian
+   */
   const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
     setCurrentTime(val);
@@ -534,22 +682,25 @@ export function NewsAudioPlayer({
 
   const handleSeekCommit = (e: React.MouseEvent<HTMLInputElement> | React.TouchEvent<HTMLInputElement>) => {
     isDraggingRef.current = false;
-    const target = e.currentTarget as HTMLInputElement;
-    const val = parseFloat(target.value);
-    if (!isSpeechFallback && audioRef.current) {
-      audioRef.current.currentTime = val;
+    const val = parseFloat((e.currentTarget as HTMLInputElement).value);
+    const audio = getMasterAudio();
+    if (audio) {
+      audio.currentTime = val;
     }
   };
 
-  // Xoay vòng tốc độ đọc (0.9x -> 1.0x -> 1.2x -> 0.9x)
+  /**
+   * Đổi tốc độ đọc (0.9x -> 1.0x -> 1.2x)
+   */
   const handleToggleSpeed = () => {
     const speeds: PlaybackSpeed[] = [0.9, 1.0, 1.2];
-    const currentIndex = speeds.indexOf(speed);
-    const nextSpeed = speeds[(currentIndex + 1) % speeds.length];
+    const nextSpeed = speeds[(speeds.indexOf(speed) + 1) % speeds.length];
     setSpeed(nextSpeed);
   };
 
-  // Lắng nghe phím tắt điều khiển (Space = Play/Pause, ArrowLeft = -10s, ArrowRight = +10s)
+  /**
+   * Phím tắt điều khiển bàn phím (Space = Play/Pause, ArrowLeft/Right = Tua 10s, Esc = Dừng)
+   */
   useEffect(() => {
     if (status === 'idle') return;
 
@@ -576,18 +727,18 @@ export function NewsAudioPlayer({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [status, handleTogglePause, handleRewind10, handleForward10, stopAllAudio]);
+  }, [status, handleTogglePause, stopAllAudio]);
 
-  // ================= RENDER CÁC TRẠNG THÁI =================
+  // ================= RENDER GIAO DIỆN THEO CHUẨN DESIGN SYSTEM =================
 
-  // TRẠNG THÁI 1: CHƯA ĐỌC (IDLE)
+  // 1. TRẠNG THÁI CHỜ (IDLE)
   if (status === 'idle') {
     return (
       <button
         type="button"
         onClick={handleStartPlay}
         className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 hover:text-emerald-900 font-semibold text-xs border border-emerald-200/80 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0 ${className}`}
-        title="Nghe đọc tự động bản tin (Giọng nữ Hoài My - Hỗ trợ đọc khi tắt màn hình)"
+        title="Nghe đọc tự động bản tin (Giọng nữ Hoài My - Duy trì phát liên tục khi tắt màn hình)"
         aria-label="Nghe đọc bản tin tự động"
       >
         <Volume2 className="w-3.5 h-3.5 text-emerald-700" />
@@ -596,7 +747,7 @@ export function NewsAudioPlayer({
     );
   }
 
-  // TRẠNG THÁI 2: ĐANG TẢI / CHUẨN BỊ (LOADING)
+  // 2. TRẠNG THÁI ĐANG TẢI (LOADING)
   if (status === 'loading') {
     return (
       <div
@@ -610,7 +761,7 @@ export function NewsAudioPlayer({
     );
   }
 
-  // TRẠNG THÁI 3 & 4: ĐANG PHÁT HOẶC TẠM DỪNG (PLAYING / PAUSED) - MINI PLAYER CONSOLE
+  // 3 & 4. TRẠNG THÁI ĐANG PHÁT HOẶC TẠM DỪNG (PLAYING / PAUSED) - BÀN ĐIỀU KHIỂN MINI
   const progressPercent = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
 
   return (
@@ -654,7 +805,7 @@ export function NewsAudioPlayer({
         <span className="hidden sm:inline">10s</span>
       </button>
 
-      {/* Nút chuyển trực tiếp sang bài tiếp theo (nếu có bản tin liền kề) */}
+      {/* Nút chuyển trực tiếp sang bài tiếp theo */}
       {nextArticle && (
         <button
           type="button"
@@ -668,7 +819,7 @@ export function NewsAudioPlayer({
         </button>
       )}
 
-      {/* 4. Thanh tiến trình thời gian nghe (Progress bar & Time display) */}
+      {/* 4. Thanh trượt thời gian & hiển thị phút giây */}
       <div className="flex items-center gap-1.5 px-1 min-w-[65px] sm:min-w-[110px]">
         <input
           type="range"
@@ -698,7 +849,7 @@ export function NewsAudioPlayer({
         </span>
       </div>
 
-      {/* 5. Nút chọn tốc độ đọc (0.9x, 1.0x, 1.2x) */}
+      {/* 5. Tốc độ đọc (0.9x, 1.0x, 1.2x) */}
       <button
         type="button"
         onClick={handleToggleSpeed}
@@ -709,7 +860,7 @@ export function NewsAudioPlayer({
         {speed.toFixed(1)}x
       </button>
 
-      {/* Nút bật/tắt chế độ Đọc liên tục (Tự động đọc bài tiếp theo khi hết bài) */}
+      {/* Nút bật/tắt chế độ Đọc liên tục (Tự động đọc tiếp khi hết bài) */}
       {nextArticle && (
         <button
           type="button"
@@ -721,7 +872,7 @@ export function NewsAudioPlayer({
           }`}
           title={
             autoPlayNext
-              ? `Tự động đọc bài kế tiếp khi hết bản tin: BẬT (Bài tiếp: "${nextArticle.title}")`
+              ? `Tự động đọc bài kế tiếp: BẬT (Bài tiếp: "${nextArticle.title}")`
               : 'Tự động đọc bài kế tiếp: TẮT (Bấm để bật)'
           }
           aria-label={autoPlayNext ? 'Đọc liên tục: Bật' : 'Đọc liên tục: Tắt'}
@@ -731,15 +882,15 @@ export function NewsAudioPlayer({
         </button>
       )}
 
-      {/* Huy hiệu hiển thị giọng đọc nữ tiếng Việt chuẩn */}
+      {/* Huy hiệu giọng đọc nữ chuẩn */}
       <span
         className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200"
-        title={isSpeechFallback ? 'Giọng đọc nữ tiếng Việt chuẩn (Trình duyệt)' : 'Giọng đọc nữ tiếng Việt chuẩn (AI Hoài My)'}
+        title="Giọng đọc nữ tiếng Việt chuẩn (AI Hoài My - Tự động phát tiếp khi tắt màn hình)"
       >
         Giọng nữ
       </span>
 
-      {/* 6. Nút Dừng / Đóng (Stop) */}
+      {/* 6. Nút Dừng & Đóng */}
       <button
         type="button"
         onClick={stopAllAudio}

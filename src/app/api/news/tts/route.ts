@@ -67,12 +67,46 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    let finalTitle = title;
+    let finalSummary = summary;
+    let finalContent = contentHtml;
+
+    // Nếu có newsId nhưng thiếu nội dung, tự động nạp từ CSDL PostgreSQL hoặc file cục bộ
+    if (newsId && (!finalTitle || !finalContent)) {
+      try {
+        const { prisma } = await import('@/lib/prisma');
+        const dbArticle = await prisma.newsArticle.findFirst({
+          where: {
+            OR: [{ id: newsId }, { slug: newsId }],
+          },
+          select: { id: true, title: true, summary: true, contentHtml: true },
+        });
+        if (dbArticle) {
+          finalTitle = finalTitle || dbArticle.title;
+          finalSummary = finalSummary || dbArticle.summary;
+          finalContent = finalContent || dbArticle.contentHtml;
+        }
+      } catch {}
+
+      if (!finalTitle || !finalContent) {
+        try {
+          const { getLocalArticleById, getLocalArticleBySlug } = await import('@/lib/local-news');
+          const localArticle = (await getLocalArticleById(newsId)) || (await getLocalArticleBySlug(newsId));
+          if (localArticle) {
+            finalTitle = finalTitle || localArticle.title;
+            finalSummary = finalSummary || localArticle.summary;
+            finalContent = finalContent || localArticle.contentHtml;
+          }
+        } catch {}
+      }
+    }
+
     const finalNewsId = newsId || `article-${Date.now()}`;
     const result = await getOrGenerateNewsAudio({
       newsId: finalNewsId,
-      title: title || 'Bản tin Ea Súp',
-      summary: summary || null,
-      contentHtml: contentHtml || null,
+      title: finalTitle || 'Bản tin Ea Súp',
+      summary: finalSummary || null,
+      contentHtml: finalContent || null,
       text: text || null,
       voice: voice === 'vi-VN-NamMinhNeural' ? 'vi-VN-NamMinhNeural' : 'vi-VN-HoaiMyNeural',
     });
