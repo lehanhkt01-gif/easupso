@@ -421,12 +421,9 @@ export function EditorialArticleView({
               <span>
                 {publishedAt
                   ? new Date(publishedAt).toLocaleDateString('vi-VN', {
-                      weekday: 'long',
                       day: '2-digit',
                       month: '2-digit',
                       year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
                     })
                   : 'Vừa đăng'}
               </span>
@@ -434,7 +431,7 @@ export function EditorialArticleView({
 
             <span className="flex items-center gap-1">
               <Eye className="w-3.5 h-3.5 text-[#6B7C73]" />
-              <span>{Number(viewCount) + 1} lượt xem</span>
+              <span>{Number(viewCount) + 1}</span>
             </span>
           </div>
         </div>
