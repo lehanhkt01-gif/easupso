@@ -124,6 +124,7 @@ export function NewsAudioPlayer({
   const [duration, setDuration] = useState<number>(0);
   const [speed, setSpeed] = useState<PlaybackSpeed>(1.0);
   const [autoPlayNext, setAutoPlayNext] = useState<boolean>(true); // Mặc định BẬT tự động phát tiếp
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Refs lưu giữ giá trị mới nhất cho các event listener bất đồng bộ (tránh closure cũ)
   const currentArticleRef = useRef<ArticleMeta>(currentArticle);
@@ -507,6 +508,9 @@ export function NewsAudioPlayer({
     activeMasterNewsId = currentArticle.id;
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
+
       const response = await fetch('/api/news/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -517,7 +521,10 @@ export function NewsAudioPlayer({
           contentHtml: currentArticle.contentHtml || null,
           voice: 'vi-VN-HoaiMyNeural',
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`API HTTP ${response.status}`);
@@ -534,6 +541,7 @@ export function NewsAudioPlayer({
         await audio.play();
 
         setStatus('playing');
+        setErrorMessage(null);
         updateMediaSession(currentArticle.title);
 
         // Nạp ngầm trước bài kế tiếp
@@ -542,13 +550,16 @@ export function NewsAudioPlayer({
         audio.loop = false;
         audio.pause();
         setStatus('idle');
-        alert('Máy chủ đang bận, vui lòng thử lại sau giây lát.');
+        setErrorMessage('Tạm thời chưa thể đọc bài này. Bấm để thử lại.');
+        setTimeout(() => setErrorMessage(null), 5000);
       }
     } catch (err) {
       console.error('[NEWS_TTS_FETCH_FAIL]', err);
       audio.loop = false;
       audio.pause();
       setStatus('idle');
+      setErrorMessage('Đang tải dữ liệu, vui lòng bấm lại.');
+      setTimeout(() => setErrorMessage(null), 5000);
     }
   }, [currentArticle, updateMediaSession, prefetchNextAudio]);
 
@@ -734,16 +745,23 @@ export function NewsAudioPlayer({
   // 1. TRẠNG THÁI CHỜ (IDLE)
   if (status === 'idle') {
     return (
-      <button
-        type="button"
-        onClick={handleStartPlay}
-        className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 hover:text-emerald-900 font-semibold text-xs border border-emerald-200/80 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0 ${className}`}
-        title="Nghe đọc tự động bản tin (Giọng nữ Hoài My - Duy trì phát liên tục khi tắt màn hình)"
-        aria-label="Nghe đọc bản tin tự động"
-      >
-        <Volume2 className="w-3.5 h-3.5 text-emerald-700" />
-        <span>Nghe đọc</span>
-      </button>
+      <div className="inline-flex items-center gap-1.5 shrink-0 flex-wrap">
+        <button
+          type="button"
+          onClick={handleStartPlay}
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 hover:text-emerald-900 font-semibold text-xs border border-emerald-200/80 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0 ${className}`}
+          title="Nghe đọc tự động bản tin (Giọng nữ Hoài My - Duy trì phát liên tục khi tắt màn hình)"
+          aria-label="Nghe đọc bản tin tự động"
+        >
+          <Volume2 className="w-3.5 h-3.5 text-emerald-700" />
+          <span>Nghe đọc</span>
+        </button>
+        {errorMessage && (
+          <span className="text-[11px] text-amber-700 font-medium px-2 py-0.5 bg-amber-50 rounded border border-amber-200 animate-pulse">
+            {errorMessage}
+          </span>
+        )}
+      </div>
     );
   }
 

@@ -122,6 +122,12 @@ function ensureAudioDir(): void {
 /**
  * Kiểm tra xem bản ghi MP3 của bài viết đã được lưu trên máy chủ chưa
  */
+// Bộ nhớ đệm âm thanh RAM để dự phòng trường hợp đĩa máy chủ bị khóa quyền ghi (EACCES)
+export const audioMemoryCache = new Map<string, { buffer: Buffer; createdAt: number }>();
+
+/**
+ * Kiểm tra xem bản ghi MP3 của bài viết đã được lưu trên máy chủ chưa
+ */
 export function getCachedAudioPath(safeId: string): string | null {
   try {
     const filePath = path.join(AUDIO_UPLOAD_DIR, `${safeId}.mp3`);
@@ -137,86 +143,91 @@ export function getCachedAudioPath(safeId: string): string | null {
 
 /**
  * Sinh file âm thanh bằng Microsoft Edge Neural TTS
+ * Thiết lập timeout nghiêm ngặt (4.5s) để tránh treo request khi Microsoft chặn IP datacenter (HTTP 429)
  */
 async function synthesizeWithEdgeTTS(
   text: string,
   voice: 'vi-VN-HoaiMyNeural' | 'vi-VN-NamMinhNeural' = 'vi-VN-HoaiMyNeural'
 ): Promise<Buffer> {
   const tts = new MsEdgeTTS();
-  await tts.setMetadata(voice, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
 
-  // Nếu văn bản quá dài (> 3200 ký tự), chia nhỏ thành các đoạn tự nhiên theo câu
-  const maxChunkSize = 3000;
-  if (text.length <= maxChunkSize) {
-    const { audioStream } = tts.toStream(text);
-    const chunks: Buffer[] = [];
-    return new Promise((resolve, reject) => {
-      audioStream.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+  return new Promise(async (resolve, reject) => {
+    let timer: NodeJS.Timeout | null = null;
+    let isSettled = false;
+
+    const cleanup = () => {
+      isSettled = true;
+      if (timer) clearTimeout(timer);
+      try {
+        tts.close();
+      } catch {}
+    };
+
+    timer = setTimeout(() => {
+      cleanup();
+      reject(new Error('Edge-TTS timeout (4.5s)'));
+    }, 4500);
+
+    try {
+      await tts.setMetadata(voice, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
+      if (isSettled) return;
+
+      // Giới hạn độ dài văn bản an toàn cho một luồng phát Edge-TTS
+      const safeText = text.length > 5000 ? text.substring(0, 5000) : text;
+      const { audioStream } = tts.toStream(safeText);
+      const chunks: Buffer[] = [];
+
+      audioStream.on('data', (chunk) => {
+        if (!isSettled) chunks.push(Buffer.from(chunk));
+      });
+
       audioStream.on('end', () => {
-        try {
-          tts.close();
-        } catch {}
-        resolve(Buffer.concat(chunks));
+        if (!isSettled) {
+          const finalBuf = Buffer.concat(chunks);
+          cleanup();
+          if (finalBuf.length > 500) {
+            resolve(finalBuf);
+          } else {
+            reject(new Error('Edge-TTS trả về luồng âm thanh rỗng'));
+          }
+        }
       });
+
       audioStream.on('error', (err) => {
-        try {
-          tts.close();
-        } catch {}
-        reject(err);
+        if (!isSettled) {
+          cleanup();
+          reject(err);
+        }
       });
-    });
-  }
-
-  // Chia nhỏ theo câu
-  const sentences = text.match(/[^.!?]+[.!?]+|\s*[^.!?]+$/g) || [text];
-  const textChunks: string[] = [];
-  let current = '';
-
-  for (const s of sentences) {
-    if ((current + s).length > maxChunkSize) {
-      if (current.trim()) textChunks.push(current.trim());
-      current = s;
-    } else {
-      current += s;
+    } catch (err) {
+      cleanup();
+      reject(err);
     }
-  }
-  if (current.trim()) textChunks.push(current.trim());
-
-  const audioBuffers: Buffer[] = [];
-  for (const chunk of textChunks) {
-    const { audioStream } = tts.toStream(chunk);
-    const chunkBuf: Buffer = await new Promise((resolve, reject) => {
-      const streamChunks: Buffer[] = [];
-      audioStream.on('data', (c) => streamChunks.push(Buffer.from(c)));
-      audioStream.on('end', () => resolve(Buffer.concat(streamChunks)));
-      audioStream.on('error', reject);
-    });
-    audioBuffers.push(chunkBuf);
-  }
-
-  try {
-    tts.close();
-  } catch {}
-
-  return Buffer.concat(audioBuffers);
+  });
 }
 
 /**
- * Sinh file âm thanh bằng Google TTS (Dự phòng trường hợp Edge-TTS bị gián đoạn kết nối)
+ * Sinh file âm thanh bằng Google TTS (Dự phòng tốc độ cao < 1 giây khi Edge-TTS bị nghẽn mạng)
  */
 async function synthesizeWithGoogleTTS(text: string): Promise<Buffer> {
-  const results = await googleTTS.getAllAudioBase64(text, {
+  // Giới hạn an toàn 4000 ký tự cho Google TTS
+  const safeText = text.length > 4000 ? text.substring(0, 4000) : text;
+  const results = await googleTTS.getAllAudioBase64(safeText, {
     lang: 'vi',
     slow: false,
-    timeout: 10000,
+    timeout: 8000,
   });
 
   const buffers = results.map((item) => Buffer.from(item.base64, 'base64'));
-  return Buffer.concat(buffers);
+  const finalBuf = Buffer.concat(buffers);
+  if (!finalBuf || finalBuf.length < 500) {
+    throw new Error('Google-TTS trả về dữ liệu rỗng');
+  }
+  return finalBuf;
 }
 
 /**
- * Dịch vụ tổng hợp âm thanh giọng đọc bản tin chính thức (Hỗ trợ Static Cache & Fallback)
+ * Dịch vụ tổng hợp âm thanh giọng đọc bản tin chính thức (Hỗ trợ Static Cache, RAM Cache & Stream Fallback)
  */
 export async function getOrGenerateNewsAudio(options: TTSOptions): Promise<TTSResult> {
   const safeId = sanitizeAudioId(options.newsId);
@@ -229,6 +240,16 @@ export async function getOrGenerateNewsAudio(options: TTSOptions): Promise<TTSRe
       audioUrl: cachedUrl,
       cached: true,
       provider: 'msedge-tts',
+    };
+  }
+
+  // 1.1 Kiểm tra RAM Cache nếu có sẵn
+  if (audioMemoryCache.has(safeId)) {
+    return {
+      success: true,
+      audioUrl: `/api/news/tts?stream=1&newsId=${safeId}`,
+      cached: true,
+      provider: 'google-tts',
     };
   }
 
@@ -246,11 +267,10 @@ export async function getOrGenerateNewsAudio(options: TTSOptions): Promise<TTSRe
     };
   }
 
-  ensureAudioDir();
   const filePath = path.join(AUDIO_UPLOAD_DIR, `${safeId}.mp3`);
   const finalVoice = options.voice || 'vi-VN-HoaiMyNeural';
 
-  // 3. THỰC THI SINH FILE ÂM THANH
+  // 3. THỰC THI SINH FILE ÂM THANH (ƯU TIÊN EDGE-TTS, TỰ ĐỘNG CHUYỂN SANG GOOGLE-TTS NẾU GẶP 429 / TIMEOUT)
   let audioBuffer: Buffer | null = null;
   let providerUsed: 'msedge-tts' | 'google-tts' = 'msedge-tts';
 
@@ -258,9 +278,9 @@ export async function getOrGenerateNewsAudio(options: TTSOptions): Promise<TTSRe
     // Bước 3.1: Ưu tiên Microsoft Edge Neural TTS giọng chuẩn vi-VN-HoaiMyNeural
     audioBuffer = await synthesizeWithEdgeTTS(textToRead, finalVoice);
   } catch (edgeErr: any) {
-    console.warn('[TTS_EDGE_WARN] Edge-TTS gặp sự cố, chuyển sang dự phòng Google TTS:', edgeErr?.message);
+    console.warn('[TTS_EDGE_WARN] Edge-TTS gặp sự cố hoặc bị chặn 429, chuyển sang Google TTS:', edgeErr?.message);
     try {
-      // Bước 3.2: Fallback sang Google TTS
+      // Bước 3.2: Fallback tức thời sang Google TTS (hoàn thành trong < 1s)
       audioBuffer = await synthesizeWithGoogleTTS(textToRead);
       providerUsed = 'google-tts';
     } catch (googleErr: any) {
@@ -268,34 +288,35 @@ export async function getOrGenerateNewsAudio(options: TTSOptions): Promise<TTSRe
     }
   }
 
-  // Nếu cả 2 đều thất bại trên server, hướng dẫn client fallback sang Web Speech API của trình duyệt
+  // Nếu cả 2 đều thất bại trên server
   if (!audioBuffer || audioBuffer.length === 0) {
     return {
       success: false,
       cached: false,
       fallbackToBrowser: true,
-      message: 'Không thể sinh file âm thanh từ máy chủ, vui lòng sử dụng giọng đọc trình duyệt.',
+      message: 'Máy chủ tạm thời chưa thể chuyển đổi văn bản sang âm thanh.',
     };
   }
 
-  // 4. LƯU VÀO ĐĨA VÀ TRẢ VỀ ĐƯỜNG DẪN TĨNH
+  // 4. LƯU VÀO RAM VÀ THỬ GHI RA ĐĨA
+  audioMemoryCache.set(safeId, { buffer: audioBuffer, createdAt: Date.now() });
+
+  let finalAudioUrl = `/api/news/tts?stream=1&newsId=${safeId}`;
+
   try {
+    ensureAudioDir();
     await fs.promises.writeFile(filePath, audioBuffer);
-    const audioUrl = `/uploads/audio/news/${safeId}.mp3`;
-    return {
-      success: true,
-      audioUrl,
-      cached: false,
-      provider: providerUsed,
-      durationEstimateSeconds: Math.ceil(textToRead.length / 25), // Ước lượng ~25 ký tự / giây
-    };
-  } catch (writeErr: any) {
-    console.error('[TTS_WRITE_FILE_ERROR] Lỗi khi ghi file MP3:', writeErr);
-    return {
-      success: false,
-      cached: false,
-      fallbackToBrowser: true,
-      message: 'Không thể lưu file âm thanh vào đĩa máy chủ.',
-    };
+    finalAudioUrl = `/uploads/audio/news/${safeId}.mp3`;
+  } catch (diskErr) {
+    console.warn('[TTS_DISK_WARN] Thư mục uploads không có quyền ghi, phục vụ âm thanh qua luồng Stream RAM:', diskErr);
+    // Vẫn trả về thành công với finalAudioUrl trỏ tới /api/news/tts?stream=1
   }
+
+  return {
+    success: true,
+    audioUrl: finalAudioUrl,
+    cached: false,
+    provider: providerUsed,
+    durationEstimateSeconds: Math.ceil(textToRead.length / 25),
+  };
 }

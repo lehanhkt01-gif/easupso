@@ -1,17 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getOrGenerateNewsAudio, getCachedAudioPath, sanitizeAudioId } from '@/lib/tts-service';
+import fs from 'fs';
+import path from 'path';
+import {
+  getOrGenerateNewsAudio,
+  getCachedAudioPath,
+  sanitizeAudioId,
+  audioMemoryCache,
+} from '@/lib/tts-service';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Cho phép thực thi tối đa 60 giây đối với bản tin dài
 
 /**
- * GET /api/news/tts?newsId=...
- * Kiểm tra trạng thái cache âm thanh nhanh (< 2ms) mà không tốn tài nguyên máy chủ
+ * GET /api/news/tts?newsId=...&stream=1
+ * - Nếu có stream=1: Phục vụ trực tiếp luồng MP3 từ bộ nhớ RAM hoặc đĩa (hỗ trợ HTTP 206 Partial Content cho Safari/Zalo)
+ * - Nếu không có stream: Kiểm tra trạng thái cache nhanh (< 2ms)
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const newsId = searchParams.get('newsId');
+    const isStream = searchParams.get('stream') === '1';
 
     if (!newsId) {
       return NextResponse.json(
@@ -21,13 +30,71 @@ export async function GET(request: NextRequest) {
     }
 
     const safeId = sanitizeAudioId(newsId);
-    const cachedUrl = getCachedAudioPath(safeId);
 
+    // 1. Phục vụ phát trực tiếp luồng MP3 từ RAM Cache hoặc đĩa
+    if (isStream) {
+      let buffer: Buffer | null = null;
+      const mem = audioMemoryCache.get(safeId);
+      if (mem && mem.buffer) {
+        buffer = mem.buffer;
+      } else {
+        try {
+          const filePath = path.join(process.cwd(), 'public', 'uploads', 'audio', 'news', `${safeId}.mp3`);
+          if (fs.existsSync(filePath)) {
+            buffer = await fs.promises.readFile(filePath);
+          }
+        } catch {}
+      }
+
+      if (!buffer || buffer.length === 0) {
+        return new NextResponse('File âm thanh chưa sẵn sàng', { status: 404 });
+      }
+
+      const range = request.headers.get('range');
+      if (range) {
+        const parts = range.replace(/bytes=/, '').split('-');
+        const start = parseInt(parts[0], 10) || 0;
+        const end = parts[1] ? parseInt(parts[1], 10) : buffer.length - 1;
+        const chunk = buffer.subarray(start, end + 1);
+
+        return new NextResponse(new Uint8Array(chunk), {
+          status: 206,
+          headers: {
+            'Content-Range': `bytes ${start}-${end}/${buffer.length}`,
+            'Accept-Ranges': 'bytes',
+            'Content-Length': chunk.length.toString(),
+            'Content-Type': 'audio/mpeg',
+            'Cache-Control': 'public, max-age=86400',
+          },
+        });
+      }
+
+      return new NextResponse(new Uint8Array(buffer), {
+        status: 200,
+        headers: {
+          'Content-Type': 'audio/mpeg',
+          'Accept-Ranges': 'bytes',
+          'Content-Length': buffer.length.toString(),
+          'Cache-Control': 'public, max-age=86400',
+        },
+      });
+    }
+
+    // 2. Kiểm tra trạng thái cache nhanh
+    const cachedUrl = getCachedAudioPath(safeId);
     if (cachedUrl) {
       return NextResponse.json({
         success: true,
         cached: true,
         audioUrl: cachedUrl,
+      });
+    }
+
+    if (audioMemoryCache.has(safeId)) {
+      return NextResponse.json({
+        success: true,
+        cached: true,
+        audioUrl: `/api/news/tts?stream=1&newsId=${safeId}`,
       });
     }
 
