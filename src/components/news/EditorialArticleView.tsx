@@ -325,8 +325,9 @@ export function EditorialArticleView({
     );
   }
 
-  // Tác giả mặc định trang nhã
-  const finalAuthor = authorName?.trim() || 'Ủy ban MTTQ Việt Nam xã Ea Súp';
+  // Tác giả mặc định trang nhã (chỉ lấy họ tên, loại bỏ phần ngoặc đơn chức danh)
+  const rawAuthor = authorName?.trim() || 'Ủy ban MTTQ Việt Nam xã Ea Súp';
+  const finalAuthor = rawAuthor.replace(/\s*\([^)]*\)\s*$/, '').trim() || rawAuthor;
 
   return (
     <article className="bg-white rounded-2xl border border-[#E8E2D5] shadow-sm overflow-hidden text-[#14211B]">
@@ -427,7 +428,6 @@ export function EditorialArticleView({
             </div>
             <div>
               <p className="font-bold text-[#14211B] text-xs sm:text-sm">{finalAuthor}</p>
-              {authorPosition && <p className="text-[11px] text-[#4A5B52]">{authorPosition}</p>}
             </div>
           </div>
 

@@ -217,7 +217,7 @@ export default async function NewsDetailPage({ params }: Props) {
             categoryName={article.category?.name || 'Ủy ban MTTQ xã'}
             villageName={article.village?.name || null}
             authorName={article.author?.name || 'Ủy ban MTTQ Việt Nam xã Ea Súp'}
-            authorPosition={article.author?.positionTitle || null}
+            authorPosition={null}
             publishedAt={article.publishedAt || article.createdAt}
             viewCount={article.viewCount || 0}
             slug={article.slug}

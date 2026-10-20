@@ -122,7 +122,65 @@ export function NewsAudioPlayer({
     }
   }, [speed, isSpeechFallback, status]);
 
-  // Khởi chạy chế độ Web Speech API dự phòng (khi server không sinh được file MP3)
+  // Khởi tạo và nạp sẵn danh sách giọng đọc của trình duyệt khi mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.getVoices();
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+    }
+  }, []);
+
+  // Hàm tìm kiếm giọng nữ tiếng Việt chuẩn xác nhất từ hệ điều hành
+  const getBestVietnameseFemaleVoice = useCallback((): SpeechSynthesisVoice | null => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices || voices.length === 0) return null;
+
+    // 1. Nhận diện chính xác các giọng nữ tiếng Việt tự nhiên (Hoài My, Google tiếng Việt, Linh, Mai, Chi, Hương, v.v.)
+    const femaleViVoice = voices.find((v) => {
+      const name = (v.name || '').toLowerCase();
+      const lang = (v.lang || '').toLowerCase();
+      const isVi = lang.startsWith('vi') || lang.includes('vn') || name.includes('vietnam') || name.includes('tiếng việt');
+      if (!isVi) return false;
+
+      // Ưu tiên các giọng nữ
+      return (
+        name.includes('hoaimy') ||
+        name.includes('hoài my') ||
+        name.includes('female') ||
+        name.includes('nữ') ||
+        name.includes('google tiếng việt') ||
+        name.includes('mai') ||
+        name.includes('linh') ||
+        name.includes('chi') ||
+        name.includes('huong') ||
+        name.includes('hương')
+      );
+    });
+    if (femaleViVoice) return femaleViVoice;
+
+    // 2. Nếu không có tên nữ rõ ràng, loại trừ triệt để các giọng nam đã biết (NamMinh, Nam, Male, Trai)
+    const nonMaleViVoice = voices.find((v) => {
+      const name = (v.name || '').toLowerCase();
+      const lang = (v.lang || '').toLowerCase();
+      const isVi = lang.startsWith('vi') || lang.includes('vn') || name.includes('vietnam');
+      if (!isVi) return false;
+      return !name.includes('namminh') && !name.includes('nam') && !name.includes('male') && !name.includes('trai');
+    });
+    if (nonMaleViVoice) return nonMaleViVoice;
+
+    // 3. Cuối cùng mới lấy giọng tiếng Việt bất kỳ nếu có
+    return (
+      voices.find((v) => {
+        const lang = (v.lang || '').toLowerCase();
+        return lang.startsWith('vi') || lang.includes('vn');
+      }) || null
+    );
+  }, []);
+
+  // Khởi chạy chế độ Web Speech API dự phòng (khi server chưa sinh được file MP3)
   const startSpeechFallback = useCallback(() => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
       alert('Trình duyệt của bạn không hỗ trợ tính năng chuyển giọng đọc văn bản.');
@@ -143,12 +201,14 @@ export function NewsAudioPlayer({
       utterance.lang = 'vi-VN';
       utterance.rate = speed;
 
-      // Tìm giọng đọc tiếng Việt nếu hệ điều hành hỗ trợ
-      const voices = window.speechSynthesis.getVoices();
-      const viVoice = voices.find((v) => v.lang.startsWith('vi') || v.lang.includes('VN'));
-      if (viVoice) {
-        utterance.voice = viVoice;
+      // Mặc định thiết lập giọng nữ tiếng Việt chuẩn
+      const viFemaleVoice = getBestVietnameseFemaleVoice();
+      if (viFemaleVoice) {
+        utterance.voice = viFemaleVoice;
       }
+
+      // Tinh chỉnh cao độ nhẹ nhàng thanh thoát (pitch 1.06) để đảm bảo âm sắc giọng nữ tự nhiên
+      utterance.pitch = 1.06;
 
       // Ước lượng thời lượng đọc (~20 ký tự / giây ở tốc độ 1.0x)
       const estDuration = Math.max(10, Math.ceil(plainText.length / 20));
@@ -177,7 +237,7 @@ export function NewsAudioPlayer({
       console.error('[SPEECH_FALLBACK_FAIL]', err);
       stopAllAudio();
     }
-  }, [title, summary, contentHtml, speed, stopAllAudio]);
+  }, [title, summary, contentHtml, speed, getBestVietnameseFemaleVoice, stopAllAudio]);
 
   // Khởi tạo và phát qua HTML5 Audio Element
   const playWithHtml5Audio = useCallback(
@@ -233,21 +293,28 @@ export function NewsAudioPlayer({
 
   // Xử lý khi nhấn nút "Nghe đọc"
   const handleStartPlay = async () => {
-    // 1. Nếu đã có file âm thanh sẵn trong bộ nhớ component
-    if (audioUrl && audioRef.current) {
+    // 1. Mở khóa đối tượng Audio ngay trong tương tác bấm chuột của người dùng (User Gesture)
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+    }
+    const audio = audioRef.current;
+
+    // 2. Nếu đã có file âm thanh sẵn trong bộ nhớ component
+    if (audioUrl && audio.src) {
       try {
-        await audioRef.current.play();
+        await audio.play();
         setStatus('playing');
+        setIsSpeechFallback(false);
         return;
       } catch {
-        // Tiếp tục thử tải lại
+        // Tiếp tục thử tải lại nếu bị gián đoạn
       }
     }
 
     setStatus('loading');
 
     try {
-      // 2. Gọi API kiểm tra / sinh file âm thanh
+      // 3. Gọi API kiểm tra / sinh file âm thanh giọng nữ Hoài My
       const response = await fetch('/api/news/tts', {
         method: 'POST',
         headers: {
@@ -258,9 +325,13 @@ export function NewsAudioPlayer({
           title: title,
           summary: summary || null,
           contentHtml: contentHtml || null,
-          voice: 'vi-VN-HoaiMyNeural',
+          voice: 'vi-VN-HoaiMyNeural', // Mặc định giọng nữ nhẹ nhàng, truyền cảm
         }),
       });
+
+      if (!response.ok) {
+        throw new Error(`API HTTP ${response.status}`);
+      }
 
       const data = await response.json();
 
@@ -272,7 +343,7 @@ export function NewsAudioPlayer({
         startSpeechFallback();
       }
     } catch (err) {
-      console.warn('[NEWS_TTS_FETCH_FAIL] Lỗi gọi API, kích hoạt giọng đọc trình duyệt:', err);
+      console.warn('[NEWS_TTS_FETCH_FAIL] Kích hoạt giọng đọc nữ tiếng Việt dự phòng:', err);
       startSpeechFallback();
     }
   };
@@ -504,15 +575,13 @@ export function NewsAudioPlayer({
         {speed.toFixed(1)}x
       </button>
 
-      {/* Huy hiệu nhỏ hiển thị giọng đọc */}
-      {isSpeechFallback && (
-        <span
-          className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-50 text-amber-800 border border-amber-200"
-          title="Đang sử dụng giọng đọc trình duyệt"
-        >
-          Trình duyệt
-        </span>
-      )}
+      {/* Huy hiệu hiển thị giọng đọc nữ tiếng Việt chuẩn */}
+      <span
+        className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200"
+        title={isSpeechFallback ? 'Giọng đọc nữ tiếng Việt chuẩn (Trình duyệt)' : 'Giọng đọc nữ tiếng Việt chuẩn (AI Hoài My)'}
+      >
+        Giọng nữ
+      </span>
 
       {/* 6. Nút Dừng / Đóng (Stop) */}
       <button
