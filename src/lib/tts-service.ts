@@ -97,7 +97,42 @@ export function extractCleanSpeechText(title: string, summary?: string | null, c
     script += ` ${clean}`;
   }
 
-  // Tinh chỉnh văn phong phát thanh
+  // Tinh chỉnh văn phong phát thanh và tự động mở rộng từ viết tắt hành chính
+  const abbreviations: [RegExp, string][] = [
+    [/\bUBND\b/g, 'Ủy ban nhân dân'],
+    [/\bHĐND\b/g, 'Hội đồng nhân dân'],
+    [/\bUBMTTQVN\b/gi, 'Ủy ban Mặt trận Tổ quốc Việt Nam'],
+    [/\bUBMTTQ\b/gi, 'Ủy ban Mặt trận Tổ quốc'],
+    [/\bMTTQ\b/g, 'Mặt trận Tổ quốc'],
+    [/\bBCH\b/g, 'Ban Chấp hành'],
+    [/\bBTV\b/g, 'Ban Thường vụ'],
+    [/\bTW\b/g, 'Trung ương'],
+    [/\bT\.Ư\b/gi, 'Trung ương'],
+    [/\bđ\/c\b/gi, 'đồng chí'],
+    [/\bĐ\/c\b/g, 'Đồng chí'],
+    [/\bPCT\b/g, 'Phó Chủ tịch'],
+    [/\bCT\b/g, 'Chủ tịch'],
+    [/\bNQ\b/g, 'Nghị quyết'],
+    [/\bQĐ\b/g, 'Quyết định'],
+    [/\bCSDL\b/g, 'Cơ sở dữ liệu'],
+    [/\bCNTT\b/g, 'Công nghệ thông tin'],
+    [/\bCĐS\b/g, 'Chuyển đổi số'],
+    [/\bCCB\b/g, 'Cựu chiến binh'],
+    [/\bĐTN\b/g, 'Đoàn Thanh niên'],
+    [/\bLHPN\b/g, 'Liên hiệp Phụ nữ'],
+    [/\bHND\b/g, 'Hội Nông dân'],
+    [/\bTh\.\s*buôn\b/gi, 'Thôn, buôn'],
+    [/\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/g, 'ngày $1 tháng $2 năm $3'],
+    [/\b(\d{1,2})\/(\d{1,2})\b/g, 'ngày $1 tháng $2'],
+    [/(\d+)\s*%/g, '$1 phần trăm'],
+  ];
+
+  for (const [pattern, replacement] of abbreviations) {
+    script = script.replace(pattern, replacement);
+  }
+
+  script = script.replace(/ngày\s+ngày\s+/gi, 'ngày ');
+
   script = script
     .replace(/\s*([,.:;?!])\s*/g, '$1 ')
     .replace(/(\. ){2,}/g, '. ')
@@ -174,7 +209,8 @@ async function synthesizeWithEdgeTTS(
 
       // Giới hạn độ dài văn bản an toàn cho một luồng phát Edge-TTS
       const safeText = text.length > 5000 ? text.substring(0, 5000) : text;
-      const { audioStream } = tts.toStream(safeText);
+      // Tốc độ +14%: Giọng đọc dứt khoát, thanh thoát, trôi chảy, đúng chuẩn phát thanh viên thời sự
+      const { audioStream } = tts.toStream(safeText, { rate: '+14%', pitch: '+0Hz' });
       const chunks: Buffer[] = [];
 
       audioStream.on('data', (chunk) => {
@@ -230,10 +266,13 @@ async function synthesizeWithGoogleTTS(text: string): Promise<Buffer> {
  * Dịch vụ tổng hợp âm thanh giọng đọc bản tin chính thức (Hỗ trợ Static Cache, RAM Cache & Stream Fallback)
  */
 export async function getOrGenerateNewsAudio(options: TTSOptions): Promise<TTSResult> {
-  const safeId = sanitizeAudioId(options.newsId);
+  const baseId = sanitizeAudioId(options.newsId);
+  const voiceKey = options.voice === 'vi-VN-NamMinhNeural' ? 'nam' : 'nu';
+  const safeId = `${baseId}-${voiceKey}`;
 
   // 1. KIỂM TRA BỘ NHỚ ĐỆM TĨNH TRÊN ĐĨA (STATIC CACHE)
-  const cachedUrl = getCachedAudioPath(safeId);
+  // Kiểm tra file theo giọng hiện tại (id-nu hoặc id-nam), sau đó thử file cũ (baseId)
+  const cachedUrl = getCachedAudioPath(safeId) || (voiceKey === 'nu' ? getCachedAudioPath(baseId) : null);
   if (cachedUrl) {
     return {
       success: true,

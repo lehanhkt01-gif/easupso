@@ -32,11 +32,12 @@ interface NewsAudioPlayerProps {
 }
 
 type PlayerStatus = 'idle' | 'loading' | 'playing' | 'paused';
-type PlaybackSpeed = 0.9 | 1.0 | 1.2;
+type PlaybackSpeed = 1.0 | 1.15 | 1.3 | 0.9;
+type VoiceType = 'vi-VN-HoaiMyNeural' | 'vi-VN-NamMinhNeural';
 
 // Đoạn âm thanh im lặng (0.2s Silent 8000Hz WAV Base64) đảm bảo mở khóa tức thời Media Pipeline trên iOS Safari / Android ngay trong chuỗi click
 const SILENT_BASE64_WAV =
-  'data:audio/wav;base64,UklGRmQGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YUAGAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA=';
+  'data:audio/wav;base64,UklGRmQGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YUAGAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA=';
 
 // Định dạng thời gian mm:ss
 function formatTime(seconds: number): string {
@@ -46,16 +47,11 @@ function formatTime(seconds: number): string {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
-// Biến lưu giữ ID bài viết đang phát trên toàn trang web
 let activeMasterNewsId: string | null = null;
 let wakeLockSentinel: any = null;
 
 /**
  * Lấy hoặc tạo đối tượng HTMLAudioElement gắn trực tiếp vào DOM (document.body).
- * ĐẶC BIỆT QUAN TRỌNG:
- * Trên iOS Safari & Chrome Android, phần tử audio NẾU KHÔNG ĐƯỢC GẮN VÀO DOM (detached)
- * sẽ bị hệ điều hành tiêu diệt/đình chỉ ngay khi màn hình tối hoặc bấm tắt nút nguồn.
- * Gắn vào document.body bảo đảm duy trì luồng âm thanh ngầm vĩnh cửu.
  */
 function getMasterAudio(): HTMLAudioElement | null {
   if (typeof window === 'undefined' || typeof document === 'undefined') return null;
@@ -75,7 +71,7 @@ function getMasterAudio(): HTMLAudioElement | null {
 }
 
 /**
- * Yêu cầu Wake Lock giữ sáng màn hình khi người dùng mở trang web (tránh tự tối bất thường)
+ * Yêu cầu Screen Wake Lock giữ sáng màn hình
  */
 async function requestScreenWakeLock() {
   if (typeof navigator !== 'undefined' && 'wakeLock' in navigator) {
@@ -122,17 +118,32 @@ export function NewsAudioPlayer({
   const [status, setStatus] = useState<PlayerStatus>('idle');
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
-  const [speed, setSpeed] = useState<PlaybackSpeed>(1.0);
-  const [autoPlayNext, setAutoPlayNext] = useState<boolean>(true); // Mặc định BẬT tự động phát tiếp
+  // MẶC ĐỊNH TỐC ĐỘ 1.15x: Tự nhiên, lưu loát, dứt khoát, không bị chậm chạp
+  const [speed, setSpeed] = useState<PlaybackSpeed>(1.15);
+  // LỰA CHỌN GIỌNG ĐỌC: 'vi-VN-HoaiMyNeural' (Nữ truyền cảm) hoặc 'vi-VN-NamMinhNeural' (Nam đĩnh đạc)
+  const [voice, setVoice] = useState<VoiceType>('vi-VN-HoaiMyNeural');
+  const [autoPlayNext, setAutoPlayNext] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Refs lưu giữ giá trị mới nhất cho các event listener bất đồng bộ (tránh closure cũ)
+  // Refs lưu giữ giá trị mới nhất cho các event listener bất đồng bộ
   const currentArticleRef = useRef<ArticleMeta>(currentArticle);
   const nextArticleRef = useRef<ArticleMeta | null>(nextArticle);
   const nextAudioUrlRef = useRef<string | null>(null);
   const autoPlayNextRef = useRef<boolean>(autoPlayNext);
   const speedRef = useRef<PlaybackSpeed>(speed);
+  const voiceRef = useRef<VoiceType>(voice);
   const isDraggingRef = useRef<boolean>(false);
+
+  // Khôi phục tùy chọn giọng đọc từ localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedVoice = localStorage.getItem('easupso_audio_voice') as VoiceType | null;
+      if (savedVoice === 'vi-VN-NamMinhNeural' || savedVoice === 'vi-VN-HoaiMyNeural') {
+        setVoice(savedVoice);
+        voiceRef.current = savedVoice;
+      }
+    }
+  }, []);
 
   // Đồng bộ props vào refs
   useEffect(() => {
@@ -170,9 +181,12 @@ export function NewsAudioPlayer({
     }
   }, [speed]);
 
+  useEffect(() => {
+    voiceRef.current = voice;
+  }, [voice]);
+
   /**
    * Cập nhật thông tin bản tin lên Lock Screen (Màn hình khóa điện thoại)
-   * Sử dụng URL tuyệt đối để iOS media service hiển thị ảnh bìa chuẩn xác
    */
   const updateMediaSession = useCallback((articleTitle: string) => {
     if (typeof window === 'undefined' || !('mediaSession' in navigator)) return;
@@ -193,7 +207,7 @@ export function NewsAudioPlayer({
   }, []);
 
   /**
-   * Tự động nạp trước (Prefetch) file âm thanh MP3 của bài viết tiếp theo
+   * Tự động nạp trước (Prefetch) file âm thanh MP3 của bài viết tiếp theo theo đúng giọng đọc đang chọn
    */
   const prefetchNextAudio = useCallback((nextItem: ArticleMeta | null) => {
     if (!nextItem || !nextItem.id) return;
@@ -205,14 +219,13 @@ export function NewsAudioPlayer({
         newsId: nextItem.id,
         title: nextItem.title,
         summary: nextItem.summary || null,
-        voice: 'vi-VN-HoaiMyNeural',
+        voice: voiceRef.current,
       }),
     })
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.audioUrl) {
           nextAudioUrlRef.current = data.audioUrl;
-          // Tạo liên kết prefetch trong HTML Head để trình duyệt cache sẵn dữ liệu
           if (typeof document !== 'undefined') {
             const preLink = document.createElement('link');
             preLink.rel = 'prefetch';
@@ -226,7 +239,7 @@ export function NewsAudioPlayer({
   }, []);
 
   /**
-   * Tự động dò tìm bài viết tiếp theo nữa để duy trì chuỗi đọc liên tục không giới hạn
+   * Tự động dò tìm bài viết tiếp theo để duy trì chuỗi đọc liên tục không giới hạn
    */
   const fetchNextSubsequentArticle = useCallback(
     async (currentId: string) => {
@@ -255,9 +268,7 @@ export function NewsAudioPlayer({
   );
 
   /**
-   * Đồng bộ điều hướng giao diện Next.js mà không làm đứt đoạn âm thanh nền:
-   * - Nếu màn hình đang mở (visible): Điều hướng mềm bằng router.replace
-   * - Nếu màn hình đang tắt (hidden / trong túi): Giữ nguyên trang, đợi người dùng mở màn hình mới đồng bộ
+   * Đồng bộ điều hướng giao diện Next.js mà không làm đứt đoạn âm thanh nền
    */
   const syncPageNavigation = useCallback(
     (slug: string) => {
@@ -303,7 +314,7 @@ export function NewsAudioPlayer({
   }, []);
 
   /**
-   * HÀM THEN CHỐT: CHUYỂN VÀ PHÁT BẢN TIN TIẾP THEO MÀ KHÔNG BỊ TẮT KHI MÀN HÌNH ĐANG KHÓA
+   * CHUYỂN VÀ PHÁT BẢN TIN TIẾP THEO MÀ KHÔNG BỊ TẮT KHI MÀN HÌNH ĐANG KHÓA
    */
   const handlePlayNext = useCallback(async () => {
     const next = nextArticleRef.current;
@@ -315,25 +326,22 @@ export function NewsAudioPlayer({
     const audio = getMasterAudio();
     if (!audio) return;
 
-    // Cập nhật thông tin bài viết hiện tại
     currentArticleRef.current = next;
     setCurrentArticle(next);
     activeMasterNewsId = next.id;
 
-    // Cập nhật giao diện Lock Screen và Tiêu đề tab ngay lập tức
     updateMediaSession(next.title);
     if (typeof document !== 'undefined') {
       document.title = `${next.title} — Cổng thông tin Ea Súp`;
     }
 
-    // Cập nhật URL trình duyệt (bảo lưu lịch sử, không reload)
     if (typeof window !== 'undefined') {
       window.history.replaceState(null, '', `/news/${next.slug}`);
     }
 
     const preloadedUrl = nextAudioUrlRef.current;
 
-    // 1. Nếu đã có sẵn URL âm thanh đã nạp trước (Trường hợp tối ưu nhất)
+    // 1. Trường hợp có sẵn âm thanh nạp trước
     if (preloadedUrl) {
       try {
         audio.loop = false;
@@ -343,12 +351,9 @@ export function NewsAudioPlayer({
         await audio.play();
 
         setStatus('playing');
-        nextAudioUrlRef.current = null; // Đã dùng xong
+        nextAudioUrlRef.current = null;
 
-        // Nạp trước bài tiếp theo sau đó
         fetchNextSubsequentArticle(next.id);
-
-        // Đồng bộ giao diện
         syncPageNavigation(next.slug);
         return;
       } catch (err) {
@@ -356,9 +361,7 @@ export function NewsAudioPlayer({
       }
     }
 
-    // 2. Nếu bài tiếp theo chưa nạp kịp:
-    // TUYỆT ĐỐI KHÔNG ĐỂ LUỒNG ÂM THANH BỊ NGẮT (TRÁNH HỆ ĐIỀU HÀNH DI ĐỘNG KHÓA BACKGROUND AUDIO)
-    // Cho phát lặp đoạn im lặng trong tích tắc để giữ nguyên phiên Audio Session
+    // 2. Nếu chưa nạp xong, duy trì luồng audio bằng silent loop
     try {
       audio.loop = true;
       audio.src = '/audio/silence.mp3';
@@ -378,13 +381,12 @@ export function NewsAudioPlayer({
           newsId: next.id,
           title: next.title,
           summary: next.summary || null,
-          voice: 'vi-VN-HoaiMyNeural',
+          voice: voiceRef.current,
         }),
       });
 
       const data = await res.json();
       if (data.success && data.audioUrl) {
-        // Chuyển từ âm thanh im lặng sang MP3 thực tế
         audio.loop = false;
         audio.src = data.audioUrl;
         audio.currentTime = 0;
@@ -425,7 +427,6 @@ export function NewsAudioPlayer({
       if (!isDraggingRef.current && audio) {
         setCurrentTime(audio.currentTime);
 
-        // Cập nhật tiến trình cho Lock Screen Scrubber
         if (
           typeof window !== 'undefined' &&
           'mediaSession' in navigator &&
@@ -446,7 +447,6 @@ export function NewsAudioPlayer({
       }
     };
 
-    // SỰ KIỆN ĐẶC BIỆT: HẾT BÀI -> TỰ ĐỘNG PHÁT BÀI TIẾP THEO KỂ CẢ KHI TẮT MÀN HÌNH
     const handleEnded = () => {
       if (autoPlayNextRef.current && nextArticleRef.current) {
         handlePlayNext();
@@ -489,9 +489,7 @@ export function NewsAudioPlayer({
     const audio = getMasterAudio();
     if (!audio) return;
 
-    // BƯỚC SỐNG CÒN CHO ĐIỆN THOẠI DI ĐỘNG (IOS SAFARI & ANDROID):
-    // Phải mở khóa Media Pipeline NGAY LẬP TỨC đồng bộ trong cú chạm ngón tay của người dùng!
-    // Bằng cách phát lặp (loop = true) đoạn âm thanh im lặng trong lúc chờ API sinh MP3.
+    // Mở khóa Media Pipeline tức thời trên iOS / Android
     try {
       audio.loop = true;
       audio.src = '/audio/silence.mp3';
@@ -519,7 +517,7 @@ export function NewsAudioPlayer({
           title: currentArticle.title,
           summary: currentArticle.summary || null,
           contentHtml: currentArticle.contentHtml || null,
-          voice: 'vi-VN-HoaiMyNeural',
+          voice: voiceRef.current,
         }),
         signal: controller.signal,
       });
@@ -533,7 +531,6 @@ export function NewsAudioPlayer({
       const data = await response.json();
 
       if (data.success && data.audioUrl) {
-        // Chuyển mượt mà từ âm thanh im lặng sang MP3 chính thức của bản tin
         audio.loop = false;
         audio.src = data.audioUrl;
         audio.currentTime = 0;
@@ -544,7 +541,6 @@ export function NewsAudioPlayer({
         setErrorMessage(null);
         updateMediaSession(currentArticle.title);
 
-        // Nạp ngầm trước bài kế tiếp
         prefetchNextAudio(nextArticleRef.current);
       } else {
         audio.loop = false;
@@ -564,6 +560,57 @@ export function NewsAudioPlayer({
   }, [currentArticle, updateMediaSession, prefetchNextAudio]);
 
   /**
+   * CHUYỂN ĐỔI GIỮA GIỌNG ĐỌC NỮ (HOÀI MY) VÀ GIỌNG ĐỌC NAM (NAM MINH)
+   */
+  const handleToggleVoice = useCallback(() => {
+    const nextVoice: VoiceType =
+      voice === 'vi-VN-HoaiMyNeural' ? 'vi-VN-NamMinhNeural' : 'vi-VN-HoaiMyNeural';
+    setVoice(nextVoice);
+    voiceRef.current = nextVoice;
+    nextAudioUrlRef.current = null; // Đặt lại cache để nạp giọng mới
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('easupso_audio_voice', nextVoice);
+    }
+
+    // Nếu đang phát hoặc tạm dừng, chuyển đổi trực tiếp ngay tại thời điểm đang nghe
+    if (status === 'playing' || status === 'paused') {
+      const audio = getMasterAudio();
+      const currentPos = audio ? audio.currentTime : 0;
+      setStatus('loading');
+
+      fetch('/api/news/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          newsId: currentArticleRef.current.id,
+          title: currentArticleRef.current.title,
+          summary: currentArticleRef.current.summary || null,
+          contentHtml: currentArticleRef.current.contentHtml || null,
+          voice: nextVoice,
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.audioUrl && audio) {
+            audio.loop = false;
+            audio.src = data.audioUrl;
+            audio.currentTime = currentPos;
+            audio.playbackRate = speedRef.current;
+            audio.play().catch(() => {});
+            setStatus('playing');
+            prefetchNextAudio(nextArticleRef.current);
+          } else {
+            setStatus('playing');
+          }
+        })
+        .catch(() => {
+          setStatus('playing');
+        });
+    }
+  }, [voice, status, prefetchNextAudio]);
+
+  /**
    * ĐĂNG KÝ MEDIA SESSION CONTROLS CHO MÀN HÌNH KHÓA (LOCK SCREEN)
    */
   useEffect(() => {
@@ -572,7 +619,6 @@ export function NewsAudioPlayer({
     try {
       updateMediaSession(currentArticle.title);
 
-      // 1. Play
       navigator.mediaSession.setActionHandler('play', () => {
         const audio = getMasterAudio();
         if (audio) {
@@ -582,7 +628,6 @@ export function NewsAudioPlayer({
         }
       });
 
-      // 2. Pause
       navigator.mediaSession.setActionHandler('pause', () => {
         const audio = getMasterAudio();
         if (audio) {
@@ -592,7 +637,6 @@ export function NewsAudioPlayer({
         }
       });
 
-      // 3. Tua lùi 10s
       navigator.mediaSession.setActionHandler('seekbackward', () => {
         const audio = getMasterAudio();
         if (audio) {
@@ -601,7 +645,6 @@ export function NewsAudioPlayer({
         }
       });
 
-      // 4. Tua tới 10s
       navigator.mediaSession.setActionHandler('seekforward', () => {
         const audio = getMasterAudio();
         if (audio) {
@@ -610,12 +653,10 @@ export function NewsAudioPlayer({
         }
       });
 
-      // 5. Chuyển sang bài tiếp theo (Next Track)
       navigator.mediaSession.setActionHandler('nexttrack', () => {
         handlePlayNext();
       });
 
-      // 6. Tua thanh trượt trên màn hình khóa (Seek To)
       try {
         navigator.mediaSession.setActionHandler('seekto', (details) => {
           const audio = getMasterAudio();
@@ -630,9 +671,6 @@ export function NewsAudioPlayer({
     }
   }, [currentArticle.title, handlePlayNext, updateMediaSession]);
 
-  /**
-   * Cập nhật trạng thái hiển thị Playback State của Media Session
-   */
   useEffect(() => {
     if (typeof window !== 'undefined' && 'mediaSession' in navigator) {
       navigator.mediaSession.playbackState =
@@ -640,9 +678,6 @@ export function NewsAudioPlayer({
     }
   }, [status]);
 
-  /**
-   * Tạm dừng hoặc tiếp tục phát
-   */
   const handleTogglePause = () => {
     const audio = getMasterAudio();
     if (!audio) return;
@@ -658,9 +693,6 @@ export function NewsAudioPlayer({
     }
   };
 
-  /**
-   * Tua lùi 10 giây
-   */
   const handleRewind10 = () => {
     const audio = getMasterAudio();
     if (audio) {
@@ -670,9 +702,6 @@ export function NewsAudioPlayer({
     }
   };
 
-  /**
-   * Tua tới 10 giây
-   */
   const handleForward10 = () => {
     const audio = getMasterAudio();
     if (audio) {
@@ -683,9 +712,6 @@ export function NewsAudioPlayer({
     }
   };
 
-  /**
-   * Kéo thanh trượt thời gian
-   */
   const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
     setCurrentTime(val);
@@ -701,17 +727,15 @@ export function NewsAudioPlayer({
   };
 
   /**
-   * Đổi tốc độ đọc (0.9x -> 1.0x -> 1.2x)
+   * Đổi tốc độ đọc xoay vòng (1.15x Lưu loát -> 1.3x Nhanh -> 1.0x Chuẩn)
    */
   const handleToggleSpeed = () => {
-    const speeds: PlaybackSpeed[] = [0.9, 1.0, 1.2];
-    const nextSpeed = speeds[(speeds.indexOf(speed) + 1) % speeds.length];
+    const speeds: PlaybackSpeed[] = [1.15, 1.3, 1.0];
+    const currentIndex = speeds.indexOf(speed);
+    const nextSpeed = speeds[(currentIndex + 1) % speeds.length];
     setSpeed(nextSpeed);
   };
 
-  /**
-   * Phím tắt điều khiển bàn phím (Space = Play/Pause, ArrowLeft/Right = Tua 10s, Esc = Dừng)
-   */
   useEffect(() => {
     if (status === 'idle') return;
 
@@ -750,12 +774,24 @@ export function NewsAudioPlayer({
           type="button"
           onClick={handleStartPlay}
           className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 hover:text-emerald-900 font-semibold text-xs border border-emerald-200/80 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0 ${className}`}
-          title="Nghe đọc tự động bản tin (Giọng nữ Hoài My - Duy trì phát liên tục khi tắt màn hình)"
+          title="Nghe đọc tự động bản tin (Tốc độ chuẩn phát thanh - Duy trì phát liên tục khi tắt màn hình)"
           aria-label="Nghe đọc bản tin tự động"
         >
           <Volume2 className="w-3.5 h-3.5 text-emerald-700" />
           <span>Nghe đọc</span>
         </button>
+
+        {/* Nút bấm chọn trước Giọng Nữ (Hoài My) hoặc Giọng Nam (Nam Minh) */}
+        <button
+          type="button"
+          onClick={handleToggleVoice}
+          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 text-[11px] font-semibold border border-stone-200 transition cursor-pointer active:scale-95"
+          title={`Đang chọn: ${voice === 'vi-VN-HoaiMyNeural' ? 'Giọng Nữ Hoài My (truyền cảm)' : 'Giọng Nam Nam Minh (ấm áp, đĩnh đạc)'} — Bấm để đổi giọng`}
+          aria-label="Đổi giọng đọc Nữ hoặc Nam"
+        >
+          <span>{voice === 'vi-VN-HoaiMyNeural' ? '🌸 Nữ' : '🎙️ Nam'}</span>
+        </button>
+
         {errorMessage && (
           <span className="text-[11px] text-amber-700 font-medium px-2 py-0.5 bg-amber-50 rounded border border-amber-200 animate-pulse">
             {errorMessage}
@@ -774,7 +810,7 @@ export function NewsAudioPlayer({
         aria-live="polite"
       >
         <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-700" />
-        <span className="text-[11px] sm:text-xs">Đang chuẩn bị...</span>
+        <span className="text-[11px] sm:text-xs">Đang chuẩn bị giọng đọc...</span>
       </div>
     );
   }
@@ -867,15 +903,26 @@ export function NewsAudioPlayer({
         </span>
       </div>
 
-      {/* 5. Tốc độ đọc (0.9x, 1.0x, 1.2x) */}
+      {/* 5. Nút chọn tốc độ đọc (1.15x Lưu loát - 1.3x Nhanh - 1.0x Chuẩn) */}
       <button
         type="button"
         onClick={handleToggleSpeed}
         className="px-1.5 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-700 font-mono font-bold text-[10px] transition shrink-0 border border-stone-200"
-        title="Tốc độ đọc: Bấm để đổi (0.9x - 1.0x - 1.2x)"
+        title="Tốc độ đọc: Bấm để đổi (1.15x Lưu loát - 1.3x Nhanh - 1.0x Chuẩn)"
         aria-label={`Tốc độ đọc hiện tại: ${speed}x`}
       >
-        {speed.toFixed(1)}x
+        {speed}x
+      </button>
+
+      {/* 6. Nút chuyển đổi nhanh Giọng Nữ (Hoài My) / Giọng Nam (Nam Minh) */}
+      <button
+        type="button"
+        onClick={handleToggleVoice}
+        className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 transition cursor-pointer shrink-0 flex items-center gap-0.5 active:scale-95"
+        title={`Đang đọc bằng: ${voice === 'vi-VN-HoaiMyNeural' ? 'Giọng Nữ Hoài My (truyền cảm)' : 'Giọng Nam Nam Minh (đĩnh đạc)'} — Bấm để đổi giọng`}
+        aria-label="Chuyển đổi giọng đọc"
+      >
+        <span>{voice === 'vi-VN-HoaiMyNeural' ? '🌸 Nữ' : '🎙️ Nam'}</span>
       </button>
 
       {/* Nút bật/tắt chế độ Đọc liên tục (Tự động đọc tiếp khi hết bài) */}
@@ -900,15 +947,7 @@ export function NewsAudioPlayer({
         </button>
       )}
 
-      {/* Huy hiệu giọng đọc nữ chuẩn */}
-      <span
-        className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200"
-        title="Giọng đọc nữ tiếng Việt chuẩn (AI Hoài My - Tự động phát tiếp khi tắt màn hình)"
-      >
-        Giọng nữ
-      </span>
-
-      {/* 6. Nút Dừng & Đóng */}
+      {/* 7. Nút Dừng & Đóng */}
       <button
         type="button"
         onClick={stopAllAudio}
