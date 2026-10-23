@@ -133,9 +133,9 @@ export function EcosystemBentoGrid() {
     <section id="ecosystem-grid" className="pt-2 pb-6 sm:pb-8 bg-transparent relative z-10">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* TIÊU ĐỀ KHU VỰC: NỀN ĐỎ CHỮ SÁNG MÀU VÀNG TRANG TRỌNG */}
+        {/* TIÊU ĐỀ KHU VỰC: NỀN XANH LÁ CÂY CHỮ SÁNG MÀU VÀNG TRANG TRỌNG */}
         <div className="text-center mb-4 sm:mb-6 flex justify-center">
-          <div className="inline-block bg-gradient-to-r from-red-700 via-red-600 to-red-700 px-6 py-2 sm:px-8 sm:py-2.5 rounded-xl border border-yellow-400/60 shadow-lg shadow-black/35">
+          <div className="inline-block bg-gradient-to-r from-[#1B4332] via-[#2D6A4F] to-[#1B4332] px-6 py-2 sm:px-8 sm:py-2.5 rounded-xl border border-yellow-400/60 shadow-lg shadow-black/35">
             <h2 className="text-base sm:text-xl lg:text-2xl font-serif font-bold text-yellow-300 uppercase tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
               CÁC ỨNG DỤNG THUỘC HỆ SINH THÁI EA SÚP SỐ
             </h2>
