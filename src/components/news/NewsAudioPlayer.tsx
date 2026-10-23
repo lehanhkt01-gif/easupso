@@ -765,30 +765,19 @@ export function NewsAudioPlayer({
 
   // ================= RENDER GIAO DIỆN THEO CHUẨN DESIGN SYSTEM =================
 
-  // 1. TRẠNG THÁI CHỜ (IDLE)
+  // 1. TRẠNG THÁI CHỜ (IDLE) - NÚT ĐỎ CHỮ VÀNG DUY NHẤT
   if (status === 'idle') {
     return (
-      <div className="inline-flex items-center gap-1.5 shrink-0 flex-wrap">
+      <div className="inline-flex items-center gap-1.5 shrink-0">
         <button
           type="button"
           onClick={handleStartPlay}
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 hover:text-emerald-900 font-semibold text-xs border border-emerald-200/80 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0 ${className}`}
+          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#B91C1C] hover:bg-[#991B1B] text-yellow-300 hover:text-yellow-200 font-bold text-xs border border-yellow-400/60 shadow-xs transition-all cursor-pointer active:scale-95 shrink-0 ${className}`}
           title="Nghe đọc tự động bản tin (Tốc độ chuẩn phát thanh - Duy trì phát liên tục khi tắt màn hình)"
           aria-label="Nghe đọc bản tin tự động"
         >
-          <Volume2 className="w-3.5 h-3.5 text-emerald-700" />
+          <Volume2 className="w-3.5 h-3.5 text-yellow-300 shrink-0" />
           <span>Nghe đọc</span>
-        </button>
-
-        {/* Nút bấm chọn trước Giọng Nữ (Hoài My) hoặc Giọng Nam (Nam Minh) */}
-        <button
-          type="button"
-          onClick={handleToggleVoice}
-          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 text-[11px] font-semibold border border-stone-200 transition cursor-pointer active:scale-95"
-          title={`Đang chọn: ${voice === 'vi-VN-HoaiMyNeural' ? 'Giọng Nữ Hoài My (truyền cảm)' : 'Giọng Nam Nam Minh (ấm áp, đĩnh đạc)'} — Bấm để đổi giọng`}
-          aria-label="Đổi giọng đọc Nữ hoặc Nam"
-        >
-          <span>{voice === 'vi-VN-HoaiMyNeural' ? '🌸 Nữ' : '🎙️ Nam'}</span>
         </button>
 
         {errorMessage && (
@@ -804,11 +793,11 @@ export function NewsAudioPlayer({
   if (status === 'loading') {
     return (
       <div
-        className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50/90 text-emerald-800 font-semibold text-xs border border-emerald-200 shrink-0 ${className}`}
+        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#B91C1C] text-yellow-300 font-bold text-xs border border-yellow-400/60 shadow-xs shrink-0 ${className}`}
         aria-hidden="true"
       >
-        <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-700" />
-        <span className="text-[11px] sm:text-xs">Đang tải bản tin</span>
+        <Loader2 className="w-3.5 h-3.5 animate-spin text-yellow-300 shrink-0" />
+        <span className="text-xs">Đang tải...</span>
       </div>
     );
   }

@@ -476,13 +476,23 @@ export function EditorialArticleView({
       {/* 1. EDITORIAL HEADER */}
       <div className="px-5 py-5 sm:px-10 sm:pt-7 sm:pb-3.5 border-b border-[#E8E2D5] bg-gradient-to-b from-[#FAF7F2] to-white">
         
-        {/* Hàng badge & công cụ đọc báo */}
+        {/* Hàng badge & nút Nghe đọc */}
         <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-          {/* Huy hiệu chuyên mục & Thôn buôn */}
+          {/* Huy hiệu chuyên mục, Nút Nghe đọc (đỏ chữ vàng) & Thôn buôn */}
           <div className="flex flex-wrap items-center gap-2">
             <span className="px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wider bg-[#1B4332] text-white shadow-xs">
               {categoryName}
             </span>
+
+            {/* NÚT NGHE ĐỌC: ĐẶT BÊN TRÁI CẠNH DÒNG CHỮ "ỦY BAN MTTQ XÃ", NỀN ĐỎ CHỮ VÀNG */}
+            <NewsAudioPlayer
+              newsId={newsId || slug || 'article'}
+              title={title}
+              summary={summary}
+              contentHtml={contentHtml}
+              nextArticle={nextArticle}
+            />
+
             {villageName && (
               <span className="px-3 py-1 rounded-md text-xs font-bold bg-[#FAF0EC] text-[#C85A32] border border-[#EBBAA7] flex items-center gap-1">
                 <MapPin className="w-3.5 h-3.5" />
@@ -494,42 +504,6 @@ export function EditorialArticleView({
                 Ủy quyền đưa tin: {beneficiaryName}
               </span>
             )}
-          </div>
-
-          {/* Công cụ tiện ích đọc báo: A- / A+, Nghe đọc bản tin, In, Sao chép link */}
-          <div className="flex items-center flex-wrap gap-1.5 bg-white border border-[#D5CBBA] p-1 rounded-xl shadow-xs text-xs text-[#14211B]">
-            <button
-              type="button"
-              onClick={() => setFontSize((prev) => Math.max(15, prev - 1))}
-              className="p-1.5 rounded-lg hover:bg-[#FAF7F2] text-[#4A5B52] hover:text-[#1B4332] transition"
-              title="Giảm cỡ chữ (A-)"
-              aria-label="Giảm cỡ chữ"
-            >
-              <Minus className="w-3.5 h-3.5" />
-            </button>
-            <span className="px-1 font-mono font-bold text-[11px] text-[#1B4332] min-w-[28px] text-center">
-              {fontSize}px
-            </span>
-            <button
-              type="button"
-              onClick={() => setFontSize((prev) => Math.min(22, prev + 1))}
-              className="p-1.5 rounded-lg hover:bg-[#FAF7F2] text-[#4A5B52] hover:text-[#1B4332] transition"
-              title="Tăng cỡ chữ (A+)"
-              aria-label="Tăng cỡ chữ"
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </button>
-
-            <span className="w-px h-4 bg-[#D5CBBA] mx-1" />
-
-            {/* Nút nghe đọc bản tin tự động (Audio Player) */}
-            <NewsAudioPlayer
-              newsId={newsId || slug || 'article'}
-              title={title}
-              summary={summary}
-              contentHtml={contentHtml}
-              nextArticle={nextArticle}
-            />
           </div>
         </div>
 
