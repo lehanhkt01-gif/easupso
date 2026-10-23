@@ -82,6 +82,41 @@ function getSuggestedAuthor(orgCode: string, catName?: string): string {
   }
 }
 
+function formatContentToParagraphHtml(rawText: string): string {
+  if (!rawText || !rawText.trim()) return '';
+  const normalized = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  // Tách theo 2 dấu xuống dòng (khoảng trống chuẩn giữa các đoạn văn)
+  let rawBlocks = normalized
+    .split(/\n\s*\n+/)
+    .map((b) => b.trim())
+    .filter(Boolean);
+
+  // Nếu người dùng không cách dòng trống mà chỉ xuống dòng 1 lần giữa các dòng
+  // (ví dụ copy paste nguyên bản tin từ Word hoặc Zalo):
+  if (rawBlocks.length === 1 && rawBlocks[0].includes('\n')) {
+    const lines = rawBlocks[0].split('\n').map((l) => l.trim()).filter(Boolean);
+    if (lines.length >= 2) {
+      rawBlocks = lines;
+    }
+  }
+
+  return rawBlocks
+    .map((block) => {
+      if (block.startsWith('## ')) {
+        return `<h2>${block.slice(3).trim()}</h2>`;
+      }
+      if (block.startsWith('### ')) {
+        return `<h3>${block.slice(4).trim()}</h3>`;
+      }
+      if (block.startsWith('> ')) {
+        return `<blockquote>${block.slice(2).trim()}</blockquote>`;
+      }
+      return `<p>${block.replace(/\n/g, '<br/>')}</p>`;
+    })
+    .join('\n');
+}
+
 export function NewsEditorModal({
   isOpen,
   onClose,
@@ -153,13 +188,16 @@ export function NewsEditorModal({
       setTitle(articleToEdit.title || '');
       setSummary(articleToEdit.summary || '');
 
-      // Tách văn bản thuần từ contentHtml
+      // Tách văn bản thuần từ contentHtml, giữ nguyên vẹn cấu trúc ngắt đoạn (\n\n)
       let rawContent = stripGalleryFromHtml(articleToEdit.contentHtml || '');
       rawContent = rawContent
-        .replace(/<\/p><p>/gi, '\n\n')
-        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/h[1-6]>/gi, '\n\n')
+        .replace(/<\/blockquote>/gi, '\n\n')
+        .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')
+        .replace(/<\/p>/gi, '\n\n')
         .replace(/<p[^>]*>/gi, '')
-        .replace(/<\/p>/gi, '')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/\n{3,}/g, '\n\n')
         .trim();
       setContent(rawContent);
 
@@ -295,14 +333,14 @@ export function NewsEditorModal({
     // Bỏ ký tự điều khiển độc hại
     cleaned = cleaned.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
     // Chuẩn hóa dòng trắng thừa (tối đa 2 dấu xuống dòng)
-    cleaned = cleaned.replace(/\r\n/g, '\n');
+    cleaned = cleaned.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     cleaned = cleaned.replace(/[ \t]+/g, ' ');
     cleaned = cleaned.replace(/\n\s*\n\s*\n+/g, '\n\n');
-    cleaned = cleaned
-      .split('\n')
-      .map((line) => line.trim())
-      .join('\n');
-    setContent(cleaned.trim());
+    const lines = cleaned.split('\n').map((line) => line.trim());
+    cleaned = lines.join('\n');
+    // Đảm bảo các đoạn độc lập cách nhau bởi 2 dấu xuống dòng (\n\n)
+    const paragraphs = cleaned.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+    setContent(paragraphs.join('\n\n'));
   }
 
   // XỬ LÝ TẢI ẢNH (Tối đa 7 ảnh, mỗi ảnh < 5MB)
@@ -444,12 +482,7 @@ export function NewsEditorModal({
 
     try {
       // Chuẩn hóa định dạng nội dung HTML từ các dòng văn bản
-      const paragraphs = content
-        .split('\n\n')
-        .map((p) => p.trim())
-        .filter(Boolean)
-        .map((p) => `<p>${p.replace(/\n/g, '<br/>')}</p>`)
-        .join('');
+      const paragraphs = formatContentToParagraphHtml(content);
 
       const coverItem = mediaItems.find((m) => m.isCover);
       const coverImageUrl = coverItem?.url || (mediaItems.length > 0 ? mediaItems[0].url : null);
@@ -601,10 +634,7 @@ export function NewsEditorModal({
                 summary={summary || 'Đoạn dẫn mở đầu bài báo (Sapo)...'}
                 contentHtml={
                   content
-                    ? content
-                        .split('\n\n')
-                        .map((p) => `<p>${p.replace(/\n/g, '<br/>')}</p>`)
-                        .join('')
+                    ? formatContentToParagraphHtml(content)
                     : '<p>Nội dung chi tiết bài viết sẽ được dàn trang tại đây...</p>'
                 }
                 mediaItems={mediaItems}
@@ -940,7 +970,7 @@ export function NewsEditorModal({
                               onChange={(e) => handlePlacementChange(idx, e.target.value as ImagePlacement)}
                               className="w-full px-2.5 py-1.5 rounded-lg border border-[#D5CBBA] bg-white text-xs text-[#14211B] focus:outline-none focus:ring-1 focus:ring-[#1B4332]"
                             >
-                              <option value="auto">Tự động sắp xếp thông minh (Mặc định)</option>
+                              <option value="auto">Tự động sắp xếp thông minh theo thứ tự (Mặc định)</option>
                               <option value="lead">Đầu bài viết (Ngay dưới đoạn Sapo)</option>
                               <option value="after-p1">Xen kẽ sau Đoạn văn số 1</option>
                               <option value="after-p2">Xen kẽ sau Đoạn văn số 2</option>

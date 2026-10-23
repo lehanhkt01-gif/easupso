@@ -140,7 +140,6 @@ export function EditorialArticleView({
   const parsedBlocks = useMemo(() => {
     if (!contentHtml) return [];
 
-    // Tách nội dung theo thẻ <p>, <h2>, <h3>, <blockquote>, hoặc xuống dòng kép \n\n
     let clean = contentHtml;
     // Bỏ metadata marker nếu còn sót
     clean = clean.replace(/<!--\s*EASUPSO_GALLERY:[\s\S]*?-->/gi, '');
@@ -148,6 +147,9 @@ export function EditorialArticleView({
     // Nếu chứa các thẻ HTML cấu trúc
     const tempDiv = typeof document !== 'undefined' ? document.createElement('div') : null;
     if (tempDiv) {
+      // Trước khi gán vào tempDiv, biến các cặp ngắt dòng <br/><br/> thành thẻ <p> riêng biệt
+      clean = clean.replace(/(?:<br\s*\/?>\s*){2,}/gi, '</p><p>');
+
       tempDiv.innerHTML = clean;
       const nodes = Array.from(tempDiv.childNodes);
       const blocks: Array<{ type: 'p' | 'h2' | 'h3' | 'blockquote' | 'raw'; html: string; text: string }> = [];
@@ -158,6 +160,20 @@ export function EditorialArticleView({
           const tagName = el.tagName.toLowerCase();
           const text = el.textContent || '';
           if (!text.trim() && !el.querySelector('img')) return;
+
+          // Nếu thẻ <p> này bên trong chứa <br/> giữa các đoạn văn bản
+          if (tagName === 'p') {
+            const innerHtml = el.innerHTML;
+            if (/<br\s*\/?>/i.test(innerHtml)) {
+              const subParas = innerHtml.split(/<br\s*\/?>/i).map((s) => s.trim()).filter(Boolean);
+              if (subParas.length > 1) {
+                subParas.forEach((sub) => {
+                  blocks.push({ type: 'p', html: sub, text: sub.replace(/<[^>]*>/g, '').trim() });
+                });
+                return;
+              }
+            }
+          }
 
           if (tagName === 'h2') {
             blocks.push({ type: 'h2', html: el.innerHTML, text });
@@ -177,6 +193,41 @@ export function EditorialArticleView({
           }
         }
       });
+
+      // Hỗ trợ bản tin cũ đã lưu thành 1 thẻ <p> chứa nhiều đoạn ngắt bởi <br/>:
+      if (blocks.length === 1 && blocks[0].type === 'p' && /<br\s*\/?>/i.test(blocks[0].html)) {
+        const parts = blocks[0].html.split(/<br\s*\/?>/i).map((s) => s.trim()).filter(Boolean);
+        if (parts.length >= 2) {
+          const subBlocks: Array<{ type: 'p'; html: string; text: string }> = [];
+          let currentChunk: string[] = [];
+
+          parts.forEach((line) => {
+            currentChunk.push(line);
+            const plainText = line.replace(/<[^>]*>/g, '').trim();
+            // Nếu dòng không kết thúc bằng dấu : và có độ dài câu hoàn chỉnh (> 50 ký tự)
+            if (!line.endsWith(':') && plainText.length > 50) {
+              subBlocks.push({
+                type: 'p',
+                html: currentChunk.join('<br/>'),
+                text: currentChunk.map((c) => c.replace(/<[^>]*>/g, '').trim()).join(' '),
+              });
+              currentChunk = [];
+            }
+          });
+
+          if (currentChunk.length > 0) {
+            subBlocks.push({
+              type: 'p',
+              html: currentChunk.join('<br/>'),
+              text: currentChunk.map((c) => c.replace(/<[^>]*>/g, '').trim()).join(' '),
+            });
+          }
+
+          if (subBlocks.length > 1) {
+            return subBlocks;
+          }
+        }
+      }
 
       if (blocks.length > 0) return blocks;
     }
@@ -201,62 +252,140 @@ export function EditorialArticleView({
     });
   }, [contentHtml]);
 
-  // THUẬT TOÁN DÀN TRANG HÌNH ẢNH THÔNG MINH (Smart Editorial Layout)
+  // THUẬT TOÁN DÀN TRANG HÌNH ẢNH THÔNG MINH BẢO ĐẢM HIỂN THỊ ĐẦY ĐỦ 100% ẢNH (Zero Dropped Images)
   const layout = useMemo(() => {
-    const unassignedMedia = [...validMedia];
-    const placedMap: Record<string, ArticleMediaItem[]> = {
-      lead: [],
-      'after-p1': [],
-      'after-p2': [],
-      'after-p3': [],
-      'after-p4': [],
-      pair: [],
-      bottom: [],
-    };
+    const totalBlocks = parsedBlocks.length;
+    const placedUrls = new Set<string>();
 
-    // 1. Gán các ảnh có vị trí chỉ định cụ thể
-    const autoMedia: ArticleMediaItem[] = [];
-    unassignedMedia.forEach((media) => {
+    const byParagraph: Record<number, ArticleMediaItem[]> = {};
+    for (let i = 0; i < totalBlocks; i++) {
+      byParagraph[i] = [];
+    }
+    const pair: ArticleMediaItem[] = [];
+    const bottom: ArticleMediaItem[] = [];
+    const lead: ArticleMediaItem[] = [];
+
+    if (validMedia.length === 0) {
+      return { lead, byParagraph, pair, bottom };
+    }
+
+    // 1. Xác định ảnh Lead (Đầu bài viết ngay dưới đoạn Sapo)
+    // Ưu tiên 1: Ảnh được chọn tường minh là 'lead'
+    let leadCandidate = validMedia.find((m) => m.placement === 'lead');
+    // Ưu tiên 2: Ảnh được chọn làm ảnh bìa (isCover)
+    if (!leadCandidate) {
+      leadCandidate = validMedia.find((m) => m.isCover);
+    }
+    // Ưu tiên 3: Ảnh đầu tiên trong danh sách (#1)
+    if (!leadCandidate && validMedia.length > 0) {
+      leadCandidate = validMedia[0];
+    }
+
+    if (leadCandidate) {
+      lead.push(leadCandidate);
+      placedUrls.add(leadCandidate.url);
+    }
+
+    // 2. Danh sách ảnh còn lại theo đúng thứ tự mảng đã sắp xếp
+    const remainingMedia = validMedia.filter((m) => !placedUrls.has(m.url));
+    const autoItems: ArticleMediaItem[] = [];
+
+    // 3. Phân bổ các ảnh có vị trí chỉ định cụ thể
+    remainingMedia.forEach((media) => {
       const p = media.placement || 'auto';
-      if (p !== 'auto' && placedMap[p]) {
-        placedMap[p].push(media);
+      if (p === 'after-p1') {
+        if (totalBlocks >= 1) {
+          byParagraph[0].push(media);
+          placedUrls.add(media.url);
+        } else {
+          autoItems.push(media);
+        }
+      } else if (p === 'after-p2') {
+        if (totalBlocks >= 2) {
+          byParagraph[1].push(media);
+          placedUrls.add(media.url);
+        } else {
+          autoItems.push(media);
+        }
+      } else if (p === 'after-p3') {
+        if (totalBlocks >= 3) {
+          byParagraph[2].push(media);
+          placedUrls.add(media.url);
+        } else {
+          autoItems.push(media);
+        }
+      } else if (p === 'after-p4') {
+        if (totalBlocks >= 4) {
+          byParagraph[3].push(media);
+          placedUrls.add(media.url);
+        } else {
+          autoItems.push(media);
+        }
+      } else if (p === 'pair') {
+        pair.push(media);
+        placedUrls.add(media.url);
+      } else if (p === 'bottom') {
+        bottom.push(media);
+        placedUrls.add(media.url);
+      } else if (p === 'lead') {
+        lead.push(media);
+        placedUrls.add(media.url);
       } else {
-        autoMedia.push(media);
+        autoItems.push(media);
       }
     });
 
-    // 2. Phân bổ các ảnh ở chế độ 'auto'
-    if (autoMedia.length > 0) {
-      let autoIdx = 0;
-
-      // Nếu chưa có ảnh 'lead' thì ảnh auto đầu tiên được làm ảnh Lead (ngay dưới Sapo)
-      if (placedMap.lead.length === 0 && autoIdx < autoMedia.length) {
-        placedMap.lead.push(autoMedia[autoIdx++]);
-      }
-
-      // Các ảnh tiếp theo rải đều sau các đoạn văn (sau p1, p2, p3...)
-      const paragraphSlots: ImagePlacement[] = ['after-p1', 'after-p2', 'after-p3', 'after-p4'];
-      for (const slot of paragraphSlots) {
-        if (autoIdx >= autoMedia.length) break;
-        if (placedMap[slot].length === 0) {
-          placedMap[slot].push(autoMedia[autoIdx++]);
-        }
-      }
-
-      // Các ảnh auto còn lại: Nếu còn >= 2 ảnh thì ghép cặp 'pair', nếu còn 1 ảnh thì đưa xuống 'bottom'
-      while (autoIdx < autoMedia.length) {
-        const remaining = autoMedia.length - autoIdx;
-        if (remaining >= 2) {
-          placedMap.pair.push(autoMedia[autoIdx++]);
-          placedMap.pair.push(autoMedia[autoIdx++]);
-        } else {
-          placedMap.bottom.push(autoMedia[autoIdx++]);
-        }
+    // 4. Phân bổ các ảnh ở chế độ 'auto' (và ảnh chỉ định vào đoạn văn không tồn tại)
+    // Tìm các đoạn văn thực tế còn trống (tối đa xen kẽ trong 4 đoạn đầu tiên)
+    const availableSlots: number[] = [];
+    for (let i = 0; i < totalBlocks; i++) {
+      if (i < 4 && byParagraph[i].length === 0) {
+        availableSlots.push(i);
       }
     }
 
-    return placedMap;
-  }, [validMedia]);
+    let autoIdx = 0;
+    for (const slot of availableSlots) {
+      if (autoIdx >= autoItems.length) break;
+      const targetPhoto = autoItems[autoIdx++];
+      byParagraph[slot].push(targetPhoto);
+      placedUrls.add(targetPhoto.url);
+    }
+
+    // 5. Các ảnh auto còn lại:
+    // Nếu còn >= 2 ảnh: Ghép cặp diptych 2 cột (pair)
+    // Nếu còn lẻ 1 ảnh: Đưa xuống cuối bài (bottom)
+    const leftovers = autoItems.slice(autoIdx);
+    while (leftovers.length >= 2) {
+      const first = leftovers.shift()!;
+      const second = leftovers.shift()!;
+      pair.push(first);
+      pair.push(second);
+      placedUrls.add(first.url);
+      placedUrls.add(second.url);
+    }
+    if (leftovers.length === 1) {
+      const last = leftovers.shift()!;
+      bottom.push(last);
+      placedUrls.add(last.url);
+    }
+
+    // 6. LƯỚI BẢO HIỂM TUYỆT ĐỐI (ZERO DROPPED IMAGES GUARANTEE):
+    // Quét lại toàn bộ validMedia, cam đoan 100% ảnh đã tải lên phải được hiển thị trọn vẹn
+    validMedia.forEach((m) => {
+      if (!placedUrls.has(m.url)) {
+        bottom.push(m);
+        placedUrls.add(m.url);
+      }
+    });
+
+    return {
+      lead,
+      byParagraph,
+      pair,
+      bottom,
+    };
+  }, [validMedia, parsedBlocks.length]);
 
   // Hàm render một khung hình ảnh chuẩn `<figure>` và `<figcaption>`
   function renderFigure(item: ArticleMediaItem, customClass = '') {
@@ -324,7 +453,12 @@ export function EditorialArticleView({
     return (
       <div className="my-6 sm:my-8 space-y-4">
         {pairs.map((pair, pIdx) => (
-          <div key={pIdx} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div
+            key={pIdx}
+            className={`grid gap-4 ${
+              pair.length === 1 ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'
+            }`}
+          >
             {pair.map((item) => renderFigure(item, 'my-0! sm:my-0!'))}
           </div>
         ))}
@@ -340,7 +474,7 @@ export function EditorialArticleView({
     <article className="bg-white rounded-2xl border border-[#E8E2D5] shadow-sm overflow-hidden text-[#14211B]">
       
       {/* 1. EDITORIAL HEADER */}
-      <div className="p-6 sm:p-10 border-b border-[#E8E2D5] bg-gradient-to-b from-[#FAF7F2] to-white">
+      <div className="px-5 py-5 sm:px-10 sm:pt-7 sm:pb-3.5 border-b border-[#E8E2D5] bg-gradient-to-b from-[#FAF7F2] to-white">
         
         {/* Hàng badge & công cụ đọc báo */}
         <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
@@ -400,12 +534,12 @@ export function EditorialArticleView({
         </div>
 
         {/* TIÊU ĐỀ BÁO CHÍ (HEADLINE - TUYỆT ĐỐI KHÔNG IN NGHIÊNG) */}
-        <h1 className="font-serif text-2xl sm:text-3xl lg:text-[34px] font-bold text-[#1B4332] leading-[1.3] tracking-tight mb-5 break-words">
+        <h1 className="font-serif text-2xl sm:text-3xl lg:text-[32px] font-bold text-[#1B4332] leading-[1.3] tracking-tight mb-3 break-words">
           {title}
         </h1>
 
         {/* Thông tin metadata thời gian & tác giả */}
-        <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-[#E8E2D5] text-xs text-[#6B7C73]">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#E8E2D5] text-xs text-[#6B7C73]">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-full bg-[#1B4332] text-[#D4AF37] flex items-center justify-center font-bold text-xs shadow-xs">
               <Feather className="w-4 h-4" />
@@ -437,10 +571,10 @@ export function EditorialArticleView({
         </div>
       </div>
 
-      {/* 2. ĐOẠN DẪN (SAPO BÀI BÁO) */}
+      {/* 2. ĐOẠN DẪN (SAPO BÀI BÁO) - THU HẸP KHOẢNG CÁCH GẦN TIÊU ĐỀ */}
       {summary && (
-        <div className="max-w-[760px] mx-auto px-6 sm:px-10 pt-8">
-          <div className="p-4 sm:p-5 bg-[#FAF7F2] rounded-xl border-l-4 border-[#C85A32] shadow-xs">
+        <div className="max-w-[760px] mx-auto px-6 sm:px-10 pt-4 sm:pt-5">
+          <div className="p-3.5 sm:p-4.5 bg-[#FAF7F2] rounded-xl border-l-4 border-[#C85A32] shadow-xs">
             <p className="text-base sm:text-lg font-semibold text-[#14211B] leading-relaxed">
               {summary}
             </p>
@@ -461,9 +595,6 @@ export function EditorialArticleView({
         style={{ fontSize: `${fontSize}px` }}
       >
         {parsedBlocks.map((block, idx) => {
-          // Đoạn văn p0, p1, p2, p3...
-          const isFirstParagraph = idx === 0 && block.type === 'p';
-
           return (
             <React.Fragment key={idx}>
               {/* Render Block */}
@@ -488,11 +619,7 @@ export function EditorialArticleView({
 
               {block.type === 'p' && (
                 <p
-                  className={`mb-5 ${
-                    isFirstParagraph
-                      ? 'first-letter:text-4xl first-letter:font-bold first-letter:text-[#1B4332] first-letter:float-left first-letter:mr-2.5 first-letter:leading-none'
-                      : ''
-                  }`}
+                  className="mb-4 sm:mb-5 indent-7 sm:indent-8 leading-[1.85] text-justify"
                   dangerouslySetInnerHTML={{ __html: block.html }}
                 />
               )}
@@ -501,25 +628,9 @@ export function EditorialArticleView({
                 <div className="mb-5" dangerouslySetInnerHTML={{ __html: block.html }} />
               )}
 
-              {/* DÀN ẢNH XEN KẼ THÔNG MINH */}
-              {/* Sau đoạn văn 1 (idx === 0) */}
-              {idx === 0 && layout['after-p1'].length > 0 && (
-                layout['after-p1'].map((item) => renderFigure(item))
-              )}
-
-              {/* Sau đoạn văn 2 (idx === 1) */}
-              {idx === 1 && layout['after-p2'].length > 0 && (
-                layout['after-p2'].map((item) => renderFigure(item))
-              )}
-
-              {/* Sau đoạn văn 3 (idx === 2) */}
-              {idx === 2 && layout['after-p3'].length > 0 && (
-                layout['after-p3'].map((item) => renderFigure(item))
-              )}
-
-              {/* Sau đoạn văn 4 (idx === 3) */}
-              {idx === 3 && layout['after-p4'].length > 0 && (
-                layout['after-p4'].map((item) => renderFigure(item))
+              {/* DÀN ẢNH XEN KẼ THÔNG MINH THEO TỪNG ĐOẠN VĂN */}
+              {layout.byParagraph[idx] && layout.byParagraph[idx].length > 0 && (
+                layout.byParagraph[idx].map((item) => renderFigure(item))
               )}
             </React.Fragment>
           );
@@ -533,7 +644,7 @@ export function EditorialArticleView({
           <div className="mt-8 pt-6 border-t-2 border-[#D5CBBA]">
             <h4 className="text-sm font-bold text-[#1B4332] uppercase tracking-wide flex items-center gap-2 mb-4">
               <Camera className="w-4 h-4 text-[#C85A32]" />
-              <span>Hình ảnh phóng sự hoạt động</span>
+              <span>Hình ảnh phóng sự hoạt động ({layout.bottom.length} tấm)</span>
             </h4>
             {layout.bottom.map((item) => renderFigure(item))}
           </div>

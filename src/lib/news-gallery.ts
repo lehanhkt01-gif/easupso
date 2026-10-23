@@ -40,7 +40,7 @@ export function normalizeMediaItem(item: string | ArticleMediaItem, index = 0): 
     url: (item.url || '').trim(),
     caption: (item.caption || '').trim(),
     placement: item.placement || 'auto',
-    isCover: Boolean(item.isCover || index === 0),
+    isCover: Boolean(item.isCover),
     size: item.size,
   };
 }
@@ -71,7 +71,8 @@ export function stripGalleryFromHtml(html: string): string {
 
   // 5. Xóa các thẻ <p> rỗng còn sót lại và làm sạch định dạng dòng
   cleaned = cleaned.replace(/<p[^>]*>(?:\s*|<br\s*\/?>|&nbsp;)*<\/p>/gi, '');
-  cleaned = cleaned.replace(/(?:<br\s*\/?>\s*){2,}/gi, '<br/>');
+  // Chuyển ngắt dòng đôi thành phân đoạn tách biệt </p><p> để giữ nguyên cấu trúc đoạn văn bản
+  cleaned = cleaned.replace(/(?:<br\s*\/?>\s*){2,}/gi, '</p><p>');
   cleaned = cleaned.replace(/<br\s*\/?>\s*<\/p>/gi, '</p>');
   cleaned = cleaned.replace(/<p[^>]*>\s*<br\s*\/?>/gi, '<p>');
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
