@@ -17,11 +17,13 @@ import {
   MapPin,
   Share2,
   ArrowLeft,
+  ArrowRight,
   Clock,
   User,
   ShieldCheck,
   Check,
   ChevronRight,
+  Images,
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -134,7 +136,13 @@ export default async function NewsDetailPage({ params }: Props) {
         slug: true,
         summary: true,
         thumbnailUrl: true,
+        contentHtml: true,
         category: {
+          select: {
+            name: true,
+          },
+        },
+        village: {
           select: {
             name: true,
           },
@@ -158,7 +166,9 @@ export default async function NewsDetailPage({ params }: Props) {
           slug: a.slug,
           summary: a.summary,
           thumbnailUrl: a.thumbnailUrl,
-          category: a.category ? { name: a.category.name } : { name: 'Bản tin' },
+          contentHtml: a.contentHtml,
+          category: a.category ? { name: a.category.name } : { name: 'Ủy ban MTTQ xã' },
+          village: a.village ? { name: a.village.name } : null,
         }));
     } catch {}
   }
@@ -286,27 +296,61 @@ export default async function NewsDetailPage({ params }: Props) {
               Bản tin cùng chuyên mục &amp; địa bàn
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {relatedArticles.map((rel) => (
-                <Link
-                  key={rel.id}
-                  href={`/news/${rel.slug}`}
-                  className="surface-card p-4 rounded-xl group flex flex-col justify-between"
-                >
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#C85A32]">
-                      {rel.category?.name || 'Bản tin'}
-                    </span>
-                    <h4 className="text-sm font-bold text-[#14211B] group-hover:text-[#1B4332] line-clamp-2 mt-1 mb-2">
-                      {rel.title}
-                    </h4>
-                    <p className="text-xs text-[#6B7C73] line-clamp-2">{rel.summary}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {relatedArticles.map((rel) => {
+                const images = extractGalleryImages(rel.contentHtml || '', rel.thumbnailUrl);
+                const imageCount = images.length || (rel.thumbnailUrl ? 1 : 0);
+                const coverImage =
+                  rel.thumbnailUrl ||
+                  images[0] ||
+                  'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=600&q=80';
+
+                return (
+                  <div
+                    key={rel.id}
+                    className="bg-white rounded-2xl overflow-hidden border border-[#D5CBBA] shadow-xs hover:shadow-md transition-all group flex flex-col justify-between relative"
+                  >
+                    <Link href={`/news/${rel.slug}`} className="flex flex-col h-full justify-between">
+                      <div className="relative aspect-[16/10] w-full bg-stone-100 overflow-hidden">
+                        <img
+                          src={coverImage}
+                          alt={rel.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
+                        />
+                        {imageCount > 1 && (
+                          <div className="absolute bottom-2.5 left-2.5 px-2 py-0.5 rounded-lg bg-black/70 backdrop-blur-xs text-white text-[11px] font-semibold flex items-center gap-1">
+                            <Images className="w-3.5 h-3.5 text-[#D4AF37]" />
+                            <span>📸 {imageCount} ảnh</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between text-[11px] mb-1.5">
+                            <span className="font-bold text-[#C85A32] uppercase">
+                              {rel.category?.name || 'Ủy ban MTTQ xã'}
+                            </span>
+                            {rel.village?.name && <span className="text-[#6B7C73]">{rel.village.name}</span>}
+                          </div>
+                          <h4 className="text-sm sm:text-base font-bold text-[#14211B] group-hover:text-[#1B4332] leading-snug line-clamp-2">
+                            {rel.title}
+                          </h4>
+                          <p className="text-xs text-[#6B7C73] mt-2 line-clamp-2 leading-relaxed">
+                            {rel.summary}
+                          </p>
+                        </div>
+
+                        <div className="mt-4 pt-3 border-t border-[#E8E2D5] flex items-center justify-between text-xs text-[#1B4332] font-semibold">
+                          <span>Xem chi tiết</span>
+                          <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                        </div>
+                      </div>
+                    </Link>
                   </div>
-                  <span className="text-[11px] text-[#1B4332] font-semibold mt-3 pt-2 border-t border-[#E8E2D5]">
-                    Đọc tiếp &rarr;
-                  </span>
-                </Link>
-              ))}
+                );
+              })}
             </div>
           </section>
         )}
