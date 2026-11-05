@@ -8,6 +8,12 @@
    ============================================================================== */
 
 :root {
+  /* Font chữ tiếng Việt tải trực tiếp từ CDN, miễn nhiễm lỗi mạng khi Docker build */
+  --font-display: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-heading: 'Be Vietnam Pro', Georgia, serif;
+
   /* Bảng màu chuẩn @hallmark khóa cứng */
   --bg-canvas: #FAF7F2;      /* Giấy kem ấm di sản */
   --bg-surface: #FFFFFF;     /* Trắng tinh khiết cho thẻ nổi */
