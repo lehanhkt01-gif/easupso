@@ -130,23 +130,21 @@ export function NewsroomSection({
     if (!confirmDelete) return;
 
     try {
-      const res = await fetch(`/api/admin/news/${art.id}`, {
-        method: 'DELETE',
-      });
+      const res = await fetch(`/api/admin/news/${art.id}`, { method: 'DELETE' });
       const json = await res.json();
       if (json.success) {
         setArticles((prev) => prev.filter((item) => item.id !== art.id));
-        setActionNotice(`Đã xóa bản tin "${art.title}" thành công!`);
-        setTimeout(() => setActionNotice(null), 4000);
+        setActionNotice('Đã xóa bản tin thành công.');
+        setTimeout(() => setActionNotice(null), 3500);
       } else {
-        alert(json.error || 'Xóa bài viết thất bại.');
+        alert(json.error || 'Có lỗi xảy ra khi xóa bản tin.');
       }
-    } catch {
-      alert('Lỗi mạng khi xóa bài viết.');
+    } catch (err) {
+      console.error('Lỗi xóa bài:', err);
+      alert('Không thể kết nối máy chủ để xóa bản tin.');
     }
   }
 
-  // Callback sau khi lưu thành công từ Modal
   function handleSaveSuccess(savedArticle: any) {
     if (editingArticle) {
       setArticles((prev) =>
@@ -166,19 +164,19 @@ export function NewsroomSection({
   const remainingStories = articles.slice(4);
 
   return (
-    <section id="tin-tuc" className="py-12 sm:py-16 bg-[#FAF7F2] border-t border-[#E8E2D5] overflow-x-clip">
+    <section id="tin-tuc" className="py-12 sm:py-16 bg-[#FAF8F5] border-t border-[#E6E2D8] overflow-x-clip">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* TIÊU ĐỀ KHU VỰC BẢN TIN CHUẨN BÁO CHÍ */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#1B4332]/10 text-[#1B4332] text-xs font-bold uppercase tracking-widest mb-2">
-            <Sparkles className="w-3.5 h-3.5 text-[#C85A32]" />
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#0F3D2E]/10 text-[#0F3D2E] text-xs font-bold uppercase tracking-widest mb-2">
+            <Sparkles className="w-3.5 h-3.5 text-[#C88A2B]" />
             <span>TÒA SOẠN SỐ MẶT TRẬN &amp; ĐOÀN THỂ</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#14211B] tracking-tight uppercase">
+          <h2 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#111827] tracking-tight uppercase">
             BẢN TIN HOẠT ĐỘNG XÃ EA SÚP
           </h2>
-          <p className="text-xs sm:text-sm text-[#4A5B52] mt-1.5 max-w-2xl mx-auto">
+          <p className="text-xs sm:text-sm text-[#4B5563] mt-1.5 max-w-2xl mx-auto">
             Tin tức thời sự, phong trào thi đua và hoạt động đại đoàn kết toàn dân tộc tại 20 thôn buôn
           </p>
         </div>
@@ -195,14 +193,14 @@ export function NewsroomSection({
         {isStaff && (
           <div className="max-w-4xl mx-auto mb-8 p-3.5 rounded-2xl bg-white border-2 border-[#D4AF37] shadow-sm flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2.5 text-xs">
-              <span className="w-8 h-8 rounded-lg bg-[#1B4332] text-[#D4AF37] flex items-center justify-center font-bold text-xs shadow-xs">
+              <span className="w-8 h-8 rounded-lg bg-[#0F3D2E] text-[#D4AF37] flex items-center justify-center font-bold text-xs shadow-xs">
                 ★
               </span>
               <div>
-                <p className="font-bold text-[#1B4332]">
+                <p className="font-bold text-[#0F3D2E]">
                   Quyền Quản lý Tòa soạn: {session?.user?.name || session?.user?.email}
                 </p>
-                <p className="text-[11px] text-[#6B7C73]">
+                <p className="text-[11px] text-[#6B7280]">
                   Hỗ trợ định dạng bài viết chuyên nghiệp, dàn trang ảnh thông minh &bull; Tối đa 7 ảnh/bài
                 </p>
               </div>
@@ -210,7 +208,7 @@ export function NewsroomSection({
 
             <button
               onClick={handleOpenCreateModal}
-              className="px-4 py-2.5 rounded-xl bg-[#1B4332] hover:bg-[#143326] text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition flex items-center gap-2 active:scale-95 cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-[#0F3D2E] hover:bg-[#165B44] text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition flex items-center gap-2 active:scale-95 cursor-pointer"
             >
               <PlusCircle className="w-4 h-4 text-[#D4AF37]" />
               <span>+ Đăng bản tin mới</span>
@@ -228,8 +226,8 @@ export function NewsroomSection({
                 onClick={() => setSelectedCategory(tab.slug)}
                 className={`px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-[11.5px] sm:text-sm font-semibold transition-all border cursor-pointer whitespace-nowrap shrink-0 ${
                   isActive
-                    ? 'bg-[#173C2D] text-white border-[#173C2D] shadow-xs'
-                    : 'bg-white text-[#4A5B52] border-[#D5CBBA] hover:border-[#173C2D] hover:text-[#173C2D]'
+                    ? 'bg-[#0F3D2E] text-white border-[#0F3D2E] shadow-xs'
+                    : 'bg-white text-[#4B5563] border-[#E6E2D8] hover:border-[#0F3D2E] hover:text-[#0F3D2E]'
                 }`}
               >
                 {/* Trên giao diện điện thoại hiển thị tên viết tắt thu nhỏ vừa 2 hàng, trên máy tính hiển thị tên đầy đủ */}
@@ -243,16 +241,16 @@ export function NewsroomSection({
         {/* KHU VỰC HIỂN THỊ NỘI DUNG (LOADING / EMPTY / EDITORIAL GRID) */}
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-pulse">
-            <div className="col-span-1 md:col-span-2 h-96 bg-gray-200 rounded-2xl" />
-            <div className="h-96 bg-gray-200 rounded-2xl" />
+            <div className="col-span-1 md:col-span-2 h-96 bg-stone-200 rounded-2xl" />
+            <div className="h-96 bg-stone-200 rounded-2xl" />
           </div>
         ) : articles.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-2xl border border-[#D5CBBA] p-8 max-w-md mx-auto">
-            <p className="text-sm font-bold text-[#14211B]">Chưa có bản tin nào thuộc chuyên mục này.</p>
+          <div className="text-center py-12 bg-white rounded-2xl border border-[#E6E2D8] p-8 max-w-md mx-auto">
+            <p className="text-sm font-bold text-[#111827]">Chưa có bản tin nào thuộc chuyên mục này.</p>
             {isStaff && (
               <button
                 onClick={handleOpenCreateModal}
-                className="mt-3 px-4 py-2 bg-[#1B4332] text-white text-xs font-bold rounded-xl inline-flex items-center gap-1.5 shadow"
+                className="mt-3 px-4 py-2 bg-[#0F3D2E] text-white text-xs font-bold rounded-xl inline-flex items-center gap-1.5 shadow"
               >
                 <PlusCircle className="w-4 h-4 text-[#D4AF37]" />
                 <span>Đăng bản tin đầu tiên ngay</span>
@@ -270,7 +268,7 @@ export function NewsroomSection({
                 <div
                   className={`${
                     secondaryStories.length > 0 ? 'lg:col-span-7 xl:col-span-8' : 'lg:col-span-12'
-                  } bg-white rounded-2xl border border-[#D5CBBA] shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between group relative`}
+                  } bg-white rounded-2xl border border-[#E6E2D8] shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between group relative`}
                 >
                   {/* BẢNG THAO TÁC CÁN BỘ (SỬA / XÓA) */}
                   {isStaff && (
@@ -278,7 +276,7 @@ export function NewsroomSection({
                       <button
                         type="button"
                         onClick={(e) => handleOpenEditModal(e, leadStory)}
-                        className="px-2.5 py-1 rounded-lg bg-[#D4AF37] hover:bg-yellow-600 text-[#14211B] font-bold text-xs flex items-center gap-1 transition shadow-xs"
+                        className="px-2.5 py-1 rounded-lg bg-[#D4AF37] hover:bg-yellow-600 text-[#111827] font-bold text-xs flex items-center gap-1 transition shadow-xs"
                         title="Chỉnh sửa bản tin này"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
@@ -324,7 +322,7 @@ export function NewsroomSection({
                       <div>
                         {/* Huy hiệu Chuyên mục & Thôn buôn */}
                         <div className="flex flex-wrap items-center gap-2 mb-3">
-                          <span className="px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider bg-[#1B4332] text-white">
+                          <span className="px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider bg-[#0F3D2E] text-white">
                             {leadStory.category?.name || 'Ủy ban MTTQ xã'}
                           </span>
                           {leadStory.village && (
@@ -333,8 +331,8 @@ export function NewsroomSection({
                               <span>{leadStory.village.name}</span>
                             </span>
                           )}
-                          <span className="text-[11px] text-[#6B7C73] flex items-center gap-1 ml-auto">
-                            <Calendar className="w-3 h-3 text-[#C85A32]" />
+                          <span className="text-[11px] text-[#6B7280] flex items-center gap-1 ml-auto">
+                            <Calendar className="w-3 h-3 text-[#C88A2B]" />
                             <span>
                               {leadStory.publishedAt
                                 ? new Date(leadStory.publishedAt).toLocaleDateString('vi-VN', {
@@ -348,22 +346,22 @@ export function NewsroomSection({
                         </div>
 
                         {/* Tiêu đề tiêu điểm báo chí */}
-                        <h3 className="font-serif text-lg sm:text-2xl font-bold text-[#14211B] group-hover:text-[#1B4332] leading-snug tracking-tight mb-2.5 transition-colors">
+                        <h3 className="font-heading text-lg sm:text-2xl font-bold text-[#111827] group-hover:text-[#0F3D2E] leading-snug tracking-tight mb-2.5 transition-colors">
                           {leadStory.title}
                         </h3>
 
                         {/* Sapo tiêu điểm */}
-                        <p className="text-xs sm:text-sm text-[#4A5B52] leading-relaxed line-clamp-3">
+                        <p className="text-xs sm:text-sm text-[#4B5563] leading-relaxed line-clamp-3">
                           {leadStory.summary}
                         </p>
                       </div>
 
                       {/* Footer thẻ */}
-                      <div className="mt-5 pt-3.5 border-t border-[#E8E2D5] flex items-center justify-between text-xs font-bold text-[#1B4332]">
-                        <span className="text-[#C85A32]">
+                      <div className="mt-5 pt-3.5 border-t border-[#E6E2D8] flex items-center justify-between text-xs font-bold text-[#0F3D2E]">
+                        <span className="text-[#C88A2B]">
                           {leadStory.author?.name || 'Ủy ban MTTQ Việt Nam xã Ea Súp'}
                         </span>
-                        <span className="inline-flex items-center gap-1.5 group-hover:translate-x-1.5 transition-transform text-[#1B4332]">
+                        <span className="inline-flex items-center gap-1.5 group-hover:translate-x-1.5 transition-transform text-[#0F3D2E]">
                           <span>Xem toàn văn bài báo</span>
                           <ArrowRight className="w-4 h-4" />
                         </span>
@@ -380,7 +378,7 @@ export function NewsroomSection({
                       return (
                         <div
                           key={art.id}
-                          className="bg-white rounded-2xl border border-[#D5CBBA] shadow-xs hover:shadow-md transition-all overflow-hidden p-3.5 sm:p-4 group relative flex flex-col justify-between"
+                          className="bg-white rounded-2xl border border-[#E6E2D8] shadow-xs hover:shadow-md transition-all overflow-hidden p-3.5 sm:p-4 group relative flex flex-col justify-between"
                         >
                           {/* Nút sửa/xóa cho cán bộ */}
                           {isStaff && (
@@ -388,7 +386,7 @@ export function NewsroomSection({
                               <button
                                 type="button"
                                 onClick={(e) => handleOpenEditModal(e, art)}
-                                className="p-1 rounded bg-[#D4AF37] text-[#14211B] text-[10px] font-bold"
+                                className="p-1 rounded bg-[#D4AF37] text-[#111827] text-[10px] font-bold"
                                 title="Sửa bài"
                               >
                                 <Edit2 className="w-3 h-3" />
@@ -427,21 +425,21 @@ export function NewsroomSection({
                             {/* Tiêu đề & metadata */}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
-                                <span className="text-[10px] font-bold uppercase text-[#C85A32] truncate">
+                                <span className="text-[10px] font-bold uppercase text-[#C88A2B] truncate">
                                   {art.category?.name || 'Mặt trận'}
                                 </span>
                                 {art.village && (
-                                  <span className="text-[10px] text-[#6B7C73] truncate">
+                                  <span className="text-[10px] text-[#6B7280] truncate">
                                     &bull; {art.village.name}
                                   </span>
                                 )}
                               </div>
 
-                              <h4 className="text-xs sm:text-sm font-bold text-[#14211B] group-hover:text-[#1B4332] leading-snug line-clamp-2">
+                              <h4 className="text-xs sm:text-sm font-bold text-[#111827] group-hover:text-[#0F3D2E] leading-snug line-clamp-2">
                                 {art.title}
                               </h4>
 
-                              <p className="text-[11px] text-[#6B7C73] line-clamp-1 mt-1">
+                              <p className="text-[11px] text-[#6B7280] line-clamp-1 mt-1">
                                 {art.summary}
                               </p>
                             </div>
@@ -457,8 +455,8 @@ export function NewsroomSection({
 
             {/* 2. LƯỚI BẢN TIN BỔ SUNG (NẾU CÒN NHIỀU BÀI VIẾT) */}
             {remainingStories.length > 0 && (
-              <div className="pt-6 border-t border-[#E8E2D5]">
-                <h4 className="text-sm font-bold text-[#1B4332] uppercase tracking-wide mb-4">
+              <div className="pt-6 border-t border-[#E6E2D8]">
+                <h4 className="text-sm font-bold text-[#0F3D2E] uppercase tracking-wide mb-4">
                   Các bản tin hoạt động khác
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -467,14 +465,14 @@ export function NewsroomSection({
                     return (
                       <div
                         key={art.id}
-                        className="bg-white rounded-2xl overflow-hidden border border-[#D5CBBA] shadow-xs hover:shadow-md transition-all group flex flex-col justify-between relative"
+                        className="bg-white rounded-2xl overflow-hidden border border-[#E6E2D8] shadow-xs hover:shadow-md transition-all group flex flex-col justify-between relative"
                       >
                         {isStaff && (
                           <div className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-xs p-1.5 rounded-xl border border-white/20 shadow-md">
                             <button
                               type="button"
                               onClick={(e) => handleOpenEditModal(e, art)}
-                              className="px-2 py-1 rounded-lg bg-[#D4AF37] hover:bg-yellow-600 text-[#14211B] font-bold text-[11px] flex items-center gap-1"
+                              className="px-2 py-1 rounded-lg bg-[#D4AF37] hover:bg-yellow-600 text-[#111827] font-bold text-[11px] flex items-center gap-1"
                             >
                               <Edit2 className="w-3 h-3" />
                               <span>Sửa</span>
@@ -513,20 +511,20 @@ export function NewsroomSection({
                           <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between">
                             <div>
                               <div className="flex items-center justify-between text-[11px] mb-1.5">
-                                <span className="font-bold text-[#C85A32] uppercase">
+                                <span className="font-bold text-[#C88A2B] uppercase">
                                   {art.category?.name || 'Mặt trận'}
                                 </span>
-                                {art.village && <span className="text-[#6B7C73]">{art.village.name}</span>}
+                                {art.village && <span className="text-[#6B7280]">{art.village.name}</span>}
                               </div>
-                              <h3 className="text-sm sm:text-base font-bold text-[#14211B] group-hover:text-[#1B4332] leading-snug line-clamp-2">
+                              <h3 className="text-sm sm:text-base font-bold text-[#111827] group-hover:text-[#0F3D2E] leading-snug line-clamp-2">
                                 {art.title}
                               </h3>
-                              <p className="text-xs text-[#6B7C73] mt-2 line-clamp-2 leading-relaxed">
+                              <p className="text-xs text-[#6B7280] mt-2 line-clamp-2 leading-relaxed">
                                 {art.summary}
                               </p>
                             </div>
 
-                            <div className="mt-4 pt-3 border-t border-[#E8E2D5] flex items-center justify-between text-xs text-[#1B4332] font-semibold">
+                            <div className="mt-4 pt-3 border-t border-[#E6E2D8] flex items-center justify-between text-xs text-[#0F3D2E] font-semibold">
                               <span>Xem chi tiết</span>
                               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                             </div>

@@ -56,6 +56,7 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],
         display: ["var(--font-outfit)", "system-ui", "sans-serif"],
+        heading: ["var(--font-heading)", "Georgia", "serif"],
       },
       boxShadow: {
         heritage: "0 4px 20px -2px rgba(27, 67, 50, 0.08)",
