@@ -35,7 +35,6 @@ export function HeroBanner({
   heroImageUrl?: string | null;
 }) {
   const [announcements, setAnnouncements] = useState<QuickAnnouncementData[]>(initialAnnouncements);
-  const [activeTickerIdx, setActiveTickerIdx] = useState(0);
 
   // Tìm kiếm hợp nhất
   const [searchQuery, setSearchQuery] = useState('');
@@ -43,15 +42,6 @@ export function HeroBanner({
   const [isSearching, setIsSearching] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
-
-  // Luân chuyển Ticker
-  useEffect(() => {
-    if (announcements.length <= 1) return;
-    const interval = setInterval(() => {
-      setActiveTickerIdx((prev) => (prev + 1) % announcements.length);
-    }, 6000);
-    return () => clearInterval(interval);
-  }, [announcements.length]);
 
   // Đóng dropdown khi click ra ngoài
   useEffect(() => {
@@ -92,50 +82,48 @@ export function HeroBanner({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const currentAnnouncement = announcements[activeTickerIdx];
-
   return (
     <div className="relative z-30">
       
-      {/* 1. DẢI TICKER THÔNG BÁO (NHỎ GỌN TRÊN CÙNG) */}
-      {currentAnnouncement && (
-        <div className={`py-1.5 px-4 text-xs font-medium border-b ${
-          currentAnnouncement.isUrgent
-            ? 'bg-[#C85A32] text-white border-[#A44725]'
-            : 'bg-[#1B4332] text-white border-[#143326]'
-        }`}>
-          <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 overflow-hidden">
-              <span className="flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-bold uppercase tracking-wider bg-white/20 whitespace-nowrap">
-                {currentAnnouncement.isUrgent ? (
-                  <>
-                    <AlertCircle className="w-3 h-3 text-yellow-300 animate-pulse" />
-                    Khẩn
-                  </>
-                ) : (
-                  <>
-                    <BellRing className="w-3 h-3 text-green-300" />
-                    Thông báo
-                  </>
-                )}
-              </span>
-
-              <p className="truncate text-white/90 text-xs">
-                <strong className="font-semibold">{currentAnnouncement.title}:</strong>{' '}
-                <span className="opacity-95">{currentAnnouncement.content}</span>
-              </p>
+      {/* 1. DẢI TICKER THÔNG BÁO - CỐ ĐỊNH MÀU XANH NHƯ ẢNH 2, CHỮ CHẠY TỪ PHẢI QUA TRÁI */}
+      {announcements.length > 0 && (
+        <div className="py-2 px-3 sm:px-4 text-xs font-medium border-b bg-[#1B4332] text-white border-[#143326] relative z-30 shadow-xs">
+          <div className="max-w-[1440px] mx-auto flex items-center gap-2.5 sm:gap-3.5 overflow-hidden">
+            {/* Huy hiệu nhận diện thông báo cố định bên trái chuẩn ảnh 2 */}
+            <div className="shrink-0 flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-white/20 text-white whitespace-nowrap border border-white/25 shadow-xs z-10">
+              <BellRing className="w-3.5 h-3.5 text-green-300 animate-pulse" />
+              <span>THÔNG BÁO</span>
             </div>
 
-            {currentAnnouncement.linkUrl && (
-              <a
-                href={currentAnnouncement.linkUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hidden md:inline-flex items-center gap-1 text-[11px] font-bold underline hover:text-yellow-200 whitespace-nowrap ml-2"
-              >
-                Chi tiết <ExternalLink className="w-3 h-3" />
-              </a>
-            )}
+            {/* Dải thông tin chạy mượt mà từ phải qua trái (Marquee) */}
+            <div className="overflow-hidden whitespace-nowrap flex-1 relative flex items-center min-w-0">
+              <div className="inline-flex items-center animate-ticker-scroll hover:[animation-play-state:paused] active:[animation-play-state:paused] py-0.5 cursor-pointer">
+                {[...announcements, ...announcements, ...announcements, ...announcements].map((item, idx) => (
+                  <span key={`${item.id}-${idx}`} className="inline-flex items-center mr-8 sm:mr-12 text-xs text-white/95">
+                    {item.isUrgent && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-bold uppercase tracking-wider bg-yellow-400/25 text-yellow-300 border border-yellow-400/40 mr-2 shrink-0">
+                        <AlertCircle className="w-3 h-3 text-yellow-300 animate-pulse" />
+                        Khẩn
+                      </span>
+                    )}
+                    <strong className="font-semibold text-white mr-1.5">{item.title}:</strong>
+                    <span className="text-white/90">{item.content}</span>
+                    {item.linkUrl && (
+                      <a
+                        href={item.linkUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 ml-2.5 px-2 py-0.5 rounded text-[11px] font-bold text-yellow-300 hover:text-yellow-100 hover:underline bg-white/10 border border-white/15 transition shrink-0"
+                      >
+                        <span>Chi tiết</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                    <span className="mx-6 sm:mx-8 text-yellow-400/60 select-none">✦</span>
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -219,6 +219,28 @@ h1, h2, h3, h4, h5, h6 {
   100% { transform: scale(0.95); opacity: 0.8; }
 }
 
+/* Hiệu ứng dòng chữ thông báo chạy từ phải qua trái (Ticker Marquee) */
+@keyframes ticker-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-ticker-scroll {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: ticker-scroll 45s linear infinite;
+  will-change: transform;
+}
+
+.animate-ticker-scroll:hover,
+.animate-ticker-scroll:active {
+  animation-play-state: paused;
+}
+
 .status-online-dot {
   position: relative;
   width: 10px;
