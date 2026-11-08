@@ -448,7 +448,7 @@ export function NewsEditorModal({
       for (const f of processedFiles) {
         if (f.size > MAX_IMAGE_SIZE_BYTES) {
           const sizeMb = (f.size / (1024 * 1024)).toFixed(2);
-          setUploadError(`Ảnh "${f.name}" có dung lượng ${sizeMb} MB, vượt quá giới hạn tối đa 10MB!`);
+          setUploadError(`Ảnh "${f.name}" có dung lượng ${sizeMb} MB, vượt quá giới hạn tối đa 5MB!`);
           if (fileInputRef.current) fileInputRef.current.value = '';
           return;
         }
@@ -971,7 +971,7 @@ export function NewsEditorModal({
                   </span>
                 </div>
                 <span className="text-[11px] text-[#6B7C73]">
-                  Tối đa 7 ảnh &bull; Mỗi ảnh &lt; 10MB &bull; Có ô ghi chú thích &amp; chọn vị trí dàn trang
+                  Tối đa 7 ảnh &bull; Mỗi ảnh &lt; 5MB &bull; Có ô ghi chú thích &amp; chọn vị trí dàn trang
                 </span>
               </div>
 
@@ -1009,7 +1009,7 @@ export function NewsEditorModal({
                         <Upload className="w-5 h-5 text-[#C85A32]" />
                         <span>Nhấn để chọn ảnh từ máy tính (Có thể chọn nhiều ảnh cùng lúc)</span>
                         <span className="text-[10px] text-[#6B7C73] font-normal">
-                          Hỗ trợ JPG, PNG, WebP, HEIC &bull; Tự động tối ưu dung lượng
+                          Hỗ trợ JPG, PNG, WebP &bull; Dung lượng tối đa 5MB/ảnh
                         </span>
                       </>
                     )}

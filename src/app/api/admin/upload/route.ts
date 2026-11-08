@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Kiểm tra định dạng và dung lượng từng file (Tối đa 10MB mỗi ảnh, hỗ trợ đầy đủ thiết bị di động iOS/Android)
+    // 2. Kiểm tra định dạng và dung lượng từng file (Tối đa 5MB mỗi ảnh)
     const allowedTypes = [
       'image/jpeg',
       'image/png',
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
       'application/octet-stream',
     ];
     const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif', '.heic', '.heif'];
-    const maxSizeBytes = 10 * 1024 * 1024; // 10MB
+    const maxSizeBytes = 5 * 1024 * 1024; // 5MB
 
     for (const f of rawFiles) {
       const ext = path.extname(f.name || '').toLowerCase();
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            error: `File "${f.name}" có dung lượng ${sizeMb} MB, vượt quá giới hạn tối đa 10MB!`,
+            error: `File "${f.name}" có dung lượng ${sizeMb} MB, vượt quá giới hạn tối đa 5MB!`,
           },
           { status: 400 }
         );
