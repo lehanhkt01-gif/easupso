@@ -4,7 +4,7 @@
  */
 
 export const MAX_ARTICLE_IMAGES = 7;
-export const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+export const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB (hỗ trợ ảnh độ phân giải cao từ điện thoại)
 
 export type ImagePlacement =
   | 'auto'      // Tự động sắp xếp thông minh xen kẽ

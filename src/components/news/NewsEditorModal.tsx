@@ -117,6 +117,73 @@ function formatContentToParagraphHtml(rawText: string): string {
     .join('\n');
 }
 
+// Tự động tối ưu và nén kích thước ảnh trên trình duyệt trước khi gửi (đặc biệt tối ưu cho iPhone/iPad camera)
+async function compressImageIfNeeded(file: File): Promise<File> {
+  if (typeof window === 'undefined' || !file.type || !file.type.startsWith('image/')) return file;
+
+  // Nếu file dưới 1.5MB và là định dạng web phổ biến, không cần nén lại
+  if (file.size <= 1.5 * 1024 * 1024 && ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    return file;
+  }
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const maxDim = 1920;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(file);
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            (blob) => {
+              if (!blob || blob.size >= file.size) {
+                resolve(file);
+              } else {
+                const cleanName = (file.name || 'image').replace(/\.[^/.]+$/, '') + '.jpg';
+                const compressedFile = new File([blob], cleanName, {
+                  type: 'image/jpeg',
+                  lastModified: Date.now(),
+                });
+                resolve(compressedFile);
+              }
+            },
+            'image/jpeg',
+            0.85
+          );
+        } catch {
+          resolve(file);
+        }
+      };
+      img.onerror = () => resolve(file);
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+}
+
 export function NewsEditorModal({
   isOpen,
   onClose,
@@ -365,27 +432,57 @@ export function NewsEditorModal({
       return;
     }
 
-    for (const f of selectedFiles) {
-      if (f.size > MAX_IMAGE_SIZE_BYTES) {
-        const sizeMb = (f.size / (1024 * 1024)).toFixed(2);
-        setUploadError(`Ảnh "${f.name}" có dung lượng ${sizeMb} MB, vượt quá giới hạn tối đa 5MB!`);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-        return;
-      }
-    }
-
     setIsUploading(true);
     try {
+      // Tự động nén và co dãn ảnh thông minh trên trình duyệt (đặc biệt cho camera roll iPhone/Safari)
+      const processedFiles: File[] = [];
+      for (const f of selectedFiles) {
+        try {
+          const processed = await compressImageIfNeeded(f);
+          processedFiles.push(processed);
+        } catch {
+          processedFiles.push(f);
+        }
+      }
+
+      for (const f of processedFiles) {
+        if (f.size > MAX_IMAGE_SIZE_BYTES) {
+          const sizeMb = (f.size / (1024 * 1024)).toFixed(2);
+          setUploadError(`Ảnh "${f.name}" có dung lượng ${sizeMb} MB, vượt quá giới hạn tối đa 10MB!`);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+          return;
+        }
+      }
+
       const formData = new FormData();
-      selectedFiles.forEach((file) => formData.append('files', file));
+      processedFiles.forEach((file) => formData.append('files', file));
 
       const res = await fetch('/api/admin/upload', {
         method: 'POST',
         body: formData,
       });
 
-      const json = await res.json();
-      if (json.success && json.urls) {
+      // An toàn với lỗi HTTP / Nginx trả về văn bản hoặc HTML lỗi trên iOS Safari
+      let json: any = null;
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        try {
+          json = await res.json();
+        } catch {
+          // Bỏ qua lỗi parse JSON
+        }
+      }
+
+      if (!res.ok) {
+        if (res.status === 413) {
+          setUploadError('Dung lượng ảnh vượt quá giới hạn máy chủ (Mã 413). Vui lòng chọn ảnh nhỏ hơn hoặc tải từng ảnh một.');
+          return;
+        }
+        setUploadError(json?.error || `Máy chủ phản hồi lỗi (Mã HTTP ${res.status}). Vui lòng thử lại.`);
+        return;
+      }
+
+      if (json && json.success && json.urls) {
         const newItems: ArticleMediaItem[] = json.urls.map((url: string, idx: number) => {
           const detail = json.files?.[idx];
           return {
@@ -400,10 +497,10 @@ export function NewsEditorModal({
         const merged = [...mediaItems, ...newItems].slice(0, MAX_ARTICLE_IMAGES);
         setMediaItems(merged);
       } else {
-        setUploadError(json.error || 'Tải ảnh lên máy chủ thất bại.');
+        setUploadError(json?.error || 'Tải ảnh lên máy chủ thất bại.');
       }
     } catch (err: any) {
-      setUploadError(err?.message || 'Lỗi mạng khi tải ảnh lên.');
+      setUploadError(err?.message || 'Lỗi kết nối khi tải ảnh lên.');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -874,7 +971,7 @@ export function NewsEditorModal({
                   </span>
                 </div>
                 <span className="text-[11px] text-[#6B7C73]">
-                  Tối đa 7 ảnh &bull; Mỗi ảnh &lt; 5MB &bull; Có ô ghi chú thích &amp; chọn vị trí dàn trang
+                  Tối đa 7 ảnh &bull; Mỗi ảnh &lt; 10MB &bull; Có ô ghi chú thích &amp; chọn vị trí dàn trang
                 </span>
               </div>
 
@@ -893,7 +990,7 @@ export function NewsEditorModal({
                     ref={fileInputRef}
                     onChange={handleFileSelect}
                     multiple
-                    accept="image/jpeg,image/png,image/webp,image/avif"
+                    accept="image/*"
                     className="hidden"
                   />
                   <button
@@ -905,14 +1002,14 @@ export function NewsEditorModal({
                     {isUploading ? (
                       <div className="flex items-center gap-2">
                         <Loader2 className="w-5 h-5 animate-spin text-[#1B4332]" />
-                        <span>Đang tải ảnh lên máy chủ...</span>
+                        <span>Đang tối ưu &amp; tải ảnh lên máy chủ...</span>
                       </div>
                     ) : (
                       <>
                         <Upload className="w-5 h-5 text-[#C85A32]" />
                         <span>Nhấn để chọn ảnh từ máy tính (Có thể chọn nhiều ảnh cùng lúc)</span>
                         <span className="text-[10px] text-[#6B7C73] font-normal">
-                          Hỗ trợ JPG, PNG, WebP &bull; Dung lượng tối đa 5MB/ảnh
+                          Hỗ trợ JPG, PNG, WebP, HEIC &bull; Tự động tối ưu dung lượng
                         </span>
                       </>
                     )}
