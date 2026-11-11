@@ -11,13 +11,11 @@ import {
   Plus,
   Copy,
   Check,
-  ZoomIn,
   X,
   ChevronLeft,
   ChevronRight,
   Camera,
   Quote,
-  Feather,
 } from 'lucide-react';
 import { ArticleMediaItem, ImagePlacement } from '@/lib/news-gallery';
 import { NewsAudioPlayer } from './NewsAudioPlayer';
@@ -411,17 +409,6 @@ export function EditorialArticleView({
             className="w-full h-auto max-h-[580px] object-cover transition-transform duration-300 group-hover:scale-[1.015]"
             loading="lazy"
           />
-          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-            <span className="px-3 py-1.5 rounded-full bg-white/90 text-[#1B4332] font-semibold text-xs shadow-md flex items-center gap-1.5 backdrop-blur-xs">
-              <ZoomIn className="w-4 h-4 text-[#C85A32]" />
-              <span>Phóng to xem nét cao</span>
-            </span>
-          </div>
-          {item.isCover && (
-            <span className="absolute top-3 left-3 px-2.5 py-1 rounded-md bg-[#1B4332]/90 text-[#D4AF37] font-bold text-[11px] shadow-sm backdrop-blur-xs">
-              ★ Ảnh bìa bản tin
-            </span>
-          )}
         </div>
 
         {/* Dòng ghi chú hình ảnh (Photo Caption) */}
@@ -512,17 +499,8 @@ export function EditorialArticleView({
           {title}
         </h1>
 
-        {/* Thông tin metadata thời gian & tác giả */}
+        {/* Thông tin metadata thời gian & lượt xem */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#E8E2D5] text-xs text-[#6B7C73]">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-[#1B4332] text-[#D4AF37] flex items-center justify-center font-bold text-xs shadow-xs">
-              <Feather className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="font-bold text-[#14211B] text-xs sm:text-sm">{finalAuthor}</p>
-            </div>
-          </div>
-
           <div className="flex items-center gap-4 text-xs font-medium">
             <span className="flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-[#C85A32]" />
@@ -638,12 +616,7 @@ export function EditorialArticleView({
       </div>
 
       {/* 5. KHỐI CHIA SẺ BẢN TIN ĐA NỀN TẢNG */}
-      <div className="px-6 sm:px-10 py-4 bg-[#FAF7F2] border-t border-[#E8E2D5] flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-[#1B4332] uppercase tracking-wide">
-          <Share2 className="w-4 h-4 text-[#C85A32]" />
-          <span>Chia sẻ</span>
-        </div>
-
+      <div className="px-6 sm:px-10 py-4 bg-[#FAF7F2] border-t border-[#E8E2D5] flex items-center justify-end gap-4">
         <div className="relative">
           <button
             type="button"
