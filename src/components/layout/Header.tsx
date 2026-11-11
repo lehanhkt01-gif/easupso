@@ -16,6 +16,7 @@ import {
   Compass,
   ShieldCheck,
   HeartHandshake,
+  Award,
   ExternalLink,
   Home,
 } from 'lucide-react';
@@ -25,7 +26,7 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
-  // 6 ỨNG DỤNG CỐT LÕI HỆ SINH THÁI SỐ XÃ EA SÚP + NÚT TRANG CHỦ
+  // CÁC ỨNG DỤNG CỐT LÕI HỆ SINH THÁI SỐ XÃ EA SÚP + NÚT TRANG CHỦ
   const navLinks = [
     {
       label: 'Trang chủ',
@@ -75,6 +76,13 @@ export function Header() {
       isExternal: true,
       icon: HeartHandshake,
       domain: 'nguoingheo.easupso.com',
+    },
+    {
+      label: 'Thi trực tuyến',
+      href: 'https://thi.easupso.com',
+      isExternal: true,
+      icon: Award,
+      domain: 'thi.easupso.com',
     },
   ];
 

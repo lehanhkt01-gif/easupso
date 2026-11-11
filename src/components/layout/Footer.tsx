@@ -111,9 +111,18 @@ export function Footer() {
                 href="https://nguoingheo.easupso.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#D4AF37] hover:underline flex items-center justify-between py-1 font-bold"
+                className="hover:text-[#D4AF37] flex items-center justify-between py-1 transition"
               >
                 <span>6. Quỹ Vì Người Nghèo</span>
+                <ExternalLink className="w-3 h-3 opacity-60" />
+              </a>
+              <a
+                href="https://thi.easupso.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#D4AF37] hover:underline flex items-center justify-between py-1 font-bold"
+              >
+                <span>7. Thi Trực Tuyến</span>
                 <ExternalLink className="w-3 h-3" />
               </a>
             </div>

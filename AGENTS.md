@@ -57,6 +57,7 @@ Cổng thông tin trung tâm `easupso.com` giữ vai trò làm đầu mối đ�
 4. **Du lịch & Văn hóa**: `https://dulich.easupso.com` — Tháp Yang Prông, hồ Ea Súp Thượng, bản sắc cồng chiêng và lễ hội buôn làng.
 5. **Hội Cựu chiến binh**: `https://ccb.easupso.com` — Hoạt động truyền thống, nghĩa tình đồng đội, gương sáng cựu chiến binh Ea Súp.
 6. **Vì người nghèo (Mở rộng)**: `https://vinguoingheo.easupso.com` — Quỹ vì người nghèo, nhà đại đoàn kết, an sinh xã hội do UBMTTQVN xã điều phối.
+7. **Thi trực tuyến**: `https://thi.easupso.com` — Cổng thi trực tuyến kiến thức, hình ảnh, videoclip tìm hiểu lịch sử, chính trị, văn hóa và pháp luật xã Ea Súp.
 
 ---
 

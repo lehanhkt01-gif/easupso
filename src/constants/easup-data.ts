@@ -186,4 +186,23 @@ export const CORE_WEBAPPS: readonly CoreWebAppDefinition[] = [
       beneficiaryFamilies: 128,
     },
   },
+  {
+    slug: 'thitructuyen',
+    name: 'Thi Trực Tuyến',
+    subdomainUrl: 'https://thi.easupso.com',
+    shortDescription: 'Cổng thi trực tuyến kiến thức, hình ảnh, video clip tìm hiểu lịch sử, chính trị, văn hóa và pháp luật xã Ea Súp.',
+    badgeText: 'Thi Trực Tuyến',
+    iconName: 'Award',
+    bentoSpan: 'col-span-12 md:col-span-6 lg:col-span-4',
+    ctaPrimaryText: 'Tham gia thi ngay',
+    ctaSecondaryText: 'Bảng xếp hạng',
+    ctaSecondaryUrl: 'https://thi.easupso.com/xep-hang',
+    displayOrder: 7,
+    isCore: true,
+    liveMetrics: {
+      activeExams: 3,
+      totalParticipants: '1.200+',
+      awardedPrizes: 15,
+    },
+  },
 ] as const;

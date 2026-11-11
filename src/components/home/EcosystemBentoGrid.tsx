@@ -8,6 +8,7 @@ import {
   Compass,
   ShieldCheck,
   HeartHandshake,
+  Award,
   ArrowUpRight,
 } from 'lucide-react';
 
@@ -126,6 +127,25 @@ const ECOSYSTEM_APPS = [
       accentColor: '#E11D48',
     },
   },
+  {
+    id: 'thitructuyen',
+    title: 'Thi Trực Tuyến',
+    domain: 'thi.easupso.com',
+    url: 'https://thi.easupso.com',
+    desc: 'Cổng thi trực tuyến kiến thức, hình ảnh, video clip',
+    actionText: 'Vào thi ngay',
+    icon: Award,
+    colorStyle: {
+      borderTop: 'border-t-[#0284C7]',
+      borderHover: 'hover:border-[#0284C7]',
+      iconGradient: 'from-[#0369A1] to-[#0284C7]',
+      hoverBg: 'hover:bg-gradient-to-b hover:from-white hover:to-sky-50/80',
+      hoverGlow: 'hover:shadow-[0_12px_24px_-6px_rgba(2,132,199,0.35)]',
+      domainBadge: 'bg-sky-50/80 text-sky-900 border-sky-200/80',
+      btnBg: 'bg-[#0284C7] hover:bg-[#0369A1]',
+      accentColor: '#0284C7',
+    },
+  },
 ];
 
 export function EcosystemBentoGrid() {
@@ -142,8 +162,8 @@ export function EcosystemBentoGrid() {
           </div>
         </div>
 
-        {/* LƯỚI 6 THẺ PHÂN HỆ SỐ CỐT LÕI - THU GỌN CHIỀU CAO 1/2, CÁC HÀNG CHỮ SÁT NHAU */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
+        {/* LƯỚI 7 THẺ PHÂN HỆ SỐ CỐT LÕI - THU GỌN CHIỀU CAO 1/2, CÁC HÀNG CHỮ SÁT NHAU */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2.5 sm:gap-3">
           {ECOSYSTEM_APPS.map((app) => {
             const IconComponent = app.icon;
             const style = app.colorStyle;

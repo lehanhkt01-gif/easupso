@@ -89,5 +89,11 @@ export const EASUP_SYSTEM_METADATA = {
       url: 'https://vinguoingheo.easupso.com',
       description: 'Quỹ vì người nghèo, nhà đại đoàn kết và hoạt động an sinh xã hội UBMTTQVN xã điều phối',
     },
+    {
+      id: 'thitructuyen',
+      name: 'Thi trực tuyến',
+      url: 'https://thi.easupso.com',
+      description: 'Cổng thi trực tuyến kiến thức, hình ảnh, video clip',
+    },
   ],
 } as const;
