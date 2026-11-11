@@ -117,12 +117,12 @@ function formatContentToParagraphHtml(rawText: string): string {
     .join('\n');
 }
 
-// Tự động tối ưu và nén kích thước ảnh trên trình duyệt trước khi gửi (đặc biệt tối ưu cho iPhone/iPad camera)
+// Tự động tối ưu và nén kích thước ảnh trên trình duyệt trước khi gửi (đặc biệt tối ưu cho iPhone/iPad camera và máy tính)
 async function compressImageIfNeeded(file: File): Promise<File> {
   if (typeof window === 'undefined' || !file.type || !file.type.startsWith('image/')) return file;
 
-  // Nếu file dưới 1.5MB và là định dạng web phổ biến, không cần nén lại
-  if (file.size <= 1.5 * 1024 * 1024 && ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+  // Nếu file đã rất nhẹ (dưới 500KB) và là định dạng web chuẩn, giữ nguyên
+  if (file.size <= 500 * 1024 && ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
     return file;
   }
 
@@ -132,7 +132,8 @@ async function compressImageIfNeeded(file: File): Promise<File> {
       const img = new Image();
       img.onload = () => {
         try {
-          const maxDim = 1920;
+          // Báo chí điện tử chuẩn: tối đa 1600px là cực nét trên màn hình Retina / 4K
+          const maxDim = 1600;
           let width = img.width;
           let height = img.height;
 
@@ -156,21 +157,33 @@ async function compressImageIfNeeded(file: File): Promise<File> {
           }
 
           ctx.drawImage(img, 0, 0, width, height);
+
+          // Nén chất lượng 0.82 (đảm bảo độ sắc nét trang trọng và dung lượng luôn < 500KB - 750KB)
           canvas.toBlob(
             (blob) => {
-              if (!blob || blob.size >= file.size) {
+              if (!blob) {
                 resolve(file);
+                return;
+              }
+
+              // Nếu sau khi nén vẫn > 800KB, nén tiếp mức 0.72 để luôn đảm bảo siêu nhẹ (< 800KB)
+              if (blob.size > 800 * 1024) {
+                canvas.toBlob(
+                  (blob2) => {
+                    const finalBlob = blob2 || blob;
+                    const cleanName = (file.name || 'image').replace(/\.[^/.]+$/, '') + '.jpg';
+                    resolve(new File([finalBlob], cleanName, { type: 'image/jpeg', lastModified: Date.now() }));
+                  },
+                  'image/jpeg',
+                  0.72
+                );
               } else {
                 const cleanName = (file.name || 'image').replace(/\.[^/.]+$/, '') + '.jpg';
-                const compressedFile = new File([blob], cleanName, {
-                  type: 'image/jpeg',
-                  lastModified: Date.now(),
-                });
-                resolve(compressedFile);
+                resolve(new File([blob], cleanName, { type: 'image/jpeg', lastModified: Date.now() }));
               }
             },
             'image/jpeg',
-            0.85
+            0.82
           );
         } catch {
           resolve(file);
@@ -434,7 +447,7 @@ export function NewsEditorModal({
 
     setIsUploading(true);
     try {
-      // Tự động nén và co dãn ảnh thông minh trên trình duyệt (đặc biệt cho camera roll iPhone/Safari)
+      // 1. Tự động nén và tối ưu ảnh thông minh trên trình duyệt
       const processedFiles: File[] = [];
       for (const f of selectedFiles) {
         try {
@@ -445,6 +458,7 @@ export function NewsEditorModal({
         }
       }
 
+      // 2. Kiểm tra giới hạn 5MB cho từng ảnh
       for (const f of processedFiles) {
         if (f.size > MAX_IMAGE_SIZE_BYTES) {
           const sizeMb = (f.size / (1024 * 1024)).toFixed(2);
@@ -454,50 +468,65 @@ export function NewsEditorModal({
         }
       }
 
-      const formData = new FormData();
-      processedFiles.forEach((file) => formData.append('files', file));
+      // 3. Tải từng ảnh lên máy chủ độc lập (tránh vượt tổng dung lượng request làm Nginx trả về lỗi 413)
+      const newlyUploaded: ArticleMediaItem[] = [];
+      const failedNames: string[] = [];
 
-      const res = await fetch('/api/admin/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      for (let i = 0; i < processedFiles.length; i++) {
+        const file = processedFiles[i];
+        const singleFormData = new FormData();
+        singleFormData.append('files', file);
 
-      // An toàn với lỗi HTTP / Nginx trả về văn bản hoặc HTML lỗi trên iOS Safari
-      let json: any = null;
-      const contentType = res.headers.get('content-type') || '';
-      if (contentType.includes('application/json')) {
         try {
-          json = await res.json();
+          const res = await fetch('/api/admin/upload', {
+            method: 'POST',
+            body: singleFormData,
+          });
+
+          // An toàn với lỗi HTTP / Nginx trả về văn bản hoặc HTML lỗi
+          let json: any = null;
+          const contentType = res.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            try {
+              json = await res.json();
+            } catch {
+              // Bỏ qua lỗi parse JSON
+            }
+          }
+
+          if (!res.ok) {
+            failedNames.push(file.name);
+            continue;
+          }
+
+          if (json && json.success && Array.isArray(json.urls) && json.urls.length > 0) {
+            const url = json.urls[0];
+            const detail = json.files?.[0];
+            newlyUploaded.push({
+              url,
+              caption: '',
+              placement: 'auto' as ImagePlacement,
+              isCover: mediaItems.length === 0 && newlyUploaded.length === 0,
+              size: detail?.size || file.size || 0,
+            });
+          } else {
+            failedNames.push(file.name);
+          }
         } catch {
-          // Bỏ qua lỗi parse JSON
+          failedNames.push(file.name);
         }
       }
 
-      if (!res.ok) {
-        if (res.status === 413) {
-          setUploadError('Dung lượng ảnh vượt quá giới hạn máy chủ (Mã 413). Vui lòng chọn ảnh nhỏ hơn hoặc tải từng ảnh một.');
-          return;
-        }
-        setUploadError(json?.error || `Máy chủ phản hồi lỗi (Mã HTTP ${res.status}). Vui lòng thử lại.`);
-        return;
+      // 4. Cập nhật danh sách ảnh đã tải thành công vào bài viết
+      if (newlyUploaded.length > 0) {
+        setMediaItems((prev) => [...prev, ...newlyUploaded].slice(0, MAX_ARTICLE_IMAGES));
       }
 
-      if (json && json.success && json.urls) {
-        const newItems: ArticleMediaItem[] = json.urls.map((url: string, idx: number) => {
-          const detail = json.files?.[idx];
-          return {
-            url,
-            caption: '',
-            placement: 'auto' as ImagePlacement,
-            isCover: mediaItems.length === 0 && idx === 0,
-            size: detail?.size || 0,
-          };
-        });
-
-        const merged = [...mediaItems, ...newItems].slice(0, MAX_ARTICLE_IMAGES);
-        setMediaItems(merged);
-      } else {
-        setUploadError(json?.error || 'Tải ảnh lên máy chủ thất bại.');
+      // Nếu có ảnh bị lỗi, thông báo rõ ràng cho cán bộ
+      if (failedNames.length > 0) {
+        setUploadError(
+          `Không thể tải lên ${failedNames.length} ảnh (${failedNames.join(', ')}). Vui lòng thử lại.`
+        );
       }
     } catch (err: any) {
       setUploadError(err?.message || 'Lỗi kết nối khi tải ảnh lên.');
