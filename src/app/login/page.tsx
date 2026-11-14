@@ -4,9 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { signIn, useSession } from 'next-auth/react';
 import {
-  ShieldCheck,
   ArrowLeft,
-  Lock,
   KeyRound,
   Mail,
   AlertCircle,
@@ -173,25 +171,6 @@ export default function LoginPage() {
             {isLoading ? 'Đang xác thực...' : 'Đăng nhập vào Hệ thống Quản trị'}
           </button>
         </form>
-
-        {/* Khung giải thích cơ chế phân quyền tự động Zero-Trust */}
-        <div className="p-4 rounded-xl bg-[#FAF7F2] border border-[#E8E2D5] space-y-2 text-xs text-[#4A5B52]">
-          <div className="flex items-center gap-1.5 font-bold text-[#1B4332] uppercase tracking-wide">
-            <ShieldCheck className="w-4 h-4 text-[#C85A32]" />
-            Chính sách Bảo mật &amp; Quyền hạn:
-          </div>
-          <p className="text-[11px] leading-relaxed">
-            Hệ thống áp dụng cơ chế <strong>RBAC + ABAC</strong> kết hợp Google OAuth 2.0. Quản trị viên có toàn quyền thêm cán bộ, đặt quyền duyệt tin và đổi mật khẩu an toàn.
-          </p>
-        </div>
-
-        <div className="pt-2 text-center text-[11px] text-[#6B7C73] space-y-1">
-          <p className="flex items-center justify-center gap-1">
-            <Lock className="w-3 h-3 text-[#10B981]" />
-            Kết nối mã hóa SSL 256-bit chuẩn Gov Zero-Trust
-          </p>
-          <p>Đường dây nóng hỗ trợ: <strong>0888 023 023</strong> | Easupsohoa@gmail.com</p>
-        </div>
       </div>
 
       <div className="text-center text-xs text-[#6B7C73] mt-8">

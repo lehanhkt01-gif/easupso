@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import {
   FileText,
@@ -9,7 +10,6 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
-  ShieldAlert,
   ArrowLeft,
   LogOut,
   Send,
@@ -29,6 +29,8 @@ import {
   UserX,
   X,
   Edit2,
+  Edit3,
+  Plus,
   Shield,
   Upload,
 } from 'lucide-react';
@@ -67,6 +69,7 @@ export function AdminDashboardClient({
   initialUsers = [],
 }: AdminDashboardClientProps) {
   const isExecutiveOrSuper = user.role === Role.EXECUTIVE || user.role === Role.SUPER_ADMIN;
+  const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<'news' | 'approvals' | 'announcements' | 'audit' | 'settings' | 'users'>('news');
   const [articlesList, setArticlesList] = useState(initialArticles);
@@ -103,29 +106,127 @@ export function AdminDashboardClient({
   const [isSavingHero, setIsSavingHero] = useState<boolean>(false);
   const [heroMessage, setHeroMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  // Danh mục ảnh danh lam thắng cảnh Ea Súp cài sẵn
-  const heroPresets = [
-    {
-      name: 'Toàn cảnh Hồ Ea Súp Thượng (Mặc định)',
-      desc: 'Công trình đại thủy nông biểu tượng cho nguồn nước tưới tiêu và sức sống trù phú của vùng biên giới Ea Súp.',
-      url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=2000&q=85',
-    },
-    {
-      name: 'Tháp Chăm Yang Prong huyền bí',
-      desc: 'Di tích kiến trúc - tôn giáo độc nhất vô nhị của người Chăm xây dựng tại Tây Nguyên, niềm tự hào di sản Ea Súp.',
-      url: 'https://images.unsplash.com/photo-1546445317-29f4545e9d53?auto=format&fit=crop&w=2000&q=85',
-    },
-    {
-      name: 'Cánh đồng lúa nước và nương rẫy Ea Súp',
-      desc: 'Màu vàng ấm áp của cánh đồng lúa chín và đất đai phì nhiêu trải dài khắp 20 thôn buôn.',
-      url: 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=2000&q=85',
-    },
-    {
-      name: 'Rừng khộp và hoàng hôn buôn làng Tây Nguyên',
-      desc: 'Bản sắc rừng khộp đặc hữu giao hòa cùng ánh chiều tà bình yên bên mái nhà dài truyền thống.',
-      url: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=2000&q=85',
-    },
-  ];
+  // Quản lý Thông báo điều hành Ticker Bar
+  const [announcementsList, setAnnouncementsList] = useState<any[]>(quickAnnouncements);
+  const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
+  const [editingAnnouncement, setEditingAnnouncement] = useState<any | null>(null);
+  const [isSavingAnnouncement, setIsSavingAnnouncement] = useState(false);
+  const [announcementError, setAnnouncementError] = useState<string | null>(null);
+
+  // Form State Announcement
+  const [annTitle, setAnnTitle] = useState('');
+  const [annContent, setAnnContent] = useState('');
+  const [annLinkUrl, setAnnLinkUrl] = useState('');
+  const [annIsUrgent, setAnnIsUrgent] = useState(false);
+  const [annIsActive, setAnnIsActive] = useState(true);
+
+  function handleOpenCreateAnnouncement() {
+    setEditingAnnouncement(null);
+    setAnnTitle('');
+    setAnnContent('');
+    setAnnLinkUrl('');
+    setAnnIsUrgent(false);
+    setAnnIsActive(true);
+    setAnnouncementError(null);
+    setIsAnnouncementModalOpen(true);
+  }
+
+  function handleOpenEditAnnouncement(ann: any) {
+    setEditingAnnouncement(ann);
+    setAnnTitle(ann.title || '');
+    setAnnContent(ann.content || '');
+    setAnnLinkUrl(ann.linkUrl || '');
+    setAnnIsUrgent(Boolean(ann.isUrgent));
+    setAnnIsActive(Boolean(ann.isActive));
+    setAnnouncementError(null);
+    setIsAnnouncementModalOpen(true);
+  }
+
+  async function handleSaveAnnouncement(e: React.FormEvent) {
+    e.preventDefault();
+    if (!annTitle.trim() || !annContent.trim()) {
+      setAnnouncementError('Vui lòng nhập đầy đủ tiêu đề và nội dung thông báo.');
+      return;
+    }
+
+    setIsSavingAnnouncement(true);
+    setAnnouncementError(null);
+
+    try {
+      if (editingAnnouncement) {
+        // Cập nhật thông báo
+        const res = await fetch(`/api/admin/announcements/${editingAnnouncement.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: annTitle,
+            content: annContent,
+            linkUrl: annLinkUrl,
+            isUrgent: annIsUrgent,
+            isActive: annIsActive,
+          }),
+        });
+
+        const data = await res.json();
+        if (data.success && data.announcement) {
+          setAnnouncementsList((prev) =>
+            prev.map((item) => (item.id === data.announcement.id ? data.announcement : item))
+          );
+          setIsAnnouncementModalOpen(false);
+          router.refresh();
+        } else {
+          setAnnouncementError(data.error || 'Cập nhật thông báo thất bại.');
+        }
+      } else {
+        // Tạo mới thông báo
+        const res = await fetch('/api/admin/announcements', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: annTitle,
+            content: annContent,
+            linkUrl: annLinkUrl,
+            isUrgent: annIsUrgent,
+            isActive: annIsActive,
+          }),
+        });
+
+        const data = await res.json();
+        if (data.success && data.announcement) {
+          setAnnouncementsList((prev) => [data.announcement, ...prev]);
+          setIsAnnouncementModalOpen(false);
+          router.refresh();
+        } else {
+          setAnnouncementError(data.error || 'Tạo thông báo mới thất bại.');
+        }
+      }
+    } catch (err: any) {
+      setAnnouncementError(err?.message || 'Lỗi hệ thống khi lưu thông báo.');
+    } finally {
+      setIsSavingAnnouncement(false);
+    }
+  }
+
+  async function handleDeleteAnnouncement(id: string) {
+    if (!window.confirm('Đồng chí có chắc chắn muốn xóa thông báo Ticker này khỏi hệ thống?')) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/announcements/${id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAnnouncementsList((prev) => prev.filter((item) => item.id !== id));
+        router.refresh();
+      } else {
+        alert(data.error || 'Không thể xóa thông báo.');
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Lỗi kết nối khi xóa thông báo.');
+    }
+  }
 
   async function handleSaveHeroImage(overrideUrl?: string) {
     const finalUrl = (overrideUrl !== undefined ? overrideUrl : heroImageUrl).trim();
@@ -625,7 +726,7 @@ export function AdminDashboardClient({
                 }`}
               >
                 <Megaphone className="w-4 h-4" />
-                <span>Thông báo Ticker ({quickAnnouncements.length})</span>
+                <span>Thông báo Ticker ({announcementsList.length})</span>
               </button>
 
               <button
@@ -1036,37 +1137,105 @@ export function AdminDashboardClient({
            ==================================================================== */}
         {activeTab === 'announcements' && isExecutiveOrSuper && (
           <div className="space-y-6">
-            <div className="border-b border-[#E8E2D5] pb-4">
-              <h2 className="text-xl font-bold text-[#1B4332] flex items-center gap-2">
-                <Megaphone className="w-5 h-5 text-[#C85A32]" />
-                Thông báo điều hành trên Dải Ticker Bar
-              </h2>
-              <p className="text-xs text-[#6B7C73]">
-                Dòng thông báo khẩn, lịch họp tiếp dân chạy trên đầu trang chủ easupso.com.
-              </p>
+            <div className="border-b border-[#E8E2D5] pb-4 flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-[#1B4332] flex items-center gap-2">
+                  <Megaphone className="w-5 h-5 text-[#C85A32]" />
+                  Thông báo điều hành trên Dải Ticker Bar
+                </h2>
+                <p className="text-xs text-[#6B7C73] mt-0.5">
+                  Dòng thông báo khẩn, lịch họp tiếp dân chạy trên đầu trang chủ easupso.com.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleOpenCreateAnnouncement}
+                className="px-4 py-2 rounded-xl bg-[#1B4332] hover:bg-[#143326] text-white text-xs font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <Plus className="w-4 h-4 text-[#D4AF37]" />
+                <span>+ Thêm thông báo mới</span>
+              </button>
             </div>
 
             <div className="bg-white rounded-xl border border-[#E8E2D5] p-4 divide-y divide-[#E8E2D5]">
-              {quickAnnouncements.map((ann) => (
-                <div key={ann.id} className="py-3 flex items-start justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                          ann.isUrgent ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-                        }`}
-                      >
-                        {ann.isUrgent ? 'Khẩn' : 'Bình thường'}
-                      </span>
-                      <strong className="text-sm text-[#14211B]">{ann.title}</strong>
-                    </div>
-                    <p className="text-xs text-[#4A5B52] mt-1">{ann.content}</p>
-                  </div>
-                  <span className="text-[11px] text-[#6B7C73] whitespace-nowrap">
-                    {new Date(ann.createdAt).toLocaleDateString('vi-VN')}
-                  </span>
+              {announcementsList.length === 0 ? (
+                <div className="py-8 text-center text-xs text-[#6B7C73]">
+                  Chưa có thông báo nào trên Dải Ticker Bar. Nhấn &ldquo;+ Thêm thông báo mới&rdquo; để tạo thông báo đầu tiên.
                 </div>
-              ))}
+              ) : (
+                announcementsList.map((ann) => (
+                  <div key={ann.id} className="py-3.5 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                            ann.isUrgent
+                              ? 'bg-red-100 text-red-800 border border-red-200'
+                              : 'bg-green-100 text-green-800 border border-green-200'
+                          }`}
+                        >
+                          {ann.isUrgent ? 'Khẩn' : 'Bình thường'}
+                        </span>
+
+                        {ann.isActive ? (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            ● Đang phát
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-stone-100 text-stone-600 border border-stone-200">
+                            ○ Tạm ẩn
+                          </span>
+                        )}
+
+                        <strong className="text-sm font-bold text-[#14211B]">{ann.title}</strong>
+                      </div>
+
+                      <p className="text-xs text-[#4A5B52] leading-relaxed mt-1">{ann.content}</p>
+
+                      {ann.linkUrl && (
+                        <p className="text-[11px] text-[#0068FF] mt-1 truncate">
+                          Đường dẫn chi tiết:{' '}
+                          <a
+                            href={ann.linkUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline hover:text-[#0052cc]"
+                          >
+                            {ann.linkUrl}
+                          </a>
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                      <span className="text-[11px] text-[#6B7C73] whitespace-nowrap mr-2">
+                        {new Date(ann.createdAt).toLocaleDateString('vi-VN')}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditAnnouncement(ann)}
+                        className="px-2.5 py-1 rounded-lg border border-[#D5CBBA] bg-white hover:bg-stone-50 text-[#1B4332] text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
+                        title="Chỉnh sửa thông báo Ticker"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-[#C85A32]" />
+                        <span>Sửa</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAnnouncement(ann.id)}
+                        className="px-2.5 py-1 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
+                        title="Xóa thông báo Ticker"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Xóa</span>
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
@@ -1355,86 +1524,6 @@ export function AdminDashboardClient({
                   <p className="text-[11px] text-[#6B7C73] mt-2">
                     Sau khi chọn ảnh từ máy tính hoặc nhập link, bạn hãy bấm <strong className="text-[#C85A32]">&quot;Lưu thay đổi &amp; Áp dụng&quot;</strong> để công bố ảnh mới lên Trang chủ.
                   </p>
-                </div>
-
-                {/* DANH MỤC ẢNH PHONG CẢNH EA SÚP CÀI ĐẶT SẴN (PRESETS) */}
-                <div className="pt-6 border-t border-[#E8E2D5] space-y-4">
-                  <div>
-                    <h3 className="text-sm font-bold text-[#1B4332] uppercase tracking-wider flex items-center gap-2">
-                      <span>📸 Hoặc chọn nhanh từ Kho tư liệu Thắng cảnh &amp; Di sản Xã Ea Súp</span>
-                    </h3>
-                    <p className="text-xs text-[#6B7C73] mt-0.5">
-                      Bấm vào từng mẫu bên dưới để xem trước và nhấn &ldquo;Áp dụng ngay&rdquo; để lưu trực tiếp lên website.
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {heroPresets.map((preset, idx) => {
-                      const isSelected =
-                        heroImageUrl === preset.url ||
-                        (!heroImageUrl && idx === 0);
-
-                      return (
-                        <div
-                          key={idx}
-                          className={`rounded-xl border p-3 flex gap-3 transition cursor-pointer ${
-                            isSelected
-                              ? 'border-[#C85A32] bg-[#FAF7F2] shadow-sm ring-1 ring-[#C85A32]'
-                              : 'border-[#E8E2D5] bg-white hover:border-[#1B4332]'
-                          }`}
-                          onClick={() => {
-                            setHeroImageUrl(preset.url);
-                            setPreviewHeroUrl(preset.url);
-                          }}
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={preset.url}
-                            alt={preset.name}
-                            className="w-24 h-20 rounded-lg object-cover shrink-0 border border-[#E8E2D5]"
-                          />
-
-                          <div className="flex-1 flex flex-col justify-between">
-                            <div>
-                              <h4 className="text-xs sm:text-sm font-bold text-[#14211B] line-clamp-1">
-                                {preset.name}
-                              </h4>
-                              <p className="text-[11px] text-[#4A5B52] line-clamp-2 mt-1">
-                                {preset.desc}
-                              </p>
-                            </div>
-
-                            <div className="flex items-center justify-between mt-2 pt-1">
-                              <span className="text-[10px] font-semibold text-[#6B7C73]">
-                                {isSelected ? '● Đang chọn xem trước' : '○ Bấm để chọn'}
-                              </span>
-
-                              <button
-                                type="button"
-                                disabled={isSavingHero}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleSaveHeroImage(preset.url);
-                                }}
-                                className="px-3 py-1 rounded-md text-[11px] font-bold bg-[#1B4332] hover:bg-[#143326] text-white shadow-xs transition"
-                              >
-                                Áp dụng ngay
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Hộp ghi chú quy chuẩn an toàn */}
-                <div className="mt-6 p-4 rounded-xl bg-[#FAF7F2] border border-[#E8E2D5] flex items-start gap-3 text-xs text-[#4A5B52]">
-                  <ShieldAlert className="w-5 h-5 text-[#C85A32] shrink-0 mt-0.5" />
-                  <div>
-                    <strong className="text-[#14211B] block">Nguyên tắc Bảo mật Zero-Trust &amp; Vết kiểm toán:</strong>
-                    Tất cả hành động sửa đổi ảnh bìa website đều được tự động lưu vết tại bảng <code className="font-mono bg-white px-1.5 py-0.5 rounded border border-[#E8E2D5]">AuditLog</code> với định danh tài khoản, thời gian chuẩn và địa chỉ IP của cán bộ quản trị.
-                  </div>
                 </div>
               </div>
             </div>
@@ -2002,6 +2091,124 @@ export function AdminDashboardClient({
         )}
 
       </main>
+
+      {/* MODAL THÊM / CHỈNH SỬA THÔNG BÁO TICKER BAR */}
+      {isAnnouncementModalOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-[#FAF7F2] w-full max-w-lg rounded-2xl border-2 border-[#D5CBBA] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-5 py-3.5 bg-[#1B4332] text-white flex items-center justify-between border-b-2 border-[#D4AF37]">
+              <div className="flex items-center gap-2">
+                <Megaphone className="w-5 h-5 text-[#D4AF37]" />
+                <h3 className="text-sm sm:text-base font-bold">
+                  {editingAnnouncement ? 'Chỉnh sửa thông báo Ticker' : 'Thêm thông báo Ticker mới'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAnnouncementModalOpen(false)}
+                className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAnnouncement} className="p-5 space-y-4">
+              {announcementError && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{announcementError}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold text-[#14211B] mb-1">
+                  Tiêu đề thông báo <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={annTitle}
+                  onChange={(e) => setAnnTitle(e.target.value)}
+                  placeholder="VD: Kêu gọi toàn dân ủng hộ Quỹ Vì người nghèo..."
+                  className="w-full px-3 py-2 rounded-xl border border-[#D5CBBA] bg-white text-xs sm:text-sm text-[#14211B] focus:outline-none focus:ring-2 focus:ring-[#1B4332]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#14211B] mb-1">
+                  Nội dung chi tiết thông báo <span className="text-red-600">*</span>
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  value={annContent}
+                  onChange={(e) => setAnnContent(e.target.value)}
+                  placeholder="Nội dung tóm tắt hiển thị chạy trên dải chữ Ticker..."
+                  className="w-full px-3 py-2 rounded-xl border border-[#D5CBBA] bg-white text-xs sm:text-sm text-[#14211B] focus:outline-none focus:ring-2 focus:ring-[#1B4332]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#14211B] mb-1">
+                  Đường dẫn liên kết chi tiết (Tùy chọn)
+                </label>
+                <input
+                  type="text"
+                  value={annLinkUrl}
+                  onChange={(e) => setAnnLinkUrl(e.target.value)}
+                  placeholder="VD: /news/slug hoặc https://... (Để trống nếu không có)"
+                  className="w-full px-3 py-2 rounded-xl border border-[#D5CBBA] bg-white text-xs text-[#14211B] focus:outline-none focus:ring-2 focus:ring-[#1B4332]"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <label className="flex items-center gap-2 p-2.5 rounded-xl border border-[#D5CBBA] bg-white cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={annIsUrgent}
+                    onChange={(e) => setAnnIsUrgent(e.target.checked)}
+                    className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
+                  />
+                  <div className="text-xs">
+                    <span className="font-bold text-red-700 block">Thông báo KHẨN</span>
+                    <span className="text-[10px] text-[#6B7C73]">Nền đỏ chữ vàng trên Ticker</span>
+                  </div>
+                </label>
+
+                <label className="flex items-center gap-2 p-2.5 rounded-xl border border-[#D5CBBA] bg-white cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={annIsActive}
+                    onChange={(e) => setAnnIsActive(e.target.checked)}
+                    className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
+                  />
+                  <div className="text-xs">
+                    <span className="font-bold text-emerald-800 block">Đang phát sóng</span>
+                    <span className="text-[10px] text-[#6B7C73]">Hiển thị ra Trang chủ</span>
+                  </div>
+                </label>
+              </div>
+
+              <div className="pt-4 border-t border-[#E8E2D5] flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAnnouncementModalOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-[#D5CBBA] bg-white hover:bg-stone-50 text-xs font-bold text-[#6B7C73] transition cursor-pointer"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingAnnouncement}
+                  className="px-5 py-2 rounded-xl bg-[#1B4332] hover:bg-[#143326] text-xs font-bold text-white shadow-sm transition cursor-pointer disabled:opacity-50"
+                >
+                  {isSavingAnnouncement ? 'Đang lưu...' : (editingAnnouncement ? 'Cập nhật' : 'Thêm mới')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* MODAL SOẠN THẢO / CHỈNH SỬA BẢN TIN (TỐI ĐA 7 ẢNH, DƯỚI 5MB) */}
       <NewsEditorModal

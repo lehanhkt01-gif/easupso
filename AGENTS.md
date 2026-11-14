@@ -152,6 +152,8 @@ Cổng thông tin trung tâm `easupso.com` giữ vai trò làm đầu mối đ�
   - [`src/app/api/public/search/route.ts`](file:///d:/1.%20VPS%20Maydell/4.%20Antigravity/12.%20Easupso/src/app/api/public/search/route.ts): API tìm kiếm hợp nhất WebApps, tin tức, thông báo.
   - [`src/app/api/admin/news/route.ts`](file:///d:/1.%20VPS%20Maydell/4.%20Antigravity/12.%20Easupso/src/app/api/admin/news/route.ts): API quản trị bản tin (GET, POST).
   - [`src/app/api/admin/news/[id]/route.ts`](file:///d:/1.%20VPS%20Maydell/4.%20Antigravity/12.%20Easupso/src/app/api/admin/news/[id]/route.ts): API phê duyệt và xóa bản tin (PATCH, DELETE).
+  - [`src/app/api/admin/announcements/route.ts`](file:///d:/Antigravity/0.%20easupso%20var/src/app/api/admin/announcements/route.ts): API quản lý danh sách thông báo Ticker điều hành (GET, POST).
+  - [`src/app/api/admin/announcements/[id]/route.ts`](file:///d:/Antigravity/0.%20easupso%20var/src/app/api/admin/announcements/[id]/route.ts): API cập nhật và xóa thông báo Ticker (PUT, DELETE) ghi vết AuditLog.
   - [`src/app/api/admin/ecosystem/sync/route.ts`](file:///d:/1.%20VPS%20Maydell/4.%20Antigravity/12.%20Easupso/src/app/api/admin/ecosystem/sync/route.ts): API đồng bộ số liệu Bento Grid.
 
 - **Giao diện người dùng chuẩn @hallmark**:
