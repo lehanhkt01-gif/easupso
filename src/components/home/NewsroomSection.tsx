@@ -349,10 +349,7 @@ export function NewsroomSection({
                       </div>
 
                       {/* Footer thẻ */}
-                      <div className="mt-5 pt-3.5 border-t border-[#E6E2D8] flex items-center justify-between text-xs font-bold text-[#0F3D2E]">
-                        <span className="text-[#C88A2B]">
-                          {leadStory.author?.name || 'Ủy ban MTTQ Việt Nam xã Ea Súp'}
-                        </span>
+                      <div className="mt-5 pt-3.5 border-t border-[#E6E2D8] flex items-center justify-end text-xs font-bold text-[#0F3D2E]">
                         <span className="inline-flex items-center gap-1.5 group-hover:translate-x-1.5 transition-transform text-[#0F3D2E]">
                           <span>Xem toàn văn bài báo</span>
                           <ArrowRight className="w-4 h-4" />
