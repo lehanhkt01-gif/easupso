@@ -22,6 +22,7 @@ export interface ArticleMediaItem {
   placement?: ImagePlacement;
   isCover?: boolean;
   size?: number;
+  originalSize?: number;
 }
 
 /**
@@ -42,6 +43,7 @@ export function normalizeMediaItem(item: string | ArticleMediaItem, index = 0): 
     placement: item.placement || 'auto',
     isCover: Boolean(item.isCover),
     size: item.size,
+    originalSize: item.originalSize,
   };
 }
 

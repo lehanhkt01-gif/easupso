@@ -148,6 +148,7 @@ export function NewsEditorModal({
   const [mediaItems, setMediaItems] = useState<ArticleMediaItem[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgressText, setUploadProgressText] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [hasDraftNotice, setHasDraftNotice] = useState(false);
@@ -377,40 +378,54 @@ export function NewsEditorModal({
     }
 
     setIsUploading(true);
+    setUploadProgressText('Đang chuẩn bị xử lý ảnh...');
     try {
-      // 1. Tự động nén và đóng dấu logo bản quyền EASUPSO.COM vào góc dưới trái
-      const processedFiles: File[] = [];
-      for (const f of selectedFiles) {
+      // 1. Tự động nén ảnh thông minh về < 1MB và gắn logo EASUPSO.COM ở góc dưới trái
+      const processedFiles: Array<{ file: File; originalSize: number; compressedSize: number }> = [];
+
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const f = selectedFiles[i];
+        if (selectedFiles.length > 1) {
+          setUploadProgressText(`Đang tối ưu dung lượng ảnh (${i + 1}/${selectedFiles.length})...`);
+        } else {
+          setUploadProgressText('Đang tối ưu dung lượng ảnh...');
+        }
+
         try {
           const processed = await processAndWatermarkImage(f, {
             enabled: autoWatermark,
-            quality: 0.92,
-            maxDim: 1600,
+            quality: 0.88,
+            maxDim: 1920,
+            targetMaxBytes: 980 * 1024,
           });
-          processedFiles.push(processed);
+          processedFiles.push({
+            file: processed,
+            originalSize: processed.originalSize || f.size,
+            compressedSize: processed.size,
+          });
         } catch {
-          processedFiles.push(f);
+          processedFiles.push({
+            file: f,
+            originalSize: f.size,
+            compressedSize: f.size,
+          });
         }
       }
 
-      // 2. Kiểm tra giới hạn 5MB cho từng ảnh
-      for (const f of processedFiles) {
-        if (f.size > MAX_IMAGE_SIZE_BYTES) {
-          const sizeMb = (f.size / (1024 * 1024)).toFixed(2);
-          setUploadError(`Ảnh "${f.name}" có dung lượng ${sizeMb} MB, vượt quá giới hạn tối đa 5MB!`);
-          if (fileInputRef.current) fileInputRef.current.value = '';
-          return;
-        }
-      }
-
-      // 3. Tải từng ảnh lên máy chủ độc lập (tránh vượt tổng dung lượng request làm Nginx trả về lỗi 413)
+      // 2. Tải từng ảnh lên máy chủ độc lập (tránh vượt tổng dung lượng request làm Nginx trả về lỗi 413)
       const newlyUploaded: ArticleMediaItem[] = [];
       const failedNames: string[] = [];
 
       for (let i = 0; i < processedFiles.length; i++) {
-        const file = processedFiles[i];
+        const item = processedFiles[i];
+        if (processedFiles.length > 1) {
+          setUploadProgressText(`Đang tải ảnh lên máy chủ (${i + 1}/${processedFiles.length})...`);
+        } else {
+          setUploadProgressText('Đang tải ảnh lên máy chủ...');
+        }
+
         const singleFormData = new FormData();
-        singleFormData.append('files', file);
+        singleFormData.append('files', item.file);
 
         try {
           const res = await fetch('/api/admin/upload', {
@@ -430,7 +445,7 @@ export function NewsEditorModal({
           }
 
           if (!res.ok) {
-            failedNames.push(file.name);
+            failedNames.push(item.file.name);
             continue;
           }
 
@@ -442,17 +457,18 @@ export function NewsEditorModal({
               caption: '',
               placement: 'auto' as ImagePlacement,
               isCover: mediaItems.length === 0 && newlyUploaded.length === 0,
-              size: detail?.size || file.size || 0,
+              size: detail?.size || item.compressedSize || item.file.size || 0,
+              originalSize: item.originalSize,
             });
           } else {
-            failedNames.push(file.name);
+            failedNames.push(item.file.name);
           }
         } catch {
-          failedNames.push(file.name);
+          failedNames.push(item.file.name);
         }
       }
 
-      // 4. Cập nhật danh sách ảnh đã tải thành công vào bài viết
+      // 3. Cập nhật danh sách ảnh đã tải thành công vào bài viết
       if (newlyUploaded.length > 0) {
         setMediaItems((prev) => [...prev, ...newlyUploaded].slice(0, MAX_ARTICLE_IMAGES));
       }
@@ -467,6 +483,7 @@ export function NewsEditorModal({
       setUploadError(err?.message || 'Lỗi kết nối khi tải ảnh lên.');
     } finally {
       setIsUploading(false);
+      setUploadProgressText('');
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   }
@@ -605,55 +622,55 @@ export function NewsEditorModal({
       <div className="bg-[#FAF7F2] w-full max-w-4xl lg:max-w-5xl rounded-2xl border-2 border-[#D5CBBA] shadow-2xl flex flex-col max-h-[94vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
         {/* MODAL HEADER */}
-        <div className="px-5 py-3.5 bg-[#1B4332] text-white flex items-center justify-between border-b-2 border-[#D4AF37] shrink-0">
-          <div className="flex items-center gap-3">
-            <span className="w-8 h-8 rounded-lg bg-[#D4AF37]/20 border border-[#D4AF37] flex items-center justify-center text-[#D4AF37] font-bold text-sm">
+        <div className="px-4 sm:px-6 py-3 bg-[#1B4332] text-white flex items-center justify-between border-b-2 border-[#D4AF37] shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <span className="w-8 h-8 rounded-lg bg-[#D4AF37]/20 border border-[#D4AF37] flex items-center justify-center text-[#D4AF37] font-bold text-sm shrink-0">
               {isEditMode ? '✏️' : '📰'}
             </span>
-            <div>
-              <h3 className="text-sm sm:text-base font-bold tracking-tight">
-                {isEditMode ? 'Biên tập & Nâng cấp bản tin' : 'Tòa soạn điện tử — Đăng bản tin mới'}
+            <div className="min-w-0">
+              <h3 className="text-sm sm:text-base font-bold tracking-tight truncate">
+                {isEditMode ? 'Biên tập bản tin' : 'Tòa soạn điện tử — Đăng bản tin mới'}
               </h3>
-              <p className="text-[11px] text-[#A3B899]">
-                Chuẩn báo chí chính luận &bull; Tối đa 7 ảnh kèm chú thích &amp; dàn trang thông minh
-              </p>
             </div>
           </div>
 
-          {/* CỤM NÚT TAB: SOẠN THẢO vs XEM TRƯỚC TRANG BÁO */}
-          <div className="flex items-center gap-2">
+          {/* CỤM NÚT TAB: SOẠN THẢO vs XEM TRƯỚC TRANG BÁO (CHỈ HIỂN THỊ LOGO CÁC NÚT) */}
+          <div className="flex items-center gap-2 shrink-0">
             <div className="flex bg-black/30 p-1 rounded-xl border border-white/10 text-xs">
               <button
                 type="button"
                 onClick={() => setActiveTab('editor')}
-                className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition ${
+                className={`p-2 sm:px-3 sm:py-1.5 rounded-lg font-bold flex items-center justify-center transition cursor-pointer ${
                   activeTab === 'editor'
                     ? 'bg-[#D4AF37] text-[#14211B] shadow-xs'
                     : 'text-white/80 hover:text-white'
                 }`}
+                title="Soạn thảo bản tin"
+                aria-label="Soạn thảo bản tin"
               >
-                <Edit3 className="w-3.5 h-3.5" />
-                <span>Soạn thảo</span>
+                <Edit3 className="w-4 h-4" />
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab('preview')}
-                className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition ${
+                className={`p-2 sm:px-3 sm:py-1.5 rounded-lg font-bold flex items-center justify-center transition cursor-pointer ${
                   activeTab === 'preview'
                     ? 'bg-[#D4AF37] text-[#14211B] shadow-xs'
                     : 'text-white/80 hover:text-white'
                 }`}
+                title="Xem trước trang báo"
+                aria-label="Xem trước trang báo"
               >
-                <Eye className="w-3.5 h-3.5" />
-                <span>Xem trước trang báo</span>
+                <Eye className="w-4 h-4" />
               </button>
             </div>
 
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition"
+              className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition cursor-pointer"
               title="Đóng cửa sổ"
+              aria-label="Đóng cửa sổ"
             >
               <X className="w-5 h-5" />
             </button>
@@ -935,7 +952,7 @@ export function NewsEditorModal({
                   </span>
                 </div>
                 <span className="text-[11px] text-[#6B7C73]">
-                  Tối đa 7 ảnh &bull; Mỗi ảnh &lt; 5MB &bull; Có ô ghi chú thích &amp; chọn vị trí dàn trang
+                  Tối đa 7 ảnh &bull; Tự động nén &lt; 1MB &bull; Có ô ghi chú thích &amp; chọn vị trí dàn trang
                 </span>
               </div>
 
@@ -1015,14 +1032,14 @@ export function NewsEditorModal({
                     {isUploading ? (
                       <div className="flex items-center gap-2">
                         <Loader2 className="w-5 h-5 animate-spin text-[#1B4332]" />
-                        <span>Đang tối ưu &amp; tải ảnh lên máy chủ...</span>
+                        <span>{uploadProgressText || 'Đang tối ưu dung lượng ảnh...'}</span>
                       </div>
                     ) : (
                       <>
                         <Upload className="w-5 h-5 text-[#C85A32]" />
-                        <span>Nhấn để chọn ảnh từ máy tính (Có thể chọn nhiều ảnh cùng lúc)</span>
+                        <span>Nhấn để chọn ảnh từ máy tính / điện thoại (Có thể chọn nhiều ảnh cùng lúc)</span>
                         <span className="text-[10px] text-[#6B7C73] font-normal">
-                          Hỗ trợ JPG, PNG, WebP &bull; Dung lượng tối đa 5MB/ảnh
+                          Hỗ trợ JPG, PNG, WebP &bull; Tự động nén dưới 1MB &amp; gắn logo EASUPSO.COM
                         </span>
                       </>
                     )}
@@ -1038,21 +1055,43 @@ export function NewsEditorModal({
                       key={item.url + idx}
                       className="p-3 sm:p-4 rounded-xl border border-[#D5CBBA] bg-[#FAF7F2] flex flex-col sm:flex-row gap-3 sm:gap-4 items-start relative group"
                     >
-                      {/* Cột 1: Thumbnail ảnh & Badge Bìa */}
-                      <div className="relative w-28 sm:w-36 aspect-[4/3] rounded-lg overflow-hidden border border-[#D5CBBA] bg-stone-200 shrink-0">
-                        <img
-                          src={item.url}
-                          alt={`Ảnh ${idx + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                        {item.isCover && (
-                          <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-[#1B4332] text-[#D4AF37] text-[10px] font-bold">
-                            ★ Ảnh bìa
+                      {/* Cột 1: Thumbnail ảnh & Badge Bìa & Badge Dung lượng */}
+                      <div className="flex flex-col items-center shrink-0 w-28 sm:w-36">
+                        <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden border border-[#D5CBBA] bg-stone-200">
+                          <img
+                            src={item.url}
+                            alt={`Ảnh ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          {item.isCover && (
+                            <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-[#1B4332] text-[#D4AF37] text-[10px] font-bold">
+                              ★ Ảnh bìa
+                            </span>
+                          )}
+                          <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/60 text-white text-[9px] font-mono">
+                            #{idx + 1}
                           </span>
-                        )}
-                        <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/60 text-white text-[9px] font-mono">
-                          #{idx + 1}
-                        </span>
+                        </div>
+
+                        {/* Badge dung lượng đã tối ưu (< 1MB) */}
+                        {item.size ? (
+                          <div
+                            className="mt-1.5 w-full text-[10px] font-mono text-[#1B4332] bg-[#E8EFEA] px-1.5 py-0.5 rounded border border-[#C5D9CB] flex items-center justify-center gap-1 text-center"
+                            title="Dung lượng ảnh đã được tối ưu lưu trữ dưới 1MB"
+                          >
+                            <span>⚡</span>
+                            {item.originalSize && item.originalSize > item.size ? (
+                              <span>
+                                {item.originalSize >= 1024 * 1024
+                                  ? `${(item.originalSize / (1024 * 1024)).toFixed(1)}MB`
+                                  : `${(item.originalSize / 1024).toFixed(0)}KB`}{' '}
+                                → {(item.size / 1024).toFixed(0)}KB
+                              </span>
+                            ) : (
+                              <span>{(item.size / 1024).toFixed(0)}KB</span>
+                            )}
+                          </div>
+                        ) : null}
                       </div>
 
                       {/* Cột 2: Ô chú thích & Chọn vị trí dàn trang */}

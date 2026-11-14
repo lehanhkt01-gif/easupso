@@ -4,13 +4,17 @@ import { writeAuditLog } from '@/lib/audit';
 import { Role } from '@prisma/client';
 import path from 'path';
 import fs from 'fs/promises';
+import sharp from 'sharp';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/admin/upload
  * Tải file ảnh bản tin hoặc ảnh hệ thống lên thư mục public/uploads
- * Quy định chuẩn: Tối đa 7 tấm ảnh, mỗi tấm dưới 5MB.
+ * Cơ chế an toàn 2 lớp:
+ *  - Client đã nén và gắn logo < 1MB
+ *  - Backend Guard: Nhận tới 15MB, tự động xoay chuẩn EXIF orientation (.rotate())
+ *    và nén bằng Sharp về < 1MB trước khi lưu đĩa.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -49,7 +53,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Kiểm tra định dạng và dung lượng từng file (Tối đa 5MB mỗi ảnh)
+    // 2. Kiểm tra định dạng và dung lượng từng file (Nới lỏng giới hạn nhận ảnh tới 15MB để xử lý)
     const allowedTypes = [
       'image/jpeg',
       'image/png',
@@ -64,7 +68,7 @@ export async function POST(req: NextRequest) {
       'application/octet-stream',
     ];
     const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif', '.heic', '.heif'];
-    const maxSizeBytes = 5 * 1024 * 1024; // 5MB
+    const maxSizeBytes = 15 * 1024 * 1024; // 15MB
 
     for (const f of rawFiles) {
       const ext = path.extname(f.name || '').toLowerCase();
@@ -84,7 +88,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            error: `File "${f.name}" có dung lượng ${sizeMb} MB, vượt quá giới hạn tối đa 5MB!`,
+            error: `File "${f.name}" có dung lượng ${sizeMb} MB, vượt quá giới hạn tối đa 15MB!`,
           },
           { status: 400 }
         );
@@ -100,10 +104,82 @@ export async function POST(req: NextRequest) {
     for (let i = 0; i < rawFiles.length; i++) {
       const file = rawFiles[i];
       const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
+      let buffer = Buffer.from(bytes);
+      let ext = (path.extname(file.name) || '.jpg').replace(/[^a-zA-Z0-9.]/g, '').toLowerCase();
 
-      const rawExt = path.extname(file.name) || '.jpg';
-      const ext = rawExt.replace(/[^a-zA-Z0-9.]/g, '').toLowerCase();
+      // KIỂM SOÁT AN TOÀN PHÍA SERVER (SERVER-SIDE GUARD VỚI SHARP)
+      // Tự động xoay ảnh chuẩn EXIF (iPhone/Android) và nén bảo đảm < 1MB nếu ảnh lớn
+      try {
+        const metadata = await sharp(buffer).metadata();
+        const hasExifOrientation = Boolean(metadata.orientation && metadata.orientation > 1);
+        const needsResize = Boolean(
+          (metadata.width && metadata.width > 1920) || (metadata.height && metadata.height > 1920)
+        );
+        const isOver1MB = buffer.length > 1024 * 1024;
+
+        if (hasExifOrientation || needsResize || isOver1MB) {
+          // Bắt đầu với max 1920px và chất lượng 84
+          let q = 84;
+          let optimizedBuffer = await sharp(buffer)
+            .rotate()
+            .resize({
+              width: 1920,
+              height: 1920,
+              fit: 'inside',
+              withoutEnlargement: true,
+            })
+            .jpeg({ quality: q, mozjpeg: true })
+            .toBuffer();
+
+          // Vòng lặp giảm chất lượng nếu vẫn >= 980KB
+          while (optimizedBuffer.length >= 980 * 1024 && q > 55) {
+            q -= 10;
+            optimizedBuffer = await sharp(buffer)
+              .rotate()
+              .resize({
+                width: 1920,
+                height: 1920,
+                fit: 'inside',
+                withoutEnlargement: true,
+              })
+              .jpeg({ quality: q, mozjpeg: true })
+              .toBuffer();
+          }
+
+          // Nếu ở mức q <= 55 mà vẫn >= 980KB (ảnh chụp hạt quá dày), thu gọn kích thước xuống 1440px -> 1200px
+          if (optimizedBuffer.length >= 980 * 1024) {
+            optimizedBuffer = await sharp(buffer)
+              .rotate()
+              .resize({
+                width: 1440,
+                height: 1440,
+                fit: 'inside',
+                withoutEnlargement: true,
+              })
+              .jpeg({ quality: 65, mozjpeg: true })
+              .toBuffer();
+          }
+
+          if (optimizedBuffer.length >= 980 * 1024) {
+            optimizedBuffer = await sharp(buffer)
+              .rotate()
+              .resize({
+                width: 1200,
+                height: 1200,
+                fit: 'inside',
+                withoutEnlargement: true,
+              })
+              .jpeg({ quality: 60, mozjpeg: true })
+              .toBuffer();
+          }
+
+          buffer = optimizedBuffer;
+          ext = '.jpg';
+        }
+      } catch (sharpErr) {
+        console.warn('[SERVER_SHARP_WARN] Bỏ qua xử lý sharp:', sharpErr);
+      }
+
       const timestamp = Date.now();
       const randomHex = Math.random().toString(36).substring(2, 8);
       const cleanFileName = `tintuc_${timestamp}_${i + 1}_${randomHex}${ext}`;
@@ -116,7 +192,7 @@ export async function POST(req: NextRequest) {
       uploadedDetails.push({
         name: file.name,
         url: publicUrl,
-        size: file.size,
+        size: buffer.length,
       });
     }
 

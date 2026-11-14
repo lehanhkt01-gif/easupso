@@ -14,10 +14,256 @@
  */
 
 export interface WatermarkOptions {
-  enabled?: boolean;
-  quality?: number; // Mặc định 0.92
-  maxDim?: number;   // Mặc định 1600px
+  enabled?: boolean;        // Mặc định true (gắn logo EASUPSO.COM ở góc dưới trái)
+  quality?: number;        // Chất lượng khởi điểm (mặc định 0.88)
+  maxDim?: number;         // Cạnh dài tối đa (mặc định 1920px)
+  targetMaxBytes?: number; // Ngưỡng dung lượng tối đa (mặc định 980KB ~ 1.003.520 bytes, đảm bảo luôn < 1MB)
 }
+
+export interface ProcessedImageFile extends File {
+  originalSize?: number;
+  compressedSize?: number;
+}
+
+/**
+ * Tải ảnh an toàn trên đa nền tảng (hỗ trợ xử lý xoay ảnh EXIF Orientation tự động cho iPhone/Android)
+ */
+async function loadSourceImage(file: File): Promise<{
+  source: CanvasImageSource;
+  width: number;
+  height: number;
+  cleanup: () => void;
+}> {
+  // 1. Thử dùng createImageBitmap nếu trình duyệt hỗ trợ (siêu nhanh, xử lý orientation tự động)
+  if (typeof createImageBitmap === 'function') {
+    try {
+      const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+      return {
+        source: bitmap,
+        width: bitmap.width,
+        height: bitmap.height,
+        cleanup: () => {
+          try {
+            bitmap.close();
+          } catch {}
+        },
+      };
+    } catch {
+      // Fallback nếu options không được hỗ trợ
+    }
+  }
+
+  // 2. Thử dùng HTMLImageElement với Object URL (tránh tràn RAM so với FileReader base64)
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+
+    img.onload = () => {
+      resolve({
+        source: img,
+        width: img.naturalWidth || img.width,
+        height: img.naturalHeight || img.height,
+        cleanup: () => {
+          try {
+            URL.revokeObjectURL(objectUrl);
+          } catch {}
+        },
+      });
+    };
+
+    img.onerror = () => {
+      try {
+        URL.revokeObjectURL(objectUrl);
+      } catch {}
+
+      // 3. Fallback cuối cùng với FileReader
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const fallbackImg = new Image();
+        fallbackImg.onload = () => {
+          resolve({
+            source: fallbackImg,
+            width: fallbackImg.naturalWidth || fallbackImg.width,
+            height: fallbackImg.naturalHeight || fallbackImg.height,
+            cleanup: () => {},
+          });
+        };
+        fallbackImg.onerror = (err) => reject(err);
+        fallbackImg.src = e.target?.result as string;
+      };
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    };
+
+    img.src = objectUrl;
+  });
+}
+
+/**
+ * Chuyển đổi canvas sang Blob dưới dạng Promise
+ */
+function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve(blob), type, quality);
+  });
+}
+
+/**
+ * Xử lý nén ảnh thông minh về dưới 1MB và tự động ghép logo EASUPSO.COM
+ * Quy tắc nén 2 bước:
+ *  - Bước 1: Chuẩn hóa độ phân giải: Cạnh dài nhất tối đa 1920px (giữ nguyên tỷ lệ khung hình)
+ *  - Bước 2: Vòng lặp tối ưu dung lượng: Xuất JPEG chất lượng khởi điểm 0.88, lặp giảm dần (mỗi bước -0.07 đến 0.55)
+ *            Nếu vẫn >= 980KB thì thu nhỏ kích thước cho đến khi CHẮC CHẮN < 1MB.
+ */
+export async function processAndWatermarkImage(
+  file: File,
+  options: WatermarkOptions = {}
+): Promise<ProcessedImageFile> {
+  const {
+    enabled = true,
+    quality = 0.88,
+    maxDim = 1920,
+    targetMaxBytes = 980 * 1024, // 980KB để đảm bảo luôn < 1.048.576 bytes
+  } = options;
+
+  if (typeof window === 'undefined' || !file.type || !file.type.startsWith('image/')) {
+    const untouched = file as ProcessedImageFile;
+    untouched.originalSize = file.size;
+    untouched.compressedSize = file.size;
+    return untouched;
+  }
+
+  try {
+    const { source, width: origW, height: origH, cleanup } = await loadSourceImage(file);
+
+    // BƯỚC 1 – CHUẨN HÓA ĐỘ PHÂN GIẢI (MAX 1920PX)
+    let targetW = origW;
+    let targetH = origH;
+
+    if (targetW > maxDim || targetH > maxDim) {
+      if (targetW >= targetH) {
+        targetH = Math.round((targetH * maxDim) / targetW);
+        targetW = maxDim;
+      } else {
+        targetW = Math.round((targetW * maxDim) / targetH);
+        targetH = maxDim;
+      }
+    }
+
+    // Nếu ảnh đầu vào vốn đã nhỏ (<= 1MB), kích thước chuẩn và KHÔNG bật watermark: giữ nguyên file gốc
+    if (!enabled && file.size <= targetMaxBytes && origW <= maxDim && origH <= maxDim) {
+      cleanup();
+      const untouched = file as ProcessedImageFile;
+      untouched.originalSize = file.size;
+      untouched.compressedSize = file.size;
+      return untouched;
+    }
+
+    // Khởi tạo Canvas vẽ ảnh
+    const canvas = document.createElement('canvas');
+    canvas.width = targetW;
+    canvas.height = targetH;
+    const ctx = canvas.getContext('2d', { alpha: false });
+
+    if (!ctx) {
+      cleanup();
+      const untouched = file as ProcessedImageFile;
+      untouched.originalSize = file.size;
+      untouched.compressedSize = file.size;
+      return untouched;
+    }
+
+    // Nền trắng phòng trường hợp ảnh PNG trong suốt chuyển sang JPEG
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, targetW, targetH);
+
+    // Vẽ ảnh gốc đã resize
+    ctx.drawImage(source, 0, 0, targetW, targetH);
+    cleanup(); // Giải phóng nguồn ảnh ngay sau khi đã vẽ lên canvas
+
+    // Gắn logo nhận diện EASUPSO.COM ở góc dưới trái nếu được bật
+    if (enabled) {
+      drawEasupsoWatermark(ctx, targetW, targetH);
+    }
+
+    // BƯỚC 2 – VÒNG LẶP TỐI ƯU DUNG LƯỢNG VỀ DƯỚI 1MB (TARGET < 980KB)
+    // Nếu ảnh ban đầu vốn nhẹ (<= 1MB), dùng chất lượng 0.92 để tối đa độ nét
+    let currentQuality = file.size <= targetMaxBytes && origW <= maxDim ? 0.92 : quality;
+    let blob = await canvasToBlob(canvas, 'image/jpeg', currentQuality);
+
+    if (!blob) {
+      const untouched = file as ProcessedImageFile;
+      untouched.originalSize = file.size;
+      untouched.compressedSize = file.size;
+      return untouched;
+    }
+
+    // Giảm dần chất lượng nếu dung lượng vẫn >= 980KB (mỗi bước -0.07, tối thiểu 0.55)
+    while (blob.size >= targetMaxBytes && currentQuality > 0.55) {
+      currentQuality = Math.max(0.55, Number((currentQuality - 0.07).toFixed(2)));
+      const nextBlob = await canvasToBlob(canvas, 'image/jpeg', currentQuality);
+      if (nextBlob) {
+        blob = nextBlob;
+      } else {
+        break;
+      }
+    }
+
+    // Nếu ở mức 0.55 mà vẫn >= 980KB (ảnh chụp chi tiết cực kỳ phức tạp), tiếp tục thu nhỏ kích thước (1600px -> 1280px -> 1024px)
+    if (blob.size >= targetMaxBytes) {
+      const scaleSteps = [0.8, 0.65, 0.5];
+      for (const scale of scaleSteps) {
+        if (blob.size < targetMaxBytes) break;
+
+        const scaledCanvas = document.createElement('canvas');
+        scaledCanvas.width = Math.round(targetW * scale);
+        scaledCanvas.height = Math.round(targetH * scale);
+        const sCtx = scaledCanvas.getContext('2d', { alpha: false });
+
+        if (sCtx) {
+          sCtx.fillStyle = '#FFFFFF';
+          sCtx.fillRect(0, 0, scaledCanvas.width, scaledCanvas.height);
+          sCtx.drawImage(canvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
+
+          let scaledBlob = await canvasToBlob(scaledCanvas, 'image/jpeg', 0.78);
+          if (scaledBlob && scaledBlob.size >= targetMaxBytes) {
+            scaledBlob = await canvasToBlob(scaledCanvas, 'image/jpeg', 0.62);
+          }
+
+          if (scaledBlob) {
+            blob = scaledBlob;
+          }
+        }
+      }
+    }
+
+    // Chuẩn hóa tên file đầu ra (.jpg)
+    const baseName = (file.name || 'image').replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const cleanFileName = `${baseName || 'image'}.jpg`;
+
+    const processedFile = new File([blob], cleanFileName, {
+      type: 'image/jpeg',
+      lastModified: Date.now(),
+    }) as ProcessedImageFile;
+
+    processedFile.originalSize = file.size;
+    processedFile.compressedSize = processedFile.size;
+
+    return processedFile;
+  } catch (err) {
+    console.warn('[IMAGE_PROCESSOR_WARN] Lỗi khi nén ảnh client:', err);
+    const fallbackFile = file as ProcessedImageFile;
+    fallbackFile.originalSize = file.size;
+    fallbackFile.compressedSize = file.size;
+    return fallbackFile;
+  }
+}
+
+/**
+ * Bí danh hàm nén ảnh dùng chung
+ */
+export const compressImageUnder1MB = processAndWatermarkImage;
 
 /**
  * Vẽ khung chữ nhật bo góc (Rounded Rectangle)
@@ -170,109 +416,4 @@ export function drawEasupsoWatermark(
   ctx.fillText('SO.COM', curX, textCenterY);
 
   ctx.restore();
-}
-
-/**
- * Xử lý nén ảnh, co dãn và tự động đóng dấu logo EASUPSO.COM trực tiếp vào file ảnh
- */
-export async function processAndWatermarkImage(
-  file: File,
-  options: WatermarkOptions = {}
-): Promise<File> {
-  const {
-    enabled = true,
-    quality = 0.92,
-    maxDim = 1600,
-  } = options;
-
-  if (typeof window === 'undefined' || !file.type || !file.type.startsWith('image/')) {
-    return file;
-  }
-
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        try {
-          // Tính toán kích thước chuẩn (tối đa maxDim, bảo đảm tỷ lệ ảnh gốc)
-          let width = img.width;
-          let height = img.height;
-
-          if (width > maxDim || height > maxDim) {
-            if (width > height) {
-              height = Math.round((height * maxDim) / width);
-              width = maxDim;
-            } else {
-              width = Math.round((width * maxDim) / height);
-              height = maxDim;
-            }
-          }
-
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            resolve(file);
-            return;
-          }
-
-          // 1. Vẽ ảnh gốc đã co dãn sắc nét
-          ctx.drawImage(img, 0, 0, width, height);
-
-          // 2. Đóng dấu logo EASUPSO.COM ở góc dưới bên trái nếu được bật
-          if (enabled) {
-            drawEasupsoWatermark(ctx, width, height);
-          }
-
-          // 3. Xuất file JPEG chất lượng 0.92 chuẩn tòa soạn
-          canvas.toBlob(
-            (blob) => {
-              if (!blob) {
-                resolve(file);
-                return;
-              }
-
-              // Nếu file xuất ra > 3MB (rất hiếm khi xảy ra), nén thêm một mức 0.85
-              if (blob.size > 3 * 1024 * 1024) {
-                canvas.toBlob(
-                  (blob2) => {
-                    const finalBlob = blob2 || blob;
-                    const cleanName = (file.name || 'image').replace(/\.[^/.]+$/, '') + '.jpg';
-                    resolve(
-                      new File([finalBlob], cleanName, {
-                        type: 'image/jpeg',
-                        lastModified: Date.now(),
-                      })
-                    );
-                  },
-                  'image/jpeg',
-                  0.85
-                );
-              } else {
-                const cleanName = (file.name || 'image').replace(/\.[^/.]+$/, '') + '.jpg';
-                resolve(
-                  new File([blob], cleanName, {
-                    type: 'image/jpeg',
-                    lastModified: Date.now(),
-                  })
-                );
-              }
-            },
-            'image/jpeg',
-            quality
-          );
-        } catch {
-          resolve(file);
-        }
-      };
-
-      img.onerror = () => resolve(file);
-      img.src = e.target?.result as string;
-    };
-
-    reader.onerror = () => resolve(file);
-    reader.readAsDataURL(file);
-  });
 }
