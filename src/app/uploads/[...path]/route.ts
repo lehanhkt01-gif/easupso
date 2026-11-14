@@ -19,15 +19,46 @@ export async function GET(
       return new NextResponse('File not found', { status: 404 });
     }
 
-    // Chống Path Traversal
-    const fileName = pathSegments.join('/').replace(/\.\./g, '');
-    const filePath = path.join(process.cwd(), 'public', 'uploads', fileName);
+    // Chống Path Traversal & Chuẩn hóa URL Decoding
+    const rawPath = pathSegments.join('/');
+    let decoded = rawPath;
+    try {
+      decoded = decodeURIComponent(rawPath);
+    } catch {}
+
+    const cleanName = path.normalize(decoded).replace(/^(\.\.[\/\\])+/, '').replace(/^[/\\]+/, '');
+
+    // Danh sách các thư mục ứng viên để tìm file
+    const candidatePaths = [
+      path.join(process.cwd(), 'public', 'uploads', cleanName),
+      path.join('/app', 'public', 'uploads', cleanName),
+      path.join('/var/www/easupso', 'public', 'uploads', cleanName),
+      path.join('/tmp', 'uploads', cleanName),
+      path.join(process.cwd(), 'public', cleanName),
+      path.join('/app', 'public', cleanName),
+    ];
+
+    let foundPath: string | null = null;
+    let buffer: Buffer | null = null;
+
+    for (const p of candidatePaths) {
+      try {
+        buffer = await fs.readFile(p);
+        foundPath = p;
+        break;
+      } catch {
+        // Thử tiếp đường dẫn khác
+      }
+    }
+
+    if (!buffer || !foundPath) {
+      console.warn(`[UPLOADS_NOT_FOUND] Không tìm thấy tệp "${cleanName}". Đã dò tìm trong:`, candidatePaths);
+      return new NextResponse('File not found on disk', { status: 404 });
+    }
 
     try {
-      const buffer = await fs.readFile(filePath);
-
       // Xác định Content-Type chuẩn
-      const ext = path.extname(fileName).toLowerCase();
+      const ext = path.extname(cleanName).toLowerCase();
       let contentType = 'image/jpeg';
       if (ext === '.png') contentType = 'image/png';
       else if (ext === '.webp') contentType = 'image/webp';
@@ -48,7 +79,7 @@ export async function GET(
         const end = parts[1] ? parseInt(parts[1], 10) : buffer.length - 1;
         const chunk = buffer.subarray(start, end + 1);
 
-        return new NextResponse(chunk, {
+        return new NextResponse(new Uint8Array(chunk), {
           status: 206,
           headers: {
             'Content-Range': `bytes ${start}-${end}/${buffer.length}`,
@@ -60,7 +91,7 @@ export async function GET(
         });
       }
 
-      return new NextResponse(buffer, {
+      return new NextResponse(new Uint8Array(buffer), {
         status: 200,
         headers: {
           'Content-Type': contentType,

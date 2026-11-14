@@ -47,6 +47,13 @@ Thumbs.db
 *.sqlite3
 easupso_portal_pgdata/
 
+# User uploaded assets (Bảo vệ dữ liệu tải lên trên VPS không bị ảnh hưởng bởi Git)
+public/uploads/*
+!public/uploads/.gitkeep
+!public/uploads/hero_cover_*
+!public/uploads/audio/
+!public/uploads/audio/**
+
 # Next.js telemetry / TypeScript cache
 next-env.d.ts
 *.tsbuildinfo

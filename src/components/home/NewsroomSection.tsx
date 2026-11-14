@@ -191,21 +191,7 @@ export function NewsroomSection({
 
         {/* THANH CÔNG CỤ CÁN BỘ KHI ĐÃ ĐĂNG NHẬP */}
         {isStaff && (
-          <div className="max-w-4xl mx-auto mb-8 p-3.5 rounded-2xl bg-white border-2 border-[#D4AF37] shadow-sm flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-2.5 text-xs">
-              <span className="w-8 h-8 rounded-lg bg-[#0F3D2E] text-[#D4AF37] flex items-center justify-center font-bold text-xs shadow-xs">
-                ★
-              </span>
-              <div>
-                <p className="font-bold text-[#0F3D2E]">
-                  Quyền Quản lý Tòa soạn: {session?.user?.name || session?.user?.email}
-                </p>
-                <p className="text-[11px] text-[#6B7280]">
-                  Hỗ trợ định dạng bài viết chuyên nghiệp, dàn trang ảnh thông minh &bull; Tối đa 7 ảnh/bài
-                </p>
-              </div>
-            </div>
-
+          <div className="max-w-4xl mx-auto mb-6 flex items-center justify-end px-1">
             <button
               onClick={handleOpenCreateModal}
               className="px-4 py-2.5 rounded-xl bg-[#0F3D2E] hover:bg-[#165B44] text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition flex items-center gap-2 active:scale-95 cursor-pointer"

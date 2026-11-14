@@ -95,8 +95,27 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-    await fs.mkdir(uploadDir, { recursive: true });
+    // Chuẩn bị thư mục lưu trữ với cơ chế fallback chống lỗi phân quyền EACCES trên Docker/VPS
+    const candidateDirs = [
+      path.join(process.cwd(), 'public', 'uploads'),
+      path.join('/app', 'public', 'uploads'),
+      path.join('/tmp', 'uploads'),
+    ];
+
+    let activeUploadDir = candidateDirs[0];
+    for (const dir of candidateDirs) {
+      try {
+        await fs.mkdir(dir, { recursive: true });
+        // Kiểm tra quyền ghi thực tế
+        const testFile = path.join(dir, `.test_write_${Date.now()}`);
+        await fs.writeFile(testFile, 'ok');
+        await fs.unlink(testFile).catch(() => {});
+        activeUploadDir = dir;
+        break;
+      } catch (dirErr) {
+        console.warn(`[UPLOAD_DIR_WARN] Không có quyền ghi vào ${dir}:`, dirErr);
+      }
+    }
 
     const uploadedUrls: string[] = [];
     const uploadedDetails: Array<{ name: string; url: string; size: number }> = [];
@@ -184,8 +203,10 @@ export async function POST(req: NextRequest) {
       const randomHex = Math.random().toString(36).substring(2, 8);
       const cleanFileName = `tintuc_${timestamp}_${i + 1}_${randomHex}${ext}`;
 
-      const filePath = path.join(uploadDir, cleanFileName);
+      const filePath = path.join(activeUploadDir, cleanFileName);
       await fs.writeFile(filePath, buffer);
+      // Đảm bảo file có quyền đọc cho mọi user trên hệ thống
+      await fs.chmod(filePath, 0o666).catch(() => {});
 
       const publicUrl = `/uploads/${cleanFileName}`;
       uploadedUrls.push(publicUrl);

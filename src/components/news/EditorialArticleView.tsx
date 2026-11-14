@@ -63,6 +63,7 @@ export function EditorialArticleView({
   const [copiedLink, setCopiedLink] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   // Lọc danh sách media hợp lệ
   const validMedia = useMemo(() => {
@@ -398,17 +399,34 @@ export function EditorialArticleView({
         {/* Khung ảnh */}
         <div
           onClick={() => setLightboxIndex(originalIndex >= 0 ? originalIndex : 0)}
-          className="relative overflow-hidden cursor-pointer bg-stone-100"
+          className="relative overflow-hidden cursor-pointer bg-stone-100 min-h-[200px] flex items-center justify-center"
           role="button"
           tabIndex={0}
           aria-label={`Xem ảnh lớn: ${captionText || title}`}
         >
-          <img
-            src={item.url}
-            alt={captionText || title}
-            className="w-full h-auto max-h-[580px] object-cover transition-transform duration-300 group-hover:scale-[1.015]"
-            loading="lazy"
-          />
+          {failedImages[item.url] ? (
+            <div className="w-full py-12 px-6 flex flex-col items-center justify-center text-center bg-[#F4F1EA] text-[#6B7C73]">
+              <div className="w-12 h-12 rounded-full bg-[#E5DFD3] flex items-center justify-center mb-2">
+                <Camera className="w-6 h-6 text-[#1B4332]" />
+              </div>
+              <p className="text-xs sm:text-sm font-semibold text-[#1B4332]">
+                {captionText || 'Hình ảnh hoạt động bản tin'}
+              </p>
+              <p className="text-[11px] text-[#8C9B92] mt-0.5">
+                Cổng thông tin điện tử &amp; Chuyển đổi số xã Ea Súp
+              </p>
+            </div>
+          ) : (
+            <img
+              src={item.url}
+              alt={captionText || title}
+              className="w-full h-auto max-h-[580px] object-cover transition-transform duration-300 group-hover:scale-[1.015]"
+              loading="lazy"
+              onError={() => {
+                setFailedImages((prev) => ({ ...prev, [item.url]: true }));
+              }}
+            />
+          )}
         </div>
 
         {/* Dòng ghi chú hình ảnh (Photo Caption) */}
