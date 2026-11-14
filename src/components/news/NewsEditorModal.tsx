@@ -32,6 +32,7 @@ import {
   Feather,
   Save,
   RotateCcw,
+  Shield,
 } from 'lucide-react';
 import { EA_SUP_VILLAGES } from '@/constants/easup-data';
 import {
@@ -43,6 +44,7 @@ import {
   stripGalleryFromHtml,
 } from '@/lib/news-gallery';
 import { EditorialArticleView } from './EditorialArticleView';
+import { processAndWatermarkImage } from '@/lib/watermarkImage';
 
 interface NewsEditorModalProps {
   isOpen: boolean;
@@ -117,86 +119,6 @@ function formatContentToParagraphHtml(rawText: string): string {
     .join('\n');
 }
 
-// Tự động tối ưu và nén kích thước ảnh trên trình duyệt trước khi gửi (đặc biệt tối ưu cho iPhone/iPad camera và máy tính)
-async function compressImageIfNeeded(file: File): Promise<File> {
-  if (typeof window === 'undefined' || !file.type || !file.type.startsWith('image/')) return file;
-
-  // Nếu file đã rất nhẹ (dưới 500KB) và là định dạng web chuẩn, giữ nguyên
-  if (file.size <= 500 * 1024 && ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-    return file;
-  }
-
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        try {
-          // Báo chí điện tử chuẩn: tối đa 1600px là cực nét trên màn hình Retina / 4K
-          const maxDim = 1600;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > maxDim || height > maxDim) {
-            if (width > height) {
-              height = Math.round((height * maxDim) / width);
-              width = maxDim;
-            } else {
-              width = Math.round((width * maxDim) / height);
-              height = maxDim;
-            }
-          }
-
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            resolve(file);
-            return;
-          }
-
-          ctx.drawImage(img, 0, 0, width, height);
-
-          // Nén chất lượng 0.82 (đảm bảo độ sắc nét trang trọng và dung lượng luôn < 500KB - 750KB)
-          canvas.toBlob(
-            (blob) => {
-              if (!blob) {
-                resolve(file);
-                return;
-              }
-
-              // Nếu sau khi nén vẫn > 800KB, nén tiếp mức 0.72 để luôn đảm bảo siêu nhẹ (< 800KB)
-              if (blob.size > 800 * 1024) {
-                canvas.toBlob(
-                  (blob2) => {
-                    const finalBlob = blob2 || blob;
-                    const cleanName = (file.name || 'image').replace(/\.[^/.]+$/, '') + '.jpg';
-                    resolve(new File([finalBlob], cleanName, { type: 'image/jpeg', lastModified: Date.now() }));
-                  },
-                  'image/jpeg',
-                  0.72
-                );
-              } else {
-                const cleanName = (file.name || 'image').replace(/\.[^/.]+$/, '') + '.jpg';
-                resolve(new File([blob], cleanName, { type: 'image/jpeg', lastModified: Date.now() }));
-              }
-            },
-            'image/jpeg',
-            0.82
-          );
-        } catch {
-          resolve(file);
-        }
-      };
-      img.onerror = () => resolve(file);
-      img.src = e.target?.result as string;
-    };
-    reader.onerror = () => resolve(file);
-    reader.readAsDataURL(file);
-  });
-}
-
 export function NewsEditorModal({
   isOpen,
   onClose,
@@ -229,6 +151,15 @@ export function NewsEditorModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [hasDraftNotice, setHasDraftNotice] = useState(false);
+
+  // Tùy chọn tự động đóng dấu logo EASUPSO.COM ở góc dưới trái (Mặc định BẬT)
+  const [autoWatermark, setAutoWatermark] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('easupso_auto_watermark');
+      return saved !== null ? saved === 'true' : true;
+    }
+    return true;
+  });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -447,11 +378,15 @@ export function NewsEditorModal({
 
     setIsUploading(true);
     try {
-      // 1. Tự động nén và tối ưu ảnh thông minh trên trình duyệt
+      // 1. Tự động nén và đóng dấu logo bản quyền EASUPSO.COM vào góc dưới trái
       const processedFiles: File[] = [];
       for (const f of selectedFiles) {
         try {
-          const processed = await compressImageIfNeeded(f);
+          const processed = await processAndWatermarkImage(f, {
+            enabled: autoWatermark,
+            quality: 0.92,
+            maxDim: 1600,
+          });
           processedFiles.push(processed);
         } catch {
           processedFiles.push(f);
@@ -1010,6 +945,55 @@ export function NewsEditorModal({
                   <span>{uploadError}</span>
                 </div>
               )}
+
+              {/* Nút gạt tùy chọn tự động gắn logo EASUPSO.COM vào góc dưới trái */}
+              <div className="flex items-center justify-between p-3 sm:p-3.5 rounded-xl bg-[#FAF7F2] border border-[#D5CBBA]">
+                <div className="flex items-start sm:items-center gap-2.5 min-w-0 pr-2">
+                  <div
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 shadow-xs transition-colors ${
+                      autoWatermark ? 'bg-[#1B4332] text-[#A3E635]' : 'bg-stone-300 text-stone-600'
+                    }`}
+                  >
+                    <Shield className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs sm:text-[13px] font-bold text-[#14211B]">
+                        Tự động gắn logo EASUPSO.COM ở góc dưới trái
+                      </span>
+                      {autoWatermark ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          Đang bật (Khuyên dùng)
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-stone-200 text-stone-700 border border-stone-300">
+                          Đã tắt (Giữ ảnh gốc)
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-[#6B7C73] mt-0.5 leading-relaxed">
+                      Mặc định bật để bảo vệ bản quyền ảnh xã Ea Súp khi chia sẻ mạng xã hội hoặc người dân tải về. Gạt tắt nếu đăng ảnh văn bản scan, infographic có sẵn chữ ở góc dưới trái.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Toggle switch */}
+                <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={autoWatermark}
+                    onChange={(e) => {
+                      const val = e.target.checked;
+                      setAutoWatermark(val);
+                      if (typeof window !== 'undefined') {
+                        localStorage.setItem('easupso_auto_watermark', String(val));
+                      }
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-stone-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B4332]"></div>
+                </label>
+              </div>
 
               {/* Khung nút bấm tải ảnh */}
               {mediaItems.length < MAX_ARTICLE_IMAGES && (
