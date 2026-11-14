@@ -465,13 +465,9 @@ export function EditorialArticleView({
         
         {/* Hàng badge & nút Nghe đọc */}
         <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-          {/* Huy hiệu chuyên mục, Nút Nghe đọc (đỏ chữ vàng) & Thôn buôn */}
+          {/* Huy hiệu Thôn buôn & Cụm nút tác vụ: Nghe đọc, Chia sẻ */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wider bg-[#1B4332] text-white shadow-xs">
-              {categoryName}
-            </span>
-
-            {/* NÚT NGHE ĐỌC: ĐẶT BÊN TRÁI CẠNH DÒNG CHỮ "ỦY BAN MTTQ XÃ", NỀN ĐỎ CHỮ VÀNG */}
+            {/* NÚT NGHE ĐỌC (NỀN ĐỎ CHỮ VÀNG) */}
             <NewsAudioPlayer
               newsId={newsId || slug || 'article'}
               title={title}
