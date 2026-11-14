@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Edit2, Trash2, PlusCircle, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Edit2, Trash2 } from 'lucide-react';
 import { NewsEditorModal } from '@/components/news/NewsEditorModal';
 
 interface ArticleActionToolbarProps {
@@ -50,38 +50,24 @@ export function ArticleActionToolbar({ article, user }: ArticleActionToolbarProp
 
   return (
     <>
-      <div className="mb-6 p-3.5 rounded-2xl bg-white border-2 border-[#D4AF37] shadow-sm flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-[#1B4332] text-[#D4AF37] flex items-center justify-center font-bold text-xs shadow-xs">
-            ★
-          </div>
-          <div>
-            <p className="text-xs font-bold text-[#1B4332]">
-              Quyền Quản lý bản tin: {user.name || user.email}
-            </p>
-            <p className="text-[11px] text-[#6B7C73]">
-              Đồng chí có thẩm quyền Chỉnh sửa (thêm/bớt ảnh tối đa 7 ảnh &lt; 5MB) hoặc Xóa bản tin này.
-            </p>
-          </div>
-        </div>
+      <div className="mb-4 sm:mb-6 flex items-center justify-end gap-2">
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="px-3.5 py-1.5 rounded-xl bg-[#D4AF37] hover:bg-yellow-600 text-[#14211B] text-xs font-bold flex items-center gap-1.5 shadow-xs transition"
+          title="Chỉnh sửa nội dung bản tin"
+        >
+          <Edit2 className="w-3.5 h-3.5" />
+          <span>Chỉnh sửa bản tin</span>
+        </button>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="px-3.5 py-1.5 rounded-xl bg-[#D4AF37] hover:bg-yellow-600 text-[#14211B] text-xs font-bold flex items-center gap-1.5 shadow-xs transition"
-          >
-            <Edit2 className="w-3.5 h-3.5" />
-            <span>Chỉnh sửa bản tin</span>
-          </button>
-
-          <button
-            onClick={handleDelete}
-            className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>Xóa bài</span>
-          </button>
-        </div>
+        <button
+          onClick={handleDelete}
+          className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition"
+          title="Xóa vĩnh viễn bản tin này"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          <span>Xóa bài</span>
+        </button>
       </div>
 
       <NewsEditorModal
