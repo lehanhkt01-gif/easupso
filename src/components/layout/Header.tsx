@@ -110,8 +110,16 @@ export function Header() {
               <span className="text-[9.5px] sm:text-xs font-bold tracking-wider text-[#1B4332] uppercase truncate">
                 HỆ SINH THÁI SỐ XÃ EA SÚP
               </span>
-              <span className="text-base sm:text-2xl font-black tracking-tight text-[#14211B] leading-none truncate">
-                EASUPSO.COM
+              <span className="text-base sm:text-2xl font-black tracking-tight leading-none truncate inline-flex items-center drop-shadow-[0_1px_1px_rgba(0,0,0,0.12)]">
+                <span className="bg-gradient-to-b from-[#A3E635] to-[#22C55E] bg-clip-text text-transparent">
+                  EA
+                </span>
+                <span className="bg-gradient-to-b from-[#FBBF24] to-[#EA580C] bg-clip-text text-transparent">
+                  SUP
+                </span>
+                <span className="bg-gradient-to-b from-[#22D3EE] to-[#2563EB] bg-clip-text text-transparent">
+                  SO.COM
+                </span>
               </span>
             </div>
           </Link>

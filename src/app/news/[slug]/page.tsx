@@ -318,12 +318,6 @@ export default async function NewsDetailPage({ params }: Props) {
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           loading="lazy"
                         />
-                        {imageCount > 1 && (
-                          <div className="absolute bottom-2.5 left-2.5 px-2 py-0.5 rounded-lg bg-black/70 backdrop-blur-xs text-white text-[11px] font-semibold flex items-center gap-1">
-                            <Images className="w-3.5 h-3.5 text-[#D4AF37]" />
-                            <span>📸 {imageCount} ảnh</span>
-                          </div>
-                        )}
                       </div>
 
                       <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between">

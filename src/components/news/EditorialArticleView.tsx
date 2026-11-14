@@ -480,6 +480,80 @@ export function EditorialArticleView({
               nextArticle={nextArticle}
             />
 
+            {/* NÚT CHIA SẺ ĐẶT CẠNH NÚT NGHE ĐỌC */}
+            <div className="relative inline-flex items-center">
+              <button
+                type="button"
+                onClick={handleShare}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#0068FF] hover:bg-[#0052cc] text-white text-xs font-bold shadow-xs transition-all cursor-pointer active:scale-95 shrink-0"
+                title="Chia sẻ đến các ứng dụng (Zalo, Facebook, Tin nhắn...)"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                <span>Chia sẻ</span>
+              </button>
+
+              {/* Menu chia sẻ đa nền tảng (Dự phòng khi không bật Web Share API tự động) */}
+              {showShareMenu && (
+                <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-2 w-56 sm:w-64 bg-white rounded-2xl border border-[#E8E2D5] shadow-xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="px-3 py-1.5 border-b border-[#E8E2D5] flex items-center justify-between text-[11px] font-bold text-[#6B7C73] uppercase tracking-wider">
+                    <span>Chia sẻ bản tin</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowShareMenu(false)}
+                      className="text-stone-400 hover:text-stone-600 cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="py-1 space-y-1">
+                    {/* Zalo */}
+                    <a
+                      href={zaloShareUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setShowShareMenu(false)}
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#14211B] hover:bg-[#0068FF]/10 hover:text-[#0068FF] transition"
+                    >
+                      <span className="w-6 h-6 rounded-lg bg-[#0068FF] text-white flex items-center justify-center font-bold text-[10px] shrink-0">
+                        Z
+                      </span>
+                      <span>Chia sẻ qua Zalo</span>
+                    </a>
+
+                    {/* Facebook */}
+                    <a
+                      href={fbShareUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setShowShareMenu(false)}
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#14211B] hover:bg-[#1877F2]/10 hover:text-[#1877F2] transition"
+                    >
+                      <span className="w-6 h-6 rounded-lg bg-[#1877F2] text-white flex items-center justify-center font-bold text-[11px] shrink-0">
+                        f
+                      </span>
+                      <span>Chia sẻ lên Facebook</span>
+                    </a>
+
+                    {/* Sao chép link */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleCopyLink();
+                        setTimeout(() => setShowShareMenu(false), 900);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#14211B] hover:bg-[#FAF7F2] transition text-left cursor-pointer"
+                    >
+                      <div className="w-6 h-6 rounded-lg bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-600 shrink-0">
+                        {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                      </div>
+                      <span>{copiedLink ? 'Đã chép liên kết!' : 'Sao chép liên kết'}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {villageName && (
               <span className="px-3 py-1 rounded-md text-xs font-bold bg-[#FAF0EC] text-[#C85A32] border border-[#EBBAA7] flex items-center gap-1">
                 <MapPin className="w-3.5 h-3.5" />
@@ -615,83 +689,7 @@ export function EditorialArticleView({
         </div>
       </div>
 
-      {/* 5. KHỐI CHIA SẺ BẢN TIN ĐA NỀN TẢNG */}
-      <div className="px-6 sm:px-10 py-4 bg-[#FAF7F2] border-t border-[#E8E2D5] flex items-center justify-end gap-4">
-        <div className="relative">
-          <button
-            type="button"
-            onClick={handleShare}
-            className="inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-[#0068FF] hover:bg-[#0052cc] text-white text-xs sm:text-sm font-bold shadow-sm active:scale-95 transition cursor-pointer"
-            title="Chia sẻ đến các ứng dụng (Zalo, Facebook, Tin nhắn...)"
-          >
-            <Share2 className="w-4 h-4" />
-            <span>Chia sẻ</span>
-          </button>
-
-          {/* Menu chia sẻ đa nền tảng (Dự phòng cho máy tính hoặc trình duyệt không hỗ trợ Web Share) */}
-          {showShareMenu && (
-            <div className="absolute right-0 bottom-full mb-2 w-56 sm:w-64 bg-white rounded-2xl border border-[#E8E2D5] shadow-xl p-2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
-              <div className="px-3 py-1.5 border-b border-[#E8E2D5] flex items-center justify-between text-[11px] font-bold text-[#6B7C73] uppercase tracking-wider">
-                <span>Chia sẻ bản tin</span>
-                <button
-                  type="button"
-                  onClick={() => setShowShareMenu(false)}
-                  className="text-stone-400 hover:text-stone-600 cursor-pointer"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              <div className="py-1 space-y-1">
-                {/* Zalo */}
-                <a
-                  href={zaloShareUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setShowShareMenu(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#14211B] hover:bg-[#0068FF]/10 hover:text-[#0068FF] transition"
-                >
-                  <span className="w-6 h-6 rounded-lg bg-[#0068FF] text-white flex items-center justify-center font-bold text-[10px] shrink-0">
-                    Z
-                  </span>
-                  <span>Chia sẻ qua Zalo</span>
-                </a>
-
-                {/* Facebook */}
-                <a
-                  href={fbShareUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setShowShareMenu(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#14211B] hover:bg-[#1877F2]/10 hover:text-[#1877F2] transition"
-                >
-                  <span className="w-6 h-6 rounded-lg bg-[#1877F2] text-white flex items-center justify-center font-bold text-[11px] shrink-0">
-                    f
-                  </span>
-                  <span>Chia sẻ lên Facebook</span>
-                </a>
-
-                {/* Sao chép link */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleCopyLink();
-                    setTimeout(() => setShowShareMenu(false), 900);
-                  }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#14211B] hover:bg-[#FAF7F2] transition text-left cursor-pointer"
-                >
-                  <div className="w-6 h-6 rounded-lg bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-600 shrink-0">
-                    {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                  </div>
-                  <span>{copiedLink ? 'Đã chép liên kết!' : 'Sao chép liên kết'}</span>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* 6. LIGHTBOX XEM ẢNH NÉT CAO TOÀN MÀN HÌNH */}
+      {/* 5. LIGHTBOX XEM ẢNH NÉT CAO TOÀN MÀN HÌNH */}
       {lightboxIndex !== null && validMedia[lightboxIndex] && (
         <div
           className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6"
