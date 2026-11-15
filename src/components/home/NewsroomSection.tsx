@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import {
@@ -14,6 +14,9 @@ import {
   MapPin,
   Calendar,
   Sparkles,
+  Filter,
+  ChevronDown,
+  Check,
 } from 'lucide-react';
 import { NewsEditorModal } from '@/components/news/NewsEditorModal';
 import { ArticleMediaItem } from '@/lib/news-gallery';
@@ -68,8 +71,24 @@ export function NewsroomSection({
   const isStaff = Boolean(session?.user && session.user.role && session.user.role !== 'PUBLIC');
 
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
   const [articles, setArticles] = useState<NewsItem[]>(initialArticles);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Đóng dropdown khi nhấn ra ngoài
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        categoryDropdownRef.current &&
+        !categoryDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsCategoryDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -189,39 +208,82 @@ export function NewsroomSection({
           </div>
         )}
 
-        {/* THANH CÔNG CỤ CÁN BỘ KHI ĐÃ ĐĂNG NHẬP */}
-        {isStaff && (
-          <div className="max-w-4xl mx-auto mb-6 flex items-center justify-end px-1">
+        {/* THANH ĐIỀU HƯỚNG TINH GỌN: CHUYÊN MỤC DẠNG SỔ XUỐNG & NÚT ĐĂNG TIN */}
+        <div className="max-w-4xl mx-auto mb-8 px-1 flex items-center justify-between flex-wrap gap-3">
+          {/* MENU SỔ XUỐNG CHỌN CHUYÊN MỤC */}
+          <div className="relative" ref={categoryDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+              className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-white border border-[#E8E2D5] hover:border-[#0F3D2E] text-[#14211B] text-xs sm:text-sm font-bold shadow-xs hover:shadow-sm transition active:scale-[0.99] cursor-pointer"
+              aria-expanded={isCategoryDropdownOpen}
+              aria-label="Chọn chuyên mục bản tin"
+            >
+              <div className="w-6 h-6 rounded-lg bg-[#0F3D2E]/10 text-[#0F3D2E] flex items-center justify-center font-bold text-xs">
+                <Filter className="w-3.5 h-3.5 text-[#0F3D2E]" />
+              </div>
+              <span className="text-[#6B7280] font-normal hidden xs:inline">Chuyên mục:</span>
+              <span className="text-[#0F3D2E] font-bold">
+                {CATEGORY_TABS.find((t) => t.slug === selectedCategory)?.label || CATEGORY_TABS[0].label}
+              </span>
+              <ChevronDown
+                className={`w-4 h-4 text-[#6B7280] transition-transform duration-200 ${
+                  isCategoryDropdownOpen ? 'rotate-180 text-[#0F3D2E]' : ''
+                }`}
+              />
+            </button>
+
+            {/* DANH SÁCH TÙY CHỌN KHI SỔ XUỐNG */}
+            {isCategoryDropdownOpen && (
+              <div className="absolute left-0 mt-2 w-64 sm:w-72 bg-white rounded-2xl border border-[#E8E2D5] shadow-xl py-2 z-40 animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-3.5 py-1.5 border-b border-[#F0EBE1] text-[11px] font-bold text-[#6B7280] uppercase tracking-wider flex items-center justify-between">
+                  <span>Chọn chuyên mục xem tin</span>
+                  <span className="font-mono text-[10px] text-[#0F3D2E] font-semibold">{CATEGORY_TABS.length} mục</span>
+                </div>
+                <div className="py-1">
+                  {CATEGORY_TABS.map((tab) => {
+                    const isSelected = selectedCategory === tab.slug;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedCategory(tab.slug);
+                          setIsCategoryDropdownOpen(false);
+                        }}
+                        className={`w-full px-3.5 py-2.5 text-left text-xs sm:text-sm font-semibold flex items-center justify-between transition cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#0F3D2E] text-white font-bold'
+                            : 'text-[#14211B] hover:bg-[#FAF7F2] hover:text-[#0F3D2E]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`w-2 h-2 rounded-full ${
+                              isSelected ? 'bg-[#D4AF37]' : 'bg-[#D5CBBA]'
+                            }`}
+                          />
+                          <span>{tab.label}</span>
+                        </div>
+                        {isSelected && <Check className="w-4 h-4 text-[#D4AF37]" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* NÚT ĐĂNG TIN CỦA CÁN BỘ (NẾU CÓ QUYỀN) */}
+          {isStaff && (
             <button
               onClick={handleOpenCreateModal}
-              className="px-4 py-2.5 rounded-xl bg-[#0F3D2E] hover:bg-[#165B44] text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition flex items-center gap-2 active:scale-95 cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-[#0F3D2E] hover:bg-[#165B44] text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition flex items-center gap-2 active:scale-95 cursor-pointer shrink-0"
             >
               <PlusCircle className="w-4 h-4 text-[#D4AF37]" />
               <span>+ Đăng bản tin mới</span>
             </button>
-          </div>
-        )}
-
-        {/* CÁC NÚT TAB CHUYÊN MỤC TRÒN BO CONG */}
-        <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap mb-8 sm:mb-10 max-w-4xl mx-auto px-1">
-          {CATEGORY_TABS.map((tab) => {
-            const isActive = selectedCategory === tab.slug;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setSelectedCategory(tab.slug)}
-                className={`px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-[11.5px] sm:text-sm font-semibold transition-all border cursor-pointer whitespace-nowrap shrink-0 ${
-                  isActive
-                    ? 'bg-[#0F3D2E] text-white border-[#0F3D2E] shadow-xs'
-                    : 'bg-white text-[#4B5563] border-[#E6E2D8] hover:border-[#0F3D2E] hover:text-[#0F3D2E]'
-                }`}
-              >
-                {/* Trên giao diện điện thoại hiển thị tên viết tắt thu nhỏ vừa 2 hàng, trên máy tính hiển thị tên đầy đủ */}
-                <span className="sm:hidden">{tab.shortLabel}</span>
-                <span className="hidden sm:inline">{tab.label}</span>
-              </button>
-            );
-          })}
+          )}
         </div>
 
         {/* KHU VỰC HIỂN THỊ NỘI DUNG (LOADING / EMPTY / EDITORIAL GRID) */}
