@@ -12,7 +12,8 @@
   --font-display: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
-  --font-heading: 'Be Vietnam Pro', Georgia, serif;
+  --font-heading: 'Lora', 'Merriweather', 'Be Vietnam Pro', Georgia, serif;
+  --font-editorial: 'Lora', 'Merriweather', Georgia, serif;
 
   /* Bảng màu chuẩn @hallmark khóa cứng */
   --bg-canvas: #FAF7F2;      /* Giấy kem ấm di sản */
@@ -61,6 +62,13 @@ h1, h2, h3, h4, h5, h6 {
   overflow-wrap: anywhere;
   min-width: 0;
   color: var(--brand-primary);
+}
+
+/* Font chữ chuyên dùng cho Tiêu đề Báo chí chính luận (Lora / Merriweather sắc nét chuẩn tiếng Việt) */
+.font-editorial {
+  font-family: var(--font-editorial);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11", "kern";
+  text-rendering: optimizeLegibility;
 }
 
 /* Kỷ luật ô lưới và khung co giãn responsive */

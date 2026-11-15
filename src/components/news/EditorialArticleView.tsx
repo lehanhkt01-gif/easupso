@@ -251,6 +251,15 @@ export function EditorialArticleView({
     });
   }, [contentHtml]);
 
+  // Chuẩn hóa tiêu đề tiếng Việt: Hàn gắn dấu thanh rời rạc và chuẩn hóa Unicode NFC
+  const cleanTitle = useMemo(() => {
+    if (!title) return '';
+    return title
+      .replace(/\s*([\u0300-\u036f\u1dc0-\u1dff\u1ab0-\u1aff\u20d0-\u20ff])\s*/g, '$1')
+      .normalize('NFC')
+      .trim();
+  }, [title]);
+
   // THUẬT TOÁN DÀN TRANG HÌNH ẢNH THÔNG MINH BẢO ĐẢM HIỂN THỊ ĐẦY ĐỦ 100% ẢNH (Zero Dropped Images)
   const layout = useMemo(() => {
     const totalBlocks = parsedBlocks.length;
@@ -582,32 +591,39 @@ export function EditorialArticleView({
           </div>
         </div>
 
-        {/* TIÊU ĐỀ BÁO CHÍ (HEADLINE - TUYỆT ĐỐI KHÔNG IN NGHIÊNG) */}
-        <h1 className="font-serif text-2xl sm:text-3xl lg:text-[32px] font-bold text-[#1B4332] leading-[1.3] tracking-tight mb-3 break-words">
-          {title}
+        {/* TIÊU ĐỀ BÁO CHÍ (HEADLINE - CĂN GIỮA, FONT CHUẨN BÁO CHÍ LORA/MERRIWEATHER, TUYỆT ĐỐI KHÔNG IN NGHIÊNG) */}
+        <h1 className="font-editorial text-2xl sm:text-3xl lg:text-[34px] font-bold text-[#1B4332] leading-[1.35] tracking-tight mb-4 break-words text-center">
+          {cleanTitle}
         </h1>
 
-        {/* Thông tin metadata thời gian & lượt xem */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#E8E2D5] text-xs text-[#6B7C73]">
-          <div className="flex items-center gap-4 text-xs font-medium">
-            <span className="flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-[#C85A32]" />
-              <span>
-                {publishedAt
-                  ? new Date(publishedAt).toLocaleDateString('vi-VN', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                    })
-                  : 'Vừa đăng'}
-              </span>
+        {/* Thông tin metadata thời gian & lượt xem (Căn giữa đồng bộ trang báo) */}
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 pt-3 border-t border-[#E8E2D5] text-xs text-[#6B7C73]">
+          <span className="flex items-center gap-1.5 font-medium">
+            <Calendar className="w-3.5 h-3.5 text-[#C85A32]" />
+            <span>
+              {publishedAt
+                ? new Date(publishedAt).toLocaleDateString('vi-VN', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                  })
+                : 'Vừa đăng'}
             </span>
+          </span>
 
-            <span className="flex items-center gap-1">
-              <Eye className="w-3.5 h-3.5 text-[#6B7C73]" />
-              <span>{Number(viewCount) + 1}</span>
-            </span>
-          </div>
+          <span className="w-1 h-1 rounded-full bg-[#D5CBBA]" />
+
+          <span className="flex items-center gap-1 font-medium">
+            <Eye className="w-3.5 h-3.5 text-[#6B7C73]" />
+            <span>{Number(viewCount) + 1} lượt xem</span>
+          </span>
+
+          {authorName && (
+            <>
+              <span className="w-1 h-1 rounded-full bg-[#D5CBBA]" />
+              <span className="font-semibold text-[#1B4332]">{authorName}</span>
+            </>
+          )}
         </div>
       </div>
 
@@ -639,7 +655,7 @@ export function EditorialArticleView({
             <React.Fragment key={idx}>
               {/* Render Block */}
               {block.type === 'h2' && (
-                <h2 className="font-serif text-xl sm:text-2xl font-bold text-[#1B4332] mt-8 mb-4 pt-4 border-t border-[#E8E2D5] leading-snug">
+                <h2 className="font-editorial text-xl sm:text-2xl font-bold text-[#1B4332] mt-8 mb-4 pt-4 border-t border-[#E8E2D5] leading-snug">
                   {block.text}
                 </h2>
               )}

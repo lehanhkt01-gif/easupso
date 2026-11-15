@@ -752,7 +752,7 @@ export function NewsEditorModal({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Nhập tiêu đề bài viết (Vd: Hội Cựu chiến binh xã Ea Súp trao tặng nhà Nghĩa tình đồng đội tại Thôn Đoàn Kết...)"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#D5CBBA] bg-white text-sm font-bold text-[#14211B] focus:outline-none focus:ring-2 focus:ring-[#1B4332] leading-snug"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#D5CBBA] bg-white font-editorial text-base font-bold text-[#14211B] focus:outline-none focus:ring-2 focus:ring-[#1B4332] leading-snug"
               />
             </div>
 

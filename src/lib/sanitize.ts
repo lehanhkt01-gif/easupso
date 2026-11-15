@@ -28,6 +28,7 @@ const ALLOWED_ATTRIBUTES: Record<string, Set<string>> = {
 
 /**
  * Làm sạch chuỗi văn bản thông thường (tiêu đề, tên tác giả, tóm tắt)
+ * Tự động hàn gắn dấu thanh rời rạc và chuẩn hóa Unicode NFC chuẩn tiếng Việt
  */
 export function sanitizePlainText(input: unknown): string {
   if (typeof input !== 'string') return '';
@@ -35,6 +36,8 @@ export function sanitizePlainText(input: unknown): string {
   return input
     .replace(/<[^>]*>/g, '') // Loại bỏ toàn bộ thẻ HTML
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '') // Loại bỏ ký tự điều khiển độc hại ASCII, giữ nguyên vẹn Emoji (💐, 🎉, 🌸...) và Unicode tiếng Việt
+    .replace(/\s*([\u0300-\u036f\u1dc0-\u1dff\u1ab0-\u1aff\u20d0-\u20ff])\s*/g, '$1') // Nối liền các dấu thanh kết hợp bị rời rạc
+    .normalize('NFC') // Chuẩn hóa Unicode dựng sẵn tiếng Việt
     .trim();
 }
 

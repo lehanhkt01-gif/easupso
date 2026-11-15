@@ -54,9 +54,11 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
-        display: ["var(--font-outfit)", "system-ui", "sans-serif"],
-        heading: ["var(--font-heading)", "Georgia", "serif"],
+        sans: ["var(--font-inter)", "Plus Jakarta Sans", "system-ui", "sans-serif"],
+        display: ["var(--font-outfit)", "Be Vietnam Pro", "system-ui", "sans-serif"],
+        heading: ["var(--font-heading)", "Lora", "Merriweather", "Georgia", "serif"],
+        serif: ["Lora", "Merriweather", "Georgia", "serif"],
+        editorial: ["Lora", "Merriweather", "Georgia", "serif"],
       },
       boxShadow: {
         heritage: "0 4px 20px -2px rgba(27, 67, 50, 0.08)",
