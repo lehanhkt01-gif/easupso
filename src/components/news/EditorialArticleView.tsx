@@ -617,13 +617,6 @@ export function EditorialArticleView({
             <Eye className="w-3.5 h-3.5 text-[#6B7C73]" />
             <span>{Number(viewCount) + 1} lượt xem</span>
           </span>
-
-          {authorName && (
-            <>
-              <span className="w-1 h-1 rounded-full bg-[#D5CBBA]" />
-              <span className="font-semibold text-[#1B4332]">{authorName}</span>
-            </>
-          )}
         </div>
       </div>
 
